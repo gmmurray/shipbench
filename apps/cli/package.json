@@ -1,0 +1,27 @@
+{
+  "name": "shipbench",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "shipbench": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@shipbench/board": "workspace:*",
+    "@shipbench/core": "workspace:*",
+    "chokidar": "^5.0.0",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "gray-matter": "^4.0.3",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}

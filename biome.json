@@ -1,0 +1,103 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.wrangler",
+      "!**/coverage",
+      "!**/worker-configuration.d.ts",
+      "!**/src/routeTree.gen.ts",
+      "!**/*.astro",
+      "!**/*.svelte",
+      "!**/.shipbench/config.json",
+      "!**/.shipbench/layout.json"
+    ],
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "useEditorconfig": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noArrayIndexKey": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "nursery": {
+        "useSortedClasses": "off"
+      },
+      "a11y": {
+        "noLabelWithoutControl": "off",
+        "noSvgWithoutTitle": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "asNeeded",
+      "indentStyle": "space",
+      "indentWidth": 2
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/board/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@shipbench/core": {
+                    "importNames": [
+                      "byCreatedDesc",
+                      "byUpdatedDesc",
+                      "layoutAfterMove",
+                      "layoutWithoutTask",
+                      "orderedTasksForColumn",
+                      "FsAdapter",
+                      "GitHubAdapter",
+                      "GitHubApiError"
+                    ],
+                    "message": "Import layout values from '@shipbench/core/layout', never the core barrel: the barrel re-exports FsAdapter, which imports node:fs and breaks the Vite browser build. Adapters do not belong in the Board at all. Type-only imports from the barrel are fine and stay unrestricted."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

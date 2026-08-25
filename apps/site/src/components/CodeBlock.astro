@@ -1,0 +1,23 @@
+---
+interface Props {
+  class?: string;
+  copyable?: boolean;
+  label?: string;
+  lines: Array<{
+    comment?: boolean;
+    prompt?: string;
+    text?: string;
+  }>;
+}
+
+const {
+  class: className,
+  copyable = true,
+  label = 'Code example',
+  lines,
+} = Astro.props;
+---
+
+<pre class:list={className} data-code-block data-copy-disabled={copyable ? undefined : true} aria-label={label}><code>{lines.map((line, index) => (
+  <>{index > 0 && '\n'}{line.prompt && <><span class="prompt">{line.prompt}</span> </>}{line.comment ? <span class="comment">{line.text}</span> : line.text}</>
+))}</code></pre>

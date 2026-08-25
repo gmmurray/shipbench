@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import HeroWorkspaceWindow from '../components/HeroWorkspaceWindow.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+import LocalInterfaceIcon from '../components/LocalInterfaceIcon.astro';
+import { SITE_CONFIG } from '../config/site';
+
+const quickstartSnippet = [
+  { comment: true, text: '# 1. Initialize ShipBench' },
+  { prompt: '›', text: 'npx shipbench init' },
+  {},
+  { comment: true, text: '# 2. Create the first task' },
+  { prompt: '›', text: 'npx shipbench task create "Build landing page" --priority=high' },
+  {},
+  { comment: true, text: '# 3. Open the local board' },
+  { prompt: '›', text: 'npx shipbench board' },
+];
+
+const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
+---
+
+<BaseLayout
+  title={SITE_CONFIG.title}
+  description={SITE_CONFIG.description}
+>
+  <Header />
+
+  {/* tabindex="-1" is what makes the skip link actually move focus. Fragment
+      navigation alone only sets the sequential-focus starting point, so
+      document.activeElement stays on <body> and a screen reader is not taken
+      anywhere. Not keyboard-reachable — -1 keeps it out of the tab order. */}
+  <main id="main-content" tabindex="-1">
+    <!-- Hero Section -->
+    <section class="hero page-width">
+      <span class="hero-badge">Plans that ship with the work</span>
+      <h1>Everything else lives in your repository. <span>So should the plan.</span></h1>
+      <p class="subhead">
+        Standing up a tracker for every new project costs more than it's worth, so most projects never get one. ShipBench makes the repository itself the board — Markdown tasks, Git history, nothing to sign up for.
+      </p>
+
+      <div class="hero-cta">
+        <a class="button primary" href="#start">Get Started</a>
+        <a class="button" href="/docs/overview">Read the Docs</a>
+        <a class="button" href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+
+      <!-- Integrated Hero Workspace Preview -->
+      <HeroWorkspaceWindow />
+    </section>
+
+    {/* Deliberately the one section on the page that is prose rather than a
+        container. Everything around it — the hero window, the fact strip, the
+        card grid, the quickstart terminal — is a box, and boxes get scanned.
+        This is the only section that has to be read sentence by sentence, and
+        its argument runs on connective tissue that splitting into columns
+        would throw away. Placement is load-bearing too: after the hero it
+        motivates every section below it, and anywhere later it is a box the
+        reader has no reason to stop at. */}
+    <section class="section-padding page-width why-shipbench">
+      <div class="section-head">
+        <div class="section-badge">Why ShipBench</div>
+        <h2>Working solo doesn't mean working small anymore.</h2>
+      </div>
+
+      <div class="why-prose">
+        <p>
+          A developer working alone with AI now keeps several workstreams moving at once, often across more than one repository. The output scaled. The tools for tracking it didn't.
+        </p>
+        <p>
+          That leaves two bad fits. Hosted project tools are built to coordinate people, so most of what you configure is overhead for a team you don't have — and you pay it again with every new project. Todo lists have the opposite problem: they sit in the right place but hold no state, so they drift out of sync within a week and stop being worth reading.
+        </p>
+        <p class="why-premise">
+          Your repository already holds your code, your documentation, and your architecture decisions. The plan belongs there too.
+        </p>
+        <p>
+          So ShipBench keeps it there — Markdown tasks with real structure, versioned alongside the work they describe, readable by your editor, your terminal, and the agents already working in the repo.
+        </p>
+        <p class="why-proof">
+          ShipBench runs on ShipBench: this page began as a task in <a href={boardUrl} target="_blank" rel="noopener">the repository that builds it</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="section-padding page-width how-it-works">
+      <div class="section-head">
+        <div class="section-badge">How It Works</div>
+        <h2>Your project plan stays part of the project.</h2>
+        <p>
+          ShipBench adds a small, self-contained project system to any Git repository.
+        </p>
+      </div>
+
+      <div class="system-facts">
+        <article class="system-fact">
+          <span class="system-fact-label">Storage</span>
+          <h3>Lives in the repository</h3>
+          <p><code>.shipbench/</code> keeps tasks, configuration, layout, and project guidance beside your code.</p>
+        </article>
+
+        <article class="system-fact">
+          <span class="system-fact-label">Structure</span>
+          <h3>Readable by people and tools</h3>
+          <p>Each task combines Markdown prose with YAML metadata for status, priority, dependencies, and timestamps.</p>
+        </article>
+
+        <article class="system-fact">
+          <span class="system-fact-label">Durability</span>
+          <h3>Carried by Git</h3>
+          <p>Commits record the history, branches carry planning changes, and every clone remains usable without a hosted service.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Local Interfaces Section -->
+    <section class="section-padding page-width">
+      <div class="section-head">
+        <div class="section-badge">Three Local Interfaces</div>
+        <h2>Choose the surface that fits the moment.</h2>
+        <p>
+          Each interface reads and changes the same project files. Move between them without syncing or translating your work.
+        </p>
+      </div>
+
+      <div class="local-interface-grid">
+        <article class="local-interface-card">
+          <div class="local-interface-icon"><LocalInterfaceIcon kind="file" /></div>
+          <h3>Direct Markdown</h3>
+          <p>
+            Open any task in your editor to read the full context or make a direct change.
+          </p>
+        </article>
+
+        <article class="local-interface-card">
+          <div class="local-interface-icon"><LocalInterfaceIcon kind="dashboard" /></div>
+          <h3>Local Board</h3>
+          <p>
+            Scan the project, move tasks, and set their order in a live Kanban view.
+          </p>
+        </article>
+
+        <article class="local-interface-card">
+          <div class="local-interface-icon"><LocalInterfaceIcon kind="code" /></div>
+          <h3>ShipBench CLI</h3>
+          <p>
+            List the next task, inspect dependencies, and make validated updates from your terminal or coding agent.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Quickstart Section -->
+    <section class="section-padding page-width" id="start">
+      <div class="section-head">
+        <div class="section-badge">Quickstart</div>
+        <h2>Three commands to make any repository a ShipBench project.</h2>
+        <p>Initialize ShipBench, create the first task, and open the local board—no account or API key required.</p>
+      </div>
+
+      <div class="quickstart-box">
+        <div class="quickstart-head">
+          <span>SHIPBENCH CLI QUICKSTART</span>
+          <span>~/code/my-project</span>
+        </div>
+        <CodeBlock
+          class="quickstart-code"
+          copyable={false}
+          label="ShipBench CLI quickstart"
+          lines={quickstartSnippet}
+        />
+      </div>
+      <a class="quickstart-more-link" href="/docs/quickstart">Full quickstart guide &rarr;</a>
+    </section>
+
+    <!-- Harbor Teaser Section -->
+    <section class="section-padding page-width">
+      <div class="harbor-banner">
+        <div class="harbor-info">
+          <div class="section-badge" style="color: var(--accent);">ShipBench Harbor</div>
+          <h2>Shape ideas before a repository exists. View projects after it does.</h2>
+          <p>
+            ShipBench Harbor is the optional hosted client. Capture and organize ideas, then view public GitHub-backed project boards in read-only mode. Every ShipBench task stays in its repository.
+          </p>
+        </div>
+        <a class="button primary" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">Open ShipBench Harbor</a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

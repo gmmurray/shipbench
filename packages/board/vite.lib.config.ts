@@ -1,0 +1,25 @@
+import { resolve } from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  build: {
+    outDir: 'dist',
+    // dist also contains the standalone app consumed by the CLI. The package
+    // build owns the one clean that happens before either Vite build runs.
+    emptyOutDir: false,
+    lib: {
+      entry: resolve(__dirname, 'src/index.tsx'),
+      formats: ['es'],
+      fileName: 'index',
+      cssFileName: 'styles',
+    },
+    rollupOptions: {
+      // Hosts must provide one React instance. Include the subpaths generated
+      // by the JSX transform and createRoot so they cannot be bundled either.
+      external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
+    },
+  },
+});

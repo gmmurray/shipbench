@@ -1,0 +1,248 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import DocsSearch from '../../components/DocsSearch.astro';
+import { SITE_CONFIG } from '../../config/site';
+import { formatDate, getReadingTime } from '../../utils/docs';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map((doc) => ({
+    params: { slug: doc.id },
+    props: { doc },
+  }));
+}
+
+const { doc } = Astro.props;
+const { Content, headings } = await render(doc);
+
+// Dynamic reading time and date formatting
+const readTime = getReadingTime(doc.body || '');
+const formattedDate = formatDate(doc.data.updated);
+
+// Fetch all docs for navigation and pagination
+const allDocs = await getCollection('docs');
+
+// Group docs for sidebar
+const groupsMap = new Map<string, typeof allDocs>();
+allDocs.forEach((item) => {
+  const g = item.data.group || 'General';
+  if (!groupsMap.has(g)) {
+    groupsMap.set(g, []);
+  }
+  groupsMap.get(g)!.push(item);
+});
+
+// Sort items in each group by order
+const groupOrder = new Map([
+  ['Getting Started', 0],
+  ['Guides', 1],
+  ['Workflows', 2],
+  ['Reference', 3],
+]);
+const groups = Array.from(groupsMap.entries())
+  .map(([name, items]) => {
+    items.sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+    return { name, items };
+  })
+  .sort(
+    (a, b) =>
+      (groupOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER) -
+        (groupOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER) ||
+      a.name.localeCompare(b.name),
+  );
+
+// Find first item in current doc's group for breadcrumb link
+const currentGroupObj = groups.find((g) => g.name === doc.data.group);
+const groupFirstDoc = currentGroupObj ? currentGroupObj.items[0] : null;
+
+// Flat ordered list for pagination
+const flatDocs = groups.flatMap((g) => g.items);
+const currentIndex = flatDocs.findIndex((d) => d.id === doc.id);
+const prevDoc = currentIndex > 0 ? flatDocs[currentIndex - 1] : null;
+const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] : null;
+---
+
+<BaseLayout
+  title={`${doc.data.title} — ${SITE_CONFIG.name} Docs`}
+  description={doc.data.description || SITE_CONFIG.description}
+>
+  <Header isDocs={true} />
+  <DocsSearch />
+
+  <!-- Mobile Docs Top Bar & Drawer -->
+  <div class="mobile-docs-bar">
+    <button class="mobile-docs-btn" id="mobile-docs-toggle" type="button" aria-expanded="false">
+      <span>Documentation Navigation</span>
+      <svg class="disc-marker" width="10" height="10" aria-hidden="true"><use href="#disc"></use></svg>
+    </button>
+  </div>
+  <div class="mobile-docs-drawer" id="mobile-docs-drawer">
+    {groups.map((group) => (
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">{group.name}</div>
+        <div class="sidebar-links">
+          {group.items.map((item) => {
+            const isActive = item.id === doc.id;
+            return (
+              <a
+                class={`sidebar-link ${isActive ? 'active' : ''}`}
+                href={`/docs/${item.id}`}
+              >
+                <span>{item.data.title}</span>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div class="docs-shell">
+    <!-- Left Sidebar Nav -->
+    <aside class="sidebar" aria-label="Documentation Navigation">
+      <div class="sidebar-inner">
+        {groups.map((group) => (
+          <div class="sidebar-group">
+            <div class="sidebar-group-title">{group.name}</div>
+            <div class="sidebar-links">
+              {group.items.map((item) => {
+                const isActive = item.id === doc.id;
+                return (
+                  <a
+                    class={`sidebar-link ${isActive ? 'active' : ''}`}
+                    href={`/docs/${item.id}`}
+                  >
+                    <span>{item.data.title}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <!-- data-pagefind-body scopes the search index to docs pages only, keeping
+         the landing page out of results. The chrome inside it is ignored
+         individually so breadcrumbs and "Next →" cards never match a query. -->
+    <main class="doc-content" id="main-content" tabindex="-1" data-pagefind-body>
+      <nav class="breadcrumb" aria-label="Breadcrumb navigation" data-pagefind-ignore>
+        <a class="crumb-link" href="/docs/overview">Docs</a>
+        <span class="crumb-chev">›</span>
+        {groupFirstDoc ? (
+          <a class="crumb-link" href={`/docs/${groupFirstDoc.id}`}>{doc.data.group}</a>
+        ) : (
+          <span class="crumb-text">{doc.data.group}</span>
+        )}
+        <span class="crumb-chev">›</span>
+        <strong class="crumb-current">{doc.data.title}</strong>
+      </nav>
+
+      <h1 class="doc-title">{doc.data.title}</h1>
+
+      <div class="doc-meta" data-pagefind-ignore>
+        {formattedDate && (
+          <>
+            <span>Updated {formattedDate}</span>
+            <span>•</span>
+          </>
+        )}
+        <span>{readTime}</span>
+        <span>•</span>
+        <span>shipbench v{SITE_CONFIG.version}</span>
+      </div>
+
+      <article class="prose">
+        <Content />
+      </article>
+
+      <!-- Page Pagination Links -->
+      <nav class="doc-pagination" aria-label="Doc page pagination" data-pagefind-ignore>
+        {prevDoc ? (
+          <a class="pagination-card" href={`/docs/${prevDoc.id}`}>
+            <div class="pagination-dir">← Previous</div>
+            <div class="pagination-title">{prevDoc.data.title}</div>
+          </a>
+        ) : <div />}
+
+        {nextDoc ? (
+          <a class="pagination-card next" href={`/docs/${nextDoc.id}`}>
+            <div class="pagination-dir">Next →</div>
+            <div class="pagination-title">{nextDoc.data.title}</div>
+          </a>
+        ) : <div />}
+      </nav>
+    </main>
+
+    <!-- Right Table of Contents Sidebar -->
+    <aside class="toc-sidebar" aria-label="On this page">
+      <div class="toc-inner">
+        <div class="toc-title">On this page</div>
+        <nav class="toc-links">
+          {headings.filter((h) => h.depth <= 3).map((heading) => (
+            <a class={`toc-link toc-depth-${heading.depth}`} href={`#${heading.slug}`}>
+              {heading.text}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </aside>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  // The docs-drawer toggle lives in scripts/nav.ts alongside the header one.
+  // What stays here is prose enhancement, which is genuinely per-page work.
+  const prose = document.querySelector('.prose');
+  if (prose) {
+    const copyStatus = document.createElement('span');
+    copyStatus.className = 'heading-link-status';
+    copyStatus.setAttribute('role', 'status');
+    copyStatus.setAttribute('aria-live', 'polite');
+    prose.prepend(copyStatus);
+
+    prose.querySelectorAll('h2[id], h3[id]').forEach((heading) => {
+      const anchor = document.createElement('a');
+      const headingLabel = heading.textContent?.trim() || 'section';
+      anchor.className = 'heading-anchor';
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = '#';
+      anchor.title = 'Copy link to this section';
+      anchor.setAttribute('aria-label', `Copy link to ${headingLabel}`);
+      heading.append(anchor);
+    });
+
+    prose.querySelectorAll('table').forEach((table) => {
+      const wrapper = document.createElement('div');
+      const columnLabels = Array.from(table.querySelectorAll('th'))
+        .map((header) => header.textContent?.trim())
+        .filter(Boolean)
+        .join(', ');
+
+      wrapper.className = 'table-scroll';
+      wrapper.tabIndex = 0;
+      wrapper.setAttribute('role', 'region');
+      wrapper.setAttribute('aria-label', columnLabels ? `${columnLabels} table` : 'Scrollable table');
+      table.before(wrapper);
+      wrapper.append(table);
+    });
+
+    prose.addEventListener('click', async (event) => {
+      if (!(event.target instanceof Element)) return;
+
+      const anchor = event.target.closest('.heading-anchor');
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+
+      try {
+        await navigator.clipboard.writeText(anchor.href);
+        copyStatus.textContent = `Link copied to ${anchor.parentElement?.textContent?.replace(/#$/, '').trim() || 'section'}`;
+      } catch {
+        // The native anchor navigation still provides a usable permalink when
+        // clipboard access is unavailable or denied.
+      }
+    });
+  }
+</script>

@@ -1,0 +1,342 @@
+/* Docs Shell Layout */
+.docs-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 220px;
+  margin: 0 auto;
+  min-height: calc(100vh - 65px);
+  width: 100%;
+  max-width: 1300px;
+  box-sizing: border-box;
+}
+
+/* Left Sidebar Nav */
+.sidebar {
+  border-right: 1px solid var(--iron);
+  background: var(--canvas);
+}
+
+.sidebar-inner,
+.toc-inner {
+  position: sticky;
+  /* The outer header is its 64px inner box plus a 1px bottom border. */
+  top: 65px;
+  max-height: calc(100vh - 65px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.sidebar-inner {
+  padding: 32px 20px;
+}
+
+.sidebar-group {
+  margin-bottom: 28px;
+}
+
+.sidebar-group-title {
+  color: var(--silver);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-left: 8px;
+  font-family: var(--font-intel-mono), monospace;
+}
+
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  color: var(--silver);
+  border-radius: 2px;
+  font-size: 12px;
+  text-decoration: none;
+  transition: 0.15s ease;
+  font-family: var(--font-intel-mono), monospace;
+}
+
+.sidebar-link:hover {
+  color: var(--frosted);
+  background: var(--surface);
+}
+
+.sidebar-link.active {
+  color: var(--frosted);
+  background: var(--accent-soft);
+  border-left: 2px solid var(--accent);
+  font-weight: 500;
+}
+
+/* Mobile Docs Nav Bar & Drawer */
+.mobile-docs-bar {
+  display: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--iron);
+  padding: 10px 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-docs-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  color: var(--frosted);
+  background: var(--canvas);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mobile-docs-btn:hover {
+  border-color: var(--ironlit);
+}
+
+.mobile-docs-drawer {
+  display: none;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--iron);
+  padding: 20px 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-docs-drawer.open {
+  display: block;
+}
+
+/* The docs nav is finger-driven only inside this drawer — the desktop sidebar
+   uses the same .sidebar-link at a comfortable pointer size, so the 44px
+   minimum is scoped here rather than applied to the shared class. */
+.mobile-docs-drawer .sidebar-link {
+  min-height: 44px;
+}
+
+/* Main Article Content */
+.doc-content {
+  padding: 40px 56px 80px;
+  max-width: 820px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Breadcrumbs with clickable non-current-page links */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 20px;
+  color: var(--silver);
+  font-size: 11px;
+  font-family: var(--font-intel-mono), monospace;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.crumb-link {
+  color: var(--silver);
+  text-decoration: none;
+  transition: 0.15s ease;
+}
+
+.crumb-link:hover {
+  color: var(--frosted);
+  text-decoration: underline;
+}
+
+.crumb-text {
+  color: var(--silver);
+}
+
+.crumb-current {
+  color: var(--frosted);
+  font-weight: 600;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.crumb-chev {
+  color: var(--iron);
+}
+
+.doc-title {
+  margin: 0 0 12px;
+  font-size: clamp(22px, 5vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  color: color-mix(in srgb, var(--silver) 65%, transparent);
+  border-bottom: 1px solid var(--divider);
+  font-size: 11px;
+  font-family: var(--font-intel-mono), monospace;
+  max-width: 100%;
+}
+
+/* Pagination Links Footer */
+.doc-pagination {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--iron);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pagination-card {
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: 0.15s ease;
+}
+
+.pagination-card:hover {
+  border-color: var(--ironlit);
+  background: var(--surface2);
+}
+
+.pagination-card.next {
+  text-align: right;
+}
+
+.pagination-dir {
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.pagination-title {
+  margin-top: 4px;
+  color: var(--frosted);
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Right Table of Contents */
+.toc-sidebar {
+  border-left: 1px solid var(--divider);
+  background: var(--canvas);
+}
+
+.toc-inner {
+  padding: 32px 20px;
+}
+
+.toc-title {
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.toc-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toc-link {
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: 0.15s ease;
+}
+
+/* Weight and indentation carry the depth hierarchy; colour does not. --frosted
+   is the active/hover signal across both sidebars, so spending it on a resting
+   state made every h2 read as selected and left hover with nowhere to go. The
+   left sidebar is the more primary navigation and rests at --silver — this one
+   should not outrank it. */
+.toc-depth-2 {
+  font-weight: 500;
+}
+
+/* Depth-3 used to step down to 10px, below the doctrine's 11px small-text
+   floor. Indentation already carries the level, so the size step was spending
+   legibility on information the layout already gave away. */
+.toc-depth-3 {
+  padding-left: 12px;
+}
+
+.toc-link:hover {
+  color: var(--frosted);
+}
+
+/* Mobile Breakpoints */
+@media (max-width: 1120px) {
+  .docs-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .toc-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .docs-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-docs-bar {
+    display: block;
+  }
+
+  .doc-content {
+    padding: 20px 14px 40px;
+  }
+
+  .doc-pagination {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-card.next {
+    text-align: left;
+  }
+}

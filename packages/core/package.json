@@ -1,0 +1,46 @@
+{
+  "name": "@shipbench/core",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./layout": {
+      "types": "./src/layout.ts",
+      "import": "./src/layout.ts"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./layout": {
+        "types": "./dist/layout.d.ts",
+        "import": "./dist/layout.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/layout.ts --format esm --dts",
+    "dev": "tsup src/index.ts src/layout.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  }
+}

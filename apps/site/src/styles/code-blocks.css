@@ -1,0 +1,82 @@
+/* Shiki syntax colors ------------------------------------------------------
+ *
+ * `markdown.shikiConfig` runs dual themes with `defaultColor: 'dark'`, so every
+ * token carries dark in an inline `color` plus a `--shiki-light` custom
+ * property. Inline styles outrank any stylesheet rule, so the theme swap has to
+ * be `!important` — that is a property of how Shiki emits, not a specificity
+ * shortcut.
+ *
+ * Dark needs no rule: it is the inline default.
+ */
+
+.astro-code {
+  /* `.prose pre` already asks for --surface; Shiki's inline background was
+   * quietly winning, which is why code blocks sat on #24292e instead of the
+   * palette. Reassert it for both themes. */
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Shiki's inline style */
+  background-color: var(--surface) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .astro-code,
+  :root:not([data-theme]) .astro-code span {
+    /* biome-ignore lint/complexity/noImportantStyles: overrides Shiki's inline style */
+    color: var(--shiki-light) !important;
+  }
+}
+
+:root[data-theme="light"] .astro-code,
+:root[data-theme="light"] .astro-code span {
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Shiki's inline style */
+  color: var(--shiki-light) !important;
+}
+
+pre.copy-enabled {
+  position: relative;
+}
+
+.code-copy-button {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  min-width: 56px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  color: var(--silver);
+  background: var(--surface2);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  font-family:
+    var(--font-intel-mono), "Intel One Mono", "IBM Plex Mono", ui-monospace,
+    monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.code-copy-button:hover {
+  color: var(--frosted);
+  background: var(--surface);
+  border-color: var(--ironlit);
+}
+
+.code-copy-button[data-copy-state="copied"] {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.code-copy-button[data-copy-state="failed"] {
+  color: var(--warning);
+  border-color: var(--warning);
+}

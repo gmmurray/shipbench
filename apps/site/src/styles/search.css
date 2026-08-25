@@ -1,0 +1,268 @@
+/* Docs search — trigger affordances and the Pagefind-backed modal.
+   Geometry follows the doctrine: 2px radii, 1px iron borders, mono labels. */
+
+/* Desktop trigger — was a dead <div>, now a real button. */
+.quick-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--silver);
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  font-size: 11px;
+  width: 220px;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.15s ease;
+}
+
+.quick-search:hover {
+  color: var(--frosted);
+  border-color: var(--ironlit);
+}
+
+.quick-search-icon {
+  flex-shrink: 0;
+  color: var(--ironlit);
+}
+
+.search-kbd {
+  margin-left: auto;
+  padding: 1px 4px;
+  color: var(--silver);
+  background: var(--surface2);
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Compact trigger for the mobile header bar, where .quick-search is hidden. */
+.mobile-search-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  /* 44px minimum touch target. */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--frosted);
+  background: var(--surface2);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.mobile-search-btn:hover {
+  border-color: var(--ironlit);
+}
+
+/* Full-width trigger inside the mobile nav drawer. */
+.mobile-nav-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--silver);
+  background: var(--surface2);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-nav-search:hover {
+  color: var(--frosted);
+  border-color: var(--ironlit);
+}
+
+@media (max-width: 760px) {
+  .quick-search {
+    display: none;
+  }
+
+  .mobile-search-btn {
+    display: inline-flex;
+  }
+}
+
+/* Modal ------------------------------------------------------------------ */
+
+.search-modal {
+  /* showModal() centers via the dialog's own box; stretching it to the viewport
+     makes the whole backdrop area a click target for dismissal. */
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--frosted);
+  overflow: hidden;
+}
+
+.search-modal::backdrop {
+  background: var(--overlay);
+  backdrop-filter: blur(3px);
+}
+
+.search-modal-form {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100% - 32px));
+  max-height: min(520px, calc(100dvh - 96px));
+  margin: 72px auto 0;
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+  box-shadow: var(--shadow-dialog);
+  overflow: hidden;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0;
+}
+
+.search-field-icon {
+  flex-shrink: 0;
+  color: var(--ironlit);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  color: var(--frosted);
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-family: var(--font-plex-sans), sans-serif;
+  font-size: 15px;
+}
+
+.search-input::placeholder {
+  color: var(--ironlit);
+}
+
+/* The type="search" clear affordance duplicates Esc and breaks the mono row. */
+.search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-close {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  color: var(--silver);
+  background: var(--surface2);
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.search-close:hover {
+  color: var(--frosted);
+  border-color: var(--iron);
+}
+
+.search-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.search-status {
+  margin: 0;
+  padding: 20px 16px;
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.search-results {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.search-result.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.search-result-title {
+  color: var(--frosted);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-result-excerpt {
+  color: var(--silver);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.search-result-excerpt mark {
+  color: var(--frosted);
+  background: var(--accent-soft);
+  border-radius: 2px;
+}
+
+/* Was --ironlit at 10px: 4.11:1 on this --surface ground, under WCAG 1.4.3's
+   4.5:1. --silver clears it at 7.12:1 dark / 7.42:1 light, and 11px is the
+   doctrine's small-text floor. Same edit --tab-hint took. */
+.search-foot {
+  display: flex;
+  gap: 16px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--divider);
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.search-foot kbd {
+  margin-right: 3px;
+  padding: 1px 4px;
+  background: var(--surface2);
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+}
+
+@media (max-width: 760px) {
+  .search-modal-form {
+    margin-top: 16px;
+    max-height: calc(100dvh - 32px);
+  }
+
+  .search-foot {
+    display: none;
+  }
+}

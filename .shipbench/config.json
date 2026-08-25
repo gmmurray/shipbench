@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "name": "shipbench",
+  "columns": [
+    {
+      "id": "backlog",
+      "label": "Backlog"
+    },
+    {
+      "id": "todo",
+      "label": "To Do"
+    },
+    {
+      "id": "in-progress",
+      "label": "In Progress"
+    },
+    {
+      "id": "review",
+      "label": "Review"
+    },
+    {
+      "id": "done",
+      "label": "Done"
+    }
+  ],
+  "default_column": "todo",
+  "done_column": "done",
+  "done_display": {
+    "max": 20
+  },
+  "priority": {
+    "values": ["low", "medium", "high"],
+    "default": "medium"
+  },
+  "schema": {
+    "custom_fields": {}
+  }
+}

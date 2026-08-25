@@ -1,0 +1,31 @@
+{
+  "name": "shipbench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter \"./packages/**\" --filter \"./apps/cli\" run build",
+    "dev": "pnpm --filter \"./packages/**\" --filter \"./apps/cli\" run dev",
+    "typecheck": "tsc -p tests/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json --noEmit && pnpm -r run typecheck",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "generate:icons": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/brand/generate.ts",
+    "generate:og": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/og/generate.ts",
+    "generate:brand": "pnpm generate:icons && pnpm generate:og"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.1",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.0.1",
+    "@vitest/coverage-v8": "4.1.9",
+    "typescript": "^5.9.3",
+    "vitest": "4.1.9"
+  }
+}

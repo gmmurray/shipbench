@@ -1,0 +1,116 @@
+---
+import { SITE_CONFIG } from '../config/site';
+import ThemeToggle from './ThemeToggle.svelte';
+
+interface Props {
+  isDocs?: boolean;
+}
+
+const { isDocs = false } = Astro.props;
+---
+
+<header class="header">
+  <div class={isDocs ? "header-inner docs-header-inner" : "header-inner page-width"}>
+    <div class="brand-group">
+      <a class="brand" href="/">
+        {/* Decorative: the adjacent <span> already names the link, so a
+            described mark would make the accessible name "ShipBench logo
+            ShipBench". Inlined via <use> rather than <img src="/logo.svg"> so
+            the mark inherits the theme tokens instead of shipping a baked
+            dark tile that reads as a black badge in light mode. */}
+        <svg class="brand-mark" aria-hidden="true"><use href="#logo"></use></svg>
+        <span>{SITE_CONFIG.name}</span>
+      </a>
+      {/* The version belongs to ShipBench, not to the documentation, so it sits
+          bare next to the wordmark rather than being labelled "Docs". */}
+      {isDocs && <span class="badge-docs">v{SITE_CONFIG.version}</span>}
+    </div>
+
+    {isDocs ? (
+      <div class="header-right">
+        {/* Links first, then the controls. Search used to lead, which left the
+            links sandwiched between two controls instead of grouping like with
+            like. "Home" rather than "Overview": this header only renders inside
+            the docs, where /docs/overview is also reachable, and two different
+            destinations called Overview is a coin flip for the reader. */}
+        <nav class="nav-links desktop-nav" aria-label="Main navigation">
+          <a href="/">Home</a>
+          <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+          <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <button class="quick-search" type="button" data-search-open aria-label="Search documentation" aria-keyshortcuts="Meta+K Control+K">
+          <svg class="quick-search-icon" width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+          </svg>
+          <span>Search docs...</span>
+          <kbd class="search-kbd" data-search-kbd hidden></kbd>
+        </button>
+        <div class="theme-toggle-slot desktop-nav">
+          <ThemeToggle client:load />
+        </div>
+        <button class="mobile-search-btn" type="button" data-search-open aria-label="Search documentation">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+          </svg>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu" type="button" aria-expanded="false">
+          <span>Menu</span>
+          <svg class="disc-marker" width="10" height="10" aria-hidden="true"><use href="#disc"></use></svg>
+        </button>
+      </div>
+    ) : (
+      <>
+        <div class="header-actions desktop-nav">
+          <a class="nav-link" href="/docs/overview">Docs</a>
+          <a class="nav-link" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+          <a class="nav-link" href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
+          <ThemeToggle client:load />
+          <a class="button primary" href="#start">Get Started</a>
+        </div>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu" type="button" aria-expanded="false">
+          <span>Menu</span>
+          <svg class="disc-marker" width="10" height="10" aria-hidden="true"><use href="#disc"></use></svg>
+        </button>
+      </>
+    )}
+  </div>
+
+  <!-- Mobile Navigation Menu Drawer -->
+  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+    {isDocs ? (
+      <nav class="mobile-nav-links">
+        <button class="mobile-nav-search" type="button" data-search-open>
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <path d="M10.5 10.5 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+          </svg>
+          <span>Search docs...</span>
+        </button>
+        <a href="/">Home</a>
+        <a href="/docs/overview">Docs</a>
+        <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+        <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
+        <div class="mobile-nav-theme">
+          <span>Theme</span>
+          <ThemeToggle client:load />
+        </div>
+      </nav>
+    ) : (
+      <nav class="mobile-nav-links">
+        <a href="/docs/overview">Docs</a>
+        <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+        <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
+        <div class="mobile-nav-theme">
+          <span>Theme</span>
+          <ThemeToggle client:load />
+        </div>
+        <a class="button primary" href="#start">Get Started</a>
+      </nav>
+    )}
+  </div>
+</header>
+
+{/* The drawer toggle lives in scripts/nav.ts, loaded once by BaseLayout — one
+    delegated handler for this drawer and the docs one, plus close-on-nav-click. */}

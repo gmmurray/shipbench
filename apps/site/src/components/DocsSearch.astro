@@ -1,0 +1,15 @@
+---
+// Mount point for docs search: the Svelte island plus the vanilla page-level
+// glue it deliberately does not own (global Cmd/Ctrl+K, header/drawer triggers,
+// platform-aware shortcut hint). Rendered once per docs page.
+//
+// Pagefind indexes the built HTML at build time — see the `build` script — and
+// exposes a JS API at /pagefind/pagefind.js in the published site.
+import SearchDialog from './SearchDialog.svelte';
+---
+
+<SearchDialog client:load />
+
+<script>
+  import '../scripts/search-triggers.js';
+</script>

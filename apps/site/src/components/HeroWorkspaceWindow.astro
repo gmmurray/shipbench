@@ -1,0 +1,224 @@
+---
+import CodeBlock from './CodeBlock.astro';
+
+const taskFileSnippet = [
+  { comment: true, text: '---' },
+  { text: 'title: Setup GitHub OAuth' },
+  { text: 'status: in-progress' },
+  { text: 'priority: high' },
+  { text: 'tags: [auth, backend]' },
+  { comment: true, text: '---' },
+  {},
+  { text: 'Configure Clerk provider for GitHub' },
+  { text: 'OAuth and sync user profile.' },
+];
+
+const cliWorkflowSnippet = [
+  { prompt: '›', text: 'shipbench task move setup-github-auth --to=review' },
+  { comment: true, text: '✔ updated status: review' },
+  { comment: true, text: '✔ updated timestamp: 2026-07-22T17:18:00Z' },
+  {},
+  { prompt: '›', text: 'shipbench task graph' },
+  { comment: true, text: '✔ 4 tasks, 0 dependency blocks' },
+];
+---
+
+<div class="hero-visual" role="group" aria-label="ShipBench workspace preview">
+  <div class="visual-header">
+    <div class="window-dots">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+    <span>.shipbench/tasks &amp; shipbench CLI</span>
+    {/* The hint sits outside the tablist on purpose: a tablist may only own
+        elements with role="tab", and a stray <span> inside it makes the whole
+        widget ill-formed for assistive tech. The wrapper keeps them visually
+        adjacent — the header is space-between, so an unwrapped hint drifts
+        into the middle of the title bar, away from what it describes. */}
+    <div class="visual-tabs-group">
+      <span class="tab-hint" aria-hidden="true">[switch view]</span>
+      <div class="visual-tabs" role="tablist" aria-label="Interactive view switcher">
+      {/* Roving tabindex: exactly one tab is in the page tab order, and Left /
+          Right / Home / End move between them. Tab itself moves *past* the
+          widget into the panel — that is the APG tabs pattern, not an
+          oversight. */}
+      <button
+        class="tab-btn active"
+        id="btn-board"
+        role="tab"
+        aria-selected="true"
+        aria-controls="view-board"
+        tabindex="0"
+        type="button"
+      >
+        Local Board
+      </button>
+      <button
+        class="tab-btn"
+        id="btn-split"
+        role="tab"
+        aria-selected="false"
+        aria-controls="view-split"
+        tabindex="-1"
+        type="button"
+      >
+        Markdown &amp; CLI
+      </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content 1: Live Kanban Board Visual -->
+  {/* `hidden` rather than a CSS-only class: a display:none-by-stylesheet panel
+      is still in the accessibility tree for some tooling, and screen readers
+      would announce both panels' contents. */}
+  <div
+    class="tab-content"
+    id="view-board"
+    role="tabpanel"
+    aria-labelledby="btn-board"
+    tabindex="0"
+  >
+    <div class="board-visual-body">
+      <div class="visual-sidebar">
+        <div class="sidebar-title">Terminal Control</div>
+        <div class="quick-cmd-box">
+          <code><span class="prompt">›</span> shipbench board</code>
+          <code><span class="comment">  [WS] watching files...</span></code>
+        </div>
+        <div class="sidebar-title">Repo Benefits</div>
+        <div class="feature-pill-list">
+          <div class="feature-pill active">
+            <span class="feature-pill-icon">✓</span>
+            <span>Local and offline</span>
+          </div>
+          <div class="feature-pill active">
+            <span class="feature-pill-icon">✓</span>
+            <span>Tracked by Git</span>
+          </div>
+          <div class="feature-pill active">
+            <span class="feature-pill-icon">✓</span>
+            <span>Readable by agents</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual-main">
+        <div class="board-grid-mini">
+          <div class="col-mini">
+            <div class="col-head-mini"><span>To Do</span> <span>02</span></div>
+            <div class="card-mini">
+              <div class="card-mini-title">Design landing hero</div>
+              <p>design-landing-hero</p>
+            </div>
+            <div class="card-mini">
+              <div class="card-mini-title">Write CLI docs</div>
+              <p>write-cli-docs</p>
+            </div>
+          </div>
+
+          <div class="col-mini">
+            <div class="col-head-mini"><span>In Progress</span> <span>01</span></div>
+            <div class="card-mini in-progress-card">
+              <div class="card-mini-title">Build core FsAdapter</div>
+              <p>build-core-fsadapter</p>
+            </div>
+          </div>
+
+          <div class="col-mini">
+            <div class="col-head-mini"><span>Review</span> <span>01</span></div>
+            <div class="card-mini">
+              <div class="card-mini-title">Add board hot-reload</div>
+              <p>add-board-hot-reload</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content 2: Raw Markdown & CLI Split View -->
+  <div
+    class="tab-content"
+    id="view-split"
+    role="tabpanel"
+    aria-labelledby="btn-split"
+    tabindex="0"
+    hidden
+  >
+    <div class="split-visual-body">
+      <div class="visual-pane">
+        <span class="pane-tag">Direct Markdown</span>
+        <div class="visual-pane-title">setup-github-auth.md</div>
+        <CodeBlock copyable={false} label="Example ShipBench task file" lines={taskFileSnippet} />
+      </div>
+
+      <div class="visual-pane">
+        <span class="pane-tag accent">ShipBench CLI</span>
+        <div class="visual-pane-title">Validated task updates</div>
+        <CodeBlock copyable={false} label="ShipBench CLI task workflow" lines={cliWorkflowSnippet} />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /**
+   * WAI-ARIA APG tabs pattern with automatic activation — arrowing to a tab
+   * selects it, which is the right choice here because switching panels is
+   * instant and has no cost to land on by accident.
+   */
+  function setupVisualTabs() {
+    const tablist = document.querySelector<HTMLElement>('.visual-tabs');
+    // astro:page-load also fires on the initial load when ClientRouter is
+    // present, so without this the first render binds every listener twice.
+    if (!tablist || tablist.dataset.tabsReady === 'true') return;
+    tablist.dataset.tabsReady = 'true';
+
+    const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    if (tabs.length === 0) return;
+
+    function select(index: number, moveFocus: boolean) {
+      tabs.forEach((tab, i) => {
+        const selected = i === index;
+        tab.setAttribute('aria-selected', String(selected));
+        // Only the selected tab stays in the page tab order.
+        tab.tabIndex = selected ? 0 : -1;
+        tab.classList.toggle('active', selected);
+
+        const panel = document.getElementById(
+          tab.getAttribute('aria-controls') ?? '',
+        );
+        if (panel) panel.hidden = !selected;
+      });
+
+      if (moveFocus) tabs[index]?.focus();
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(index, false));
+    });
+
+    tablist.addEventListener('keydown', event => {
+      const current = tabs.findIndex(tab => tab === document.activeElement);
+      if (current === -1) return;
+
+      // Wrap at both ends — a tablist is a loop, matching the search dialog's
+      // result list.
+      const next = {
+        ArrowRight: (current + 1) % tabs.length,
+        ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+        Home: 0,
+        End: tabs.length - 1,
+      }[event.key];
+
+      if (next === undefined) return;
+      event.preventDefault();
+      select(next, true);
+    });
+  }
+
+  setupVisualTabs();
+  document.addEventListener('astro:page-load', setupVisualTabs);
+</script>

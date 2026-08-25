@@ -1,0 +1,134 @@
+---
+import { Font } from 'astro:assets';
+import { ClientRouter } from 'astro:transitions';
+import IconSymbols from '../components/IconSymbols.astro';
+import { SITE_CONFIG } from '../config/site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = SITE_CONFIG.title,
+  description = SITE_CONFIG.description,
+} = Astro.props;
+
+// Static routes are emitted as directory indexes, so canonical URLs use one
+// trailing-slash convention and deliberately discard query strings.
+const canonicalPath =
+  Astro.url.pathname === '/'
+    ? '/'
+    : `${Astro.url.pathname.replace(/\/$/, '')}/`;
+const canonicalUrl = new URL(canonicalPath, Astro.site ?? SITE_CONFIG.url);
+const socialImageUrl = new URL(
+  SITE_CONFIG.socialImage,
+  Astro.site ?? SITE_CONFIG.url,
+);
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_CONFIG.name,
+  url: SITE_CONFIG.url,
+};
+---
+
+<!doctype html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow" />
+
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_CONFIG.name} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={SITE_CONFIG.socialImageAlt} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl} />
+    <meta name="twitter:image:alt" content={SITE_CONFIG.socialImageAlt} />
+
+    {Astro.url.pathname === '/' && (
+      <script
+        is:inline
+        type="application/ld+json"
+        set:html={JSON.stringify(websiteSchema)}
+      />
+    )}
+
+    {/* Keep the raster icon first: browsers that support SVG prefer the later
+        declaration, while older contexts can still use the PNG fallback. */}
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    {/* Mobile browser chrome. Static output cannot pick one at build time the
+        way Harbor's SSR does, so these follow the OS. A user whose explicit
+        choice opposes their OS keeps OS-colored chrome — same as today, and not
+        worth putting DOM work in the pre-paint path below for. */}
+    <meta name="theme-color" content="#18171c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ecedf2" media="(prefers-color-scheme: light)" />
+    {/* Theme bootstrap. Must stay inline, synchronous, and above the
+        stylesheet: the site is statically built, so there is no server to
+        render `data-theme` into the HTML the way Harbor does. Anything
+        deferred — a module script, an island, astro:page-load — runs after
+        first paint and flashes the wrong theme. Absent key means System,
+        which the media query in tokens.css resolves. */}
+    <script is:inline>
+      (function () {
+        function applyStoredTheme() {
+          try {
+            var t = localStorage.getItem('theme');
+            if (t === 'light' || t === 'dark') {
+              document.documentElement.dataset.theme = t;
+            } else {
+              document.documentElement.removeAttribute('data-theme');
+            }
+          } catch (_) {
+            /* Private mode can throw on localStorage; System is a fine fallback. */
+          }
+        }
+        applyStoredTheme();
+        // ClientRouter's swapRootAttributes strips every root attribute and
+        // copies the incoming document's — and static HTML never carries
+        // data-theme. astro:after-swap fires after that, so re-applying here
+        // wins. Registered once: Astro dedupes identical inline scripts across
+        // swaps by their text content.
+        document.addEventListener('astro:after-swap', applyStoredTheme);
+      })();
+    </script>
+    <Font cssVariable="--font-plex-sans" preload />
+    <Font cssVariable="--font-intel-mono" preload />
+    <ClientRouter />
+  </head>
+  <body>
+    {/* First focusable thing on the page, before the header's ~8 nav controls.
+        Hidden until focused (styles/components.css › .skip-link) rather than
+        display:none, which would take it out of the tab order entirely and
+        defeat the point. Both layouts put id="main-content" on their <main>. */}
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <IconSymbols />
+    <slot />
+    <script>
+      import '../scripts/code-copy';
+      import '../scripts/nav';
+    </script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"],
+    // The scripts run through `node --experimental-strip-types`, which resolves
+    // real specifiers rather than rewriting them — so imports carry a literal
+    // `.ts` extension. Safe to allow here because this project only typechecks.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["**/*.ts"]
+}

@@ -1,0 +1,337 @@
+@import "tailwindcss" source(none);
+
+/* Harbor consumes Board from a linked workspace package, which Tailwind does
+ * not scan automatically. Keep this stylesheet self-contained and deterministic
+ * in both the standalone and embedded builds. */
+@source ".";
+@source "../demo";
+
+/* Shared design tokens. The structural contrast correction intentionally lands
+ * ahead of the pending doctrine refresh. Color utilities keep the sb- prefix
+ * so the embedded build cannot collide with host classes, and route through
+ * --sb-* variables as the seam for future theming. */
+@theme {
+  --color-sb-canvas: var(--sb-canvas);
+  --color-sb-surface: var(--sb-surface);
+  --color-sb-surface2: var(--sb-surface2);
+  --color-sb-divider: var(--sb-divider);
+  --color-sb-iron: var(--sb-iron);
+  --color-sb-ironlit: var(--sb-ironlit);
+  --color-sb-silver: var(--sb-silver);
+  --color-sb-frosted: var(--sb-frosted);
+  --color-sb-accent: var(--sb-accent);
+  --color-sb-accent-hover: var(--sb-accent-hover);
+  --color-sb-accent-pressed: var(--sb-accent-pressed);
+  --color-sb-danger: var(--sb-danger);
+  --color-sb-success: var(--sb-success);
+  --color-sb-warning: var(--sb-warning);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    "Intel One Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --radius: 2px;
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+}
+
+:root {
+  color-scheme: dark;
+  --sb-canvas: #18171c;
+  --sb-surface: #1e1d24;
+  --sb-surface2: #232229;
+  --sb-divider: #2a2f44;
+  --sb-iron: #626b91;
+  --sb-ironlit: #747d9e;
+  --sb-silver: #aaa7ba;
+  --sb-frosted: #f7f5f7;
+
+  /* Accent — doing emphasis (primary action, focus, active/selected). */
+  --sb-accent: #6e79f2;
+  --sb-accent-hover: #8a93f5;
+  --sb-accent-pressed: #5a63d6;
+
+  /* Semantic — meaning only (never brand, status, or priority). */
+  --sb-danger: #e5605f;
+  --sb-success: #57b37e;
+  --sb-warning: #e3a34a;
+}
+
+/* Light theme — "blueprint paper". Values validated in spike-harbor-light-theme
+ * (WCAG-checked). Accent + semantics are per-theme: the inversion flips (dark =
+ * lighter indigo on dark ground; light = darker indigo on light ground). Button
+ * text stays `sb-canvas`, which itself flips, so text-on-accent stays legible in
+ * both themes with no per-component conditional. `system` = no data-theme attr,
+ * resolved by the media query; explicit light/dark override it. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --sb-canvas: #ecedf2;
+    --sb-surface: #ffffff;
+    --sb-surface2: #f3f3f8;
+    --sb-divider: #dcdce4;
+    --sb-iron: #84838f;
+    --sb-ironlit: #6c6b7a;
+    --sb-silver: #56545f;
+    --sb-frosted: #1b1a21;
+    --sb-accent: #4b52c7;
+    --sb-accent-hover: #3e45b5;
+    --sb-accent-pressed: #343b9e;
+    --sb-danger: #c4322f;
+    --sb-success: #2a7449;
+    --sb-warning: #8a5a00;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --sb-canvas: #ecedf2;
+  --sb-surface: #ffffff;
+  --sb-surface2: #f3f3f8;
+  --sb-divider: #dcdce4;
+  --sb-iron: #84838f;
+  --sb-ironlit: #6c6b7a;
+  --sb-silver: #56545f;
+  --sb-frosted: #1b1a21;
+  --sb-accent: #4b52c7;
+  --sb-accent-hover: #3e45b5;
+  --sb-accent-pressed: #343b9e;
+  --sb-danger: #c4322f;
+  --sb-success: #2a7449;
+  --sb-warning: #8a5a00;
+}
+
+/* Explicit dark override — beats a light-OS media query when the user forces
+ * dark. Mirrors the default :root dark values. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --sb-canvas: #18171c;
+  --sb-surface: #1e1d24;
+  --sb-surface2: #232229;
+  --sb-divider: #2a2f44;
+  --sb-iron: #626b91;
+  --sb-ironlit: #747d9e;
+  --sb-silver: #aaa7ba;
+  --sb-frosted: #f7f5f7;
+  --sb-accent: #6e79f2;
+  --sb-accent-hover: #8a93f5;
+  --sb-accent-pressed: #5a63d6;
+  --sb-danger: #e5605f;
+  --sb-success: #57b37e;
+  --sb-warning: #e3a34a;
+}
+
+@layer base {
+  button {
+    @apply hover:cursor-pointer;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--sb-iron);
+  color: var(--sb-frosted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--sb-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sb-iron);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-ironlit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint: canonical doctrine rule — reduced-motion must beat any component-level transition/animation */
+    transition: none !important;
+    /* biome-ignore lint: canonical doctrine rule — reduced-motion must beat any component-level transition/animation */
+    animation: none !important;
+  }
+}
+
+.sb-standalone {
+  margin: 0;
+  background: var(--sb-canvas);
+  color: var(--sb-frosted);
+}
+
+/* BoardHeader measures itself into this variable so embedded and standalone
+ * layouts share one responsive header-height source. The fallback covers the
+ * first layout pass before measurement. */
+.sb-board-root {
+  --sb-header-h: 65px;
+}
+
+/* Blueprint-grid canvas treatment. Applied to the Board root so the grid
+ * shows in both the standalone bundle and the Harbor embed. */
+.sb-canvas-grid {
+  background-color: var(--sb-canvas);
+  background-image:
+    linear-gradient(to right, rgba(42, 47, 68, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(42, 47, 68, 0.09) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Borderless editor caret (doctrine: Component primitives › Borderless editor). */
+.sb-editor {
+  caret-color: var(--sb-accent);
+}
+.sb-editor:focus {
+  outline: none;
+}
+
+/* Shared metadata form controls. These keep token inputs aligned with the
+ * doctrine's filled form-control and tag-chip primitives. */
+.sb-form-control {
+  @apply min-h-9 rounded border border-sb-iron bg-sb-surface2 transition-colors hover:border-sb-silver focus-within:border-sb-silver;
+}
+
+.sb-metadata-label {
+  @apply font-mono text-[11px] uppercase tracking-[0.14em] text-sb-silver;
+}
+
+.sb-metadata-token {
+  @apply rounded border border-sb-iron bg-sb-surface2 px-2 py-1 font-mono text-[11px] text-sb-silver;
+}
+
+.sb-token-action {
+  @apply inline-flex items-center justify-center rounded p-0 leading-none text-sb-silver transition-colors hover:text-sb-frosted focus-visible:text-sb-frosted;
+}
+
+.sb-combobox-list {
+  @apply absolute top-full z-30 mt-1 max-h-64 w-full overflow-y-auto rounded border border-sb-iron bg-sb-surface p-1;
+}
+
+.sb-combobox-option {
+  @apply cursor-default rounded px-2 py-1.5 font-mono text-[11px] text-sb-silver outline-none transition-colors hover:bg-sb-surface2 hover:text-sb-frosted aria-selected:bg-sb-surface2 aria-selected:text-sb-frosted;
+}
+
+.sb-error-shake {
+  animation: sb-shake 220ms ease-in-out;
+}
+
+.sb-markdown {
+  color: var(--sb-silver);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.sb-markdown > :first-child {
+  margin-top: 0;
+}
+
+.sb-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.sb-markdown :where(h1, h2, h3, h4) {
+  @apply mb-3 mt-7 font-sans font-semibold text-sb-frosted;
+}
+
+.sb-markdown h1 {
+  @apply text-2xl;
+}
+
+.sb-markdown h2 {
+  @apply text-xl;
+}
+
+.sb-markdown :where(h3, h4) {
+  @apply text-base;
+}
+
+.sb-markdown :where(p, ul, ol, pre, blockquote, table) {
+  @apply my-4;
+}
+
+.sb-markdown ul {
+  @apply list-disc pl-6;
+}
+
+.sb-markdown ol {
+  @apply list-decimal pl-6;
+}
+
+.sb-markdown li {
+  @apply my-1 pl-1;
+}
+
+.sb-markdown a {
+  @apply text-sb-silver underline decoration-sb-ironlit underline-offset-4 transition-colors hover:text-sb-frosted;
+}
+
+/* A repo-file link the host cannot point anywhere. Reads as a path, not a link. */
+.sb-markdown .sb-md-path {
+  @apply rounded bg-sb-surface2 px-1.5 py-0.5 font-mono text-[0.9em] text-sb-silver;
+}
+
+.sb-markdown blockquote {
+  @apply border-l-2 border-sb-divider pl-4 italic;
+}
+
+.sb-markdown code {
+  @apply rounded bg-sb-surface2 px-1.5 py-0.5 font-mono text-[0.9em] text-sb-frosted;
+}
+
+.sb-markdown pre {
+  @apply overflow-x-auto rounded border border-sb-iron bg-sb-surface2 p-4;
+}
+
+.sb-markdown pre code {
+  @apply bg-transparent p-0 text-[12px] leading-6;
+}
+
+.sb-markdown table {
+  @apply w-full border-collapse font-mono text-[12px];
+}
+
+.sb-markdown :where(th, td) {
+  @apply border border-sb-iron px-3 py-2 text-left;
+}
+
+.sb-markdown th {
+  @apply bg-sb-surface2 font-semibold text-sb-frosted;
+}
+
+.sb-markdown hr {
+  @apply my-7 border-sb-divider;
+}
+
+@keyframes sb-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
+}

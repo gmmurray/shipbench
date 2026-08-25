@@ -1,0 +1,12 @@
+{
+  "todo": [
+    "rewrite-the-public-repo-s-docs-surface-for-a-standalone-project",
+    "publish-readiness-files-license-readmes-scoped-access-metadata",
+    "ci-for-the-public-repo-typecheck-lint-vitest-and-the-playwright-decision",
+    "release-tooling-changesets-fixed-mode-and-the-provenance-publish-workflow",
+    "publish-v0-1-0-of-core-cli-and-board-from-the-public-repo"
+  ],
+  "backlog": [
+    "deploy-shipbench-dev-site-to-cloudflare-workers-static-assets"
+  ]
+}

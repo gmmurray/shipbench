@@ -1,0 +1,434 @@
+/* Landing Page Hero Section */
+.hero {
+  padding-top: 76px;
+  padding-bottom: 64px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  margin-bottom: 20px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 20px;
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 840px;
+  margin: 0 auto 20px;
+  font-size: clamp(30px, 6vw, 74px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.hero h1 span {
+  color: var(--silver);
+  font-weight: 400;
+}
+
+.hero p.subhead {
+  max-width: 660px;
+  margin: 0 auto 32px;
+  color: var(--silver);
+  font-size: clamp(15px, 2.5vw, 18px);
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Landing Section Common */
+.section-padding {
+  padding-block: 88px;
+  border-top: 1px solid var(--divider);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.section-head {
+  max-width: 720px;
+  margin-bottom: 48px;
+}
+
+.section-badge {
+  color: var(--silver);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-family: var(--font-intel-mono), monospace;
+}
+
+.section-head h2 {
+  margin: 0 0 16px;
+  font-size: clamp(24px, 4vw, 48px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.section-head p {
+  margin: 0;
+  color: var(--silver);
+  font-size: clamp(14px, 2vw, 16px);
+  line-height: 1.75;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Why ShipBench — the one prose section on a page of containers. It carries no
+   border, fill, or grid on purpose: the surrounding sections are all boxes, and
+   the absence of chrome is what makes this one read rather than scan.
+   The width cap is not incidental. Past roughly 75 characters a line, the eye
+   loses its place on the return sweep, so full-bleed paragraphs would read worse
+   than the cards around them. 720px matches .section-head so the heading and the
+   prose form one column instead of two slightly different ones. */
+.why-shipbench .section-head {
+  margin-bottom: 28px;
+}
+
+.why-prose {
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.why-prose p {
+  margin: 0 0 20px;
+  color: var(--silver);
+  font-size: clamp(15px, 2vw, 17px);
+  line-height: 1.8;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.why-prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* The premise is the sentence the rest of the section exists to earn, so it
+   steps up in size and contrast rather than being pulled out into a callout. */
+.why-prose .why-premise {
+  margin-bottom: 24px;
+  color: var(--frosted);
+  font-size: clamp(17px, 2.4vw, 20px);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.why-prose .why-proof {
+  margin-top: 28px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.why-prose .why-proof a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.why-prose .why-proof a:hover {
+  text-decoration: underline;
+}
+
+/* How It Works */
+.how-it-works .section-head {
+  margin-bottom: 32px;
+}
+
+.system-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  box-sizing: border-box;
+}
+
+.system-fact {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 24px;
+  border-left: 1px solid var(--divider);
+  box-sizing: border-box;
+}
+
+.system-fact:first-child {
+  border-left: 0;
+}
+
+.system-fact-label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--silver);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.system-fact h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.system-fact p {
+  margin: 0;
+  color: var(--silver);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Three Local Interfaces */
+.local-interface-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.local-interface-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  box-sizing: border-box;
+}
+
+.local-interface-icon {
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 20px;
+  color: var(--silver);
+  background: var(--surface2);
+  border: 1px solid var(--iron);
+  border-radius: 2px;
+}
+
+.local-interface-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.local-interface-card h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.local-interface-card p {
+  margin: 0;
+  color: var(--silver);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.quickstart-code code {
+  white-space: pre;
+  word-break: normal;
+  display: block;
+  min-width: max-content;
+}
+
+/* Quickstart Section */
+.quickstart-box {
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  border-radius: 3px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.quickstart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--iron);
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  color: var(--silver);
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quickstart-more-link {
+  display: inline-flex;
+  margin-top: 16px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.quickstart-more-link:hover {
+  text-decoration: underline;
+}
+
+.quickstart-code {
+  margin: 0;
+  padding: 28px 32px;
+  background: var(--canvas);
+  color: var(--frosted);
+  font-size: 13px;
+  line-height: 2.15;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  white-space: pre;
+  word-break: normal;
+}
+
+/* Harbor Teaser */
+.harbor-banner {
+  padding: 44px;
+  background: var(--surface);
+  border: 1px solid var(--iron);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.harbor-info {
+  max-width: 620px;
+}
+
+.harbor-info h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.harbor-info p {
+  margin: 0;
+  color: var(--silver);
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Mobile Breakpoints */
+@media (max-width: 840px) {
+  .board-visual-body,
+  .split-visual-body,
+  .system-facts,
+  .local-interface-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .system-fact {
+    border-top: 1px solid var(--divider);
+    border-left: 0;
+  }
+
+  .system-fact:first-child {
+    border-top: 0;
+  }
+
+  .visual-sidebar,
+  .visual-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--iron);
+  }
+
+  .harbor-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 32px 24px;
+  }
+
+  .section-padding {
+    padding-block: 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding-top: 48px;
+    padding-bottom: 40px;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-cta .button {
+    width: 100%;
+  }
+
+  .system-fact,
+  .local-interface-card {
+    padding: 16px;
+  }
+
+  .quickstart-code {
+    padding: 16px 16px;
+    font-size: 12px;
+  }
+
+  .harbor-banner {
+    padding: 24px 16px;
+  }
+}
