@@ -53,7 +53,7 @@ Conventions:
 The end-state shape once shipped:
 
 - **`@shipbench/core`, `shipbench` (CLI), and `@shipbench/board`** live in a **public** repository and publish to npm. Core and the CLI are the primary public interfaces; the CLI's binary is unscoped by convention (matches `astro`, `vite`, `next`, `wrangler`, etc.). Sub-packages are scoped `@shipbench/*`.
-- **`@shipbench/board` publishes for convenience, not for public use.** The CLI depends on it at runtime for the standalone bundle, and any out-of-monorepo consumer (an evicted Harbor being the obvious one) needs it available on the registry. External consumption is not a supported use case — the version stays 0.x and breaking changes go unremarked.
+- **`@shipbench/board` publishes for convenience, not for public use.** The CLI depends on it at runtime for the standalone bundle, and any out-of-repository consumer (Harbor being the obvious one) needs it available on the registry. External consumption is not a supported use case — the version stays 0.x and breaking changes go unremarked.
 - **Harbor is a deployed application, not a library.** It lives in a separate **private** repository and consumes `@shipbench/board` + `@shipbench/core` from npm. (Private code, but a multi-account hosted service — any solo dev can sign in.)
 - **Synchronized versioning** across the three published packages (Angular/Astro/Next model): all three release at the same version. `workspace:*` refs are rewritten to the current version at publish time. Simpler than a compatibility matrix; downstream consumers don't reason about which core version pairs with which CLI.
 - Publishing prep — `files` fields, LICENSE, READMEs, scoped package access, and repository metadata — is tracked on this repository's own board under `.shipbench/`.
@@ -281,7 +281,7 @@ Consistent with "strict on write, graceful on read":
 
 ### 3. Board UI (`@shipbench/board`)
 
-A standalone kanban board app, shared as an internal monorepo package. Not published to npm — consumed only by the CLI and Harbor.
+A standalone kanban board app. Published to npm for convenience rather than public use — the CLI needs its standalone bundle at runtime, and an out-of-repository host such as Harbor needs the compiled library resolvable.
 
 **Two mount entries:**
 

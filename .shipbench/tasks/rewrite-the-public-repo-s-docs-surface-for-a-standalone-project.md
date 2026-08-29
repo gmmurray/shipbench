@@ -1,13 +1,13 @@
 ---
 title: Rewrite the public repo's docs surface for a standalone project
-status: todo
+status: done
 priority: medium
 tags:
   - docs
   - distribution
   - split
 created: '2026-08-22T20:35:22.967Z'
-updated: '2026-08-22T20:35:22.967Z'
+updated: '2026-08-29T15:45:57.106Z'
 ---
 
 The copy that created this repo left it *building*. This one leaves it **legible to someone who has never seen the monorepo** — which is every visitor it will ever have.
@@ -40,3 +40,26 @@ Separated from the copy because the work is different in kind: that one was mech
 - A developer landing on this repo cold understands what ShipBench is, what the three packages are, how to run them, and where Harbor fits — without encountering a reference to a repo they cannot see.
 - No unresolvable links.
 - The GitHub repository description is set to the canonical descriptor.
+
+## Task Updates
+
+### 2026-08-29T15:43:56.167Z
+Done 2026-08-29. Smaller than the task described in one place and larger in another.
+
+**Smaller: the dogfooding section was not stale.** The task lists it as monorepo-era content needing a rewrite. It is accurate as written - node apps/cli/dist/index.js is still exactly right here, and the warning that both the workspace root and apps/cli are named 'shipbench' is still true. Left alone.
+
+**Larger: two documents actively claimed @shipbench/board is not published to npm.** AGENTS.md and docs/spec.md both said 'internal monorepo package, not published to npm - consumed only by the CLI and Harbor.' That directly contradicts the readiness work and would have been visible on the repository the day the package appeared on the registry. Both now carry the published-for-convenience framing. Found by sweeping for references to things a reader cannot see rather than by reading the sections, which is why it survived earlier passes.
+
+**AGENTS.md.** Harbor reframed throughout from a package in this repo to the reference external consumer: overview states plainly that Harbor's source is a separate private repository and nothing here builds it; the dependency graph drops the harbor arrow and gains the point that Harbor consuming core and board from npm is what makes the published contract real rather than theoretical; the Harbor section is retitled 'a consumer, not a package here'. 'Monorepo layout' -> 'Repository layout'. Package-names doctrine notes @shipbench/harbor is private and elsewhere.
+
+Two things were wrong for reasons unrelated to Harbor: the OG script comment still said it rebuilds cards for 'site + Harbor' (the Harbor card was deleted during the copy), and the Playwright paragraph still said the harness 'is opt-in and never runs automatically' - which my own CI work made false the day before. Added a Continuous integration section covering all three workflows.
+
+**The branding-doctrine question: keep it public, and say why.** It governs every ShipBench surface including ones not in this repo, and it is the clearest statement anywhere of how the pieces relate, so it belongs where anyone writing copy can find it. Added a line at the top of the section stating that, so it does not read as internal notes left in by accident.
+
+**CONTRIBUTING.md, new.** Says plainly that one person maintains this. Issues welcome; pull requests want an issue first, and the reason given is honest rather than procedural - a lot of what looks like an oversight here is a recorded decision, and discovering that after building something is a bad trade. Cites live examples (dependencies as data not locks, the layout subpath import rule, no Turborepo). Carves out typo and broken-link fixes as not needing an issue. Covers the dev commands, what CI runs, changesets, and the settled non-goals.
+
+**Link check, and a correction to my own method.** First pass reported 51 broken relative links. All 51 were false positives from a naive checker: apps/site content uses /docs/... route URLs resolved by Astro routing rather than the filesystem, and docs/audits uses repo-root-relative paths rather than file-relative ones. Rechecked resolving both ways and skipping site routes: **66 file links, 0 broken, 30 route URLs skipped.**
+
+**Verification.** install --frozen-lockfile, typecheck, lint, 660 tests across 31 files, build - all exit 0.
+
+**Left for the owner:** set the GitHub repository description to the canonical descriptor, 'Git-native project management for solo developers.' That is the last definition-of-done item and it is a settings-page action.

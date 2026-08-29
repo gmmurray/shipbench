@@ -5,16 +5,20 @@
 ShipBench is a Git-native project management system for solo developers. It has two decoupled products:
 
 1. **The Project System** — A file-based task management convention (`.shipbench/` directory) that lives inside any Git repo. Tasks are Markdown files with YAML frontmatter. Fully self-contained — works without Harbor or any external service.
-2. **Harbor** — A standalone web app for managing project ideas and viewing task boards across multiple repos via the GitHub API. Built for solo developers: each account is one developer's own workbench. "Solo dev" is the target end user (any solo developer, not just this project's author), not a statement that Harbor is single-user.
+2. **ShipBench Harbor** — A standalone web app for managing project ideas and viewing task boards across multiple repos via the GitHub API. Built for solo developers: each account is one developer's own workbench. "Solo dev" is the target end user (any solo developer, not just this project's author), not a statement that Harbor is single-user.
+
+**This repository holds the first product and the site.** Harbor is a deployed application whose source lives in a separate private repository; it consumes `@shipbench/core` and `@shipbench/board` from npm like any other external host. Harbor is described here where it explains the system's shape, but nothing here builds or deploys it.
 
 ## Naming and branding
+
+This section is public on purpose. It governs every ShipBench surface — this repository, the site, npm metadata, and Harbor — and it is the clearest statement anywhere of how the pieces relate, so it belongs where anyone writing copy or docs can find it.
 
 **ShipBench is the system. Harbor (and the CLI) are clients for it.** Tasks live in repos; Harbor is one surface for managing them, the CLI is another. This relationship is load-bearing — keep it visible everywhere:
 
 - **Umbrella name everywhere**: ShipBench. Never refer to the whole project as "Harbor."
 - **User-facing product names**: "ShipBench CLI" and "ShipBench Harbor" (proper-noun Harbor). The umbrella always comes first.
 - **In Harbor's own copy**: lead with "Harbor" in headers, but anywhere it explains itself, mention ShipBench (e.g. "Sign in to Harbor to manage your ShipBench projects"). Harbor's brand should never swallow the convention's identity.
-- **Package names** stay scoped to `@shipbench/*`: `@shipbench/core`, `@shipbench/board`, `@shipbench/harbor`. The CLI's npm name is `shipbench` (it's the namesake binary). Don't introduce unscoped sub-brand packages.
+- **Package names** stay scoped to `@shipbench/*`: `@shipbench/core` and `@shipbench/board` publish from here; `@shipbench/harbor` is private and lives in its own repository. The CLI's npm name is `shipbench` (it's the namesake binary). Don't introduce unscoped sub-brand packages.
 - **Inside the codebase**, lowercase `harbor` is fine as a working name (directory, package suffix, slug). Reserve the proper noun "Harbor" for user-facing surfaces.
 
 **Tagline vs. descriptor**: two canonical strings with different jobs. Don't swap them and don't invent variants.
@@ -26,7 +30,7 @@ The two must not appear as each other's neighbors restating one claim twice. `do
 
 **Domain**: `shipbench.dev` is the official, owned domain. Harbor lives under it (`harbor.shipbench.dev`), never on its own apex. No Harbor-first domain.
 
-## Monorepo layout
+## Repository layout
 
 ```
 shipbench/
@@ -48,7 +52,7 @@ pnpm --filter @shipbench/core build   # Build core
 pnpm --filter @shipbench/core dev     # Watch mode for core
 pnpm --filter shipbench build         # Build CLI
 pnpm typecheck                        # Typecheck everything, including tests/ and scripts/
-pnpm generate:og                      # Rebuild the OpenGraph cards for site + Harbor
+pnpm generate:og                      # Rebuild the site's OpenGraph cards
 ```
 
 The OG cards are generated from `scripts/og/` and committed; they are not part
@@ -57,20 +61,28 @@ logo asset or social-image string.
 
 `apps/site` carries a Playwright harness for the browser-only behaviour its
 vitest suite structurally cannot reach — real Pagefind search, the native
-`<dialog>` focus trap, first-paint theme correctness, and axe. It is opt-in and
-never runs automatically. See [apps/site/e2e/README.md](apps/site/e2e/README.md).
+`<dialog>` focus trap, first-paint theme correctness, and axe. It runs in CI,
+path-filtered to changes that can actually affect the site. See
+[apps/site/e2e/README.md](apps/site/e2e/README.md).
+
+## Continuous integration
+
+- **[.github/workflows/ci.yml](.github/workflows/ci.yml)** — every push to `main` and every pull request: install with `--frozen-lockfile`, typecheck, lint, test, build.
+- **[.github/workflows/e2e.yml](.github/workflows/e2e.yml)** — the Playwright harness, filtered to `apps/site/**` and `pnpm-lock.yaml`. The site declares no `@shipbench/*` dependency, so a package change cannot alter its browser behaviour.
+- **[.github/workflows/release.yml](.github/workflows/release.yml)** — changesets. Merging a changeset to `main` opens a version pull request; merging that publishes with npm provenance. See [.changeset/README.md](.changeset/README.md) — the three published packages are a fixed group and always release at the same version.
 
 ## Architecture
 
 ### Dependency graph
 
 ```
-core ← cli (core + FsAdapter)
+core ← cli (core + FsAdapter, and board's standalone bundle at runtime)
 core ← board (core types, plus the pure `@shipbench/core/layout` subpath)
-core + board ← harbor (hosts board, provides adapters)
 ```
 
-The core library is the foundation. The Board UI and CLI are consumers. Harbor composes both.
+The core library is the foundation; the Board UI and CLI are consumers. `apps/site` depends on none of them — it is a standalone Astro site.
+
+Out of this repository, **ShipBench Harbor composes core and board from npm** the same way any external host would. That makes the published packages' contract real rather than theoretical: if an export only works through a workspace link, Harbor is the consumer that finds out.
 
 ### Core library (`@shipbench/core`)
 
@@ -110,7 +122,7 @@ any *value* the Board needs from core must live behind a pure subpath.
 
 `resolveRepoLink` follows the same optional shape: the Board resolves a Markdown link in a task body to a repo-root-relative path and asks the host where that points, so it never learns what GitHub or a filesystem is. Harbor answers with a `blob/HEAD` URL; the CLI omits the method and those links render as plain paths. See [docs/board/design.md](docs/board/design.md#markdown-links).
 
-Internal monorepo package. Not published to npm — only consumed by the CLI and Harbor.
+Published to npm for convenience, not for public use: the CLI needs the standalone bundle at runtime, and an out-of-repository host such as Harbor needs the compiled library resolvable. External consumption is not a supported use case — the version stays `0.x` and breaking changes ship unremarked.
 
 Full design intent (stack, state model, sync model, layouts, build plan) lives in [docs/board/design.md](docs/board/design.md). Read that before editing the Board package.
 
@@ -136,7 +148,9 @@ Two things are repo-specific because this repo is also where the `shipbench` CLI
 
 `.shipbench/AGENTS.md` is deliberately kept close to what `shipbench init` scaffolds, customized only where this board's contract differs (backlog column, review gate, worktree rules). If work in this repo seems to require deviating from it, that is a signal — either the rule is build-specific and belongs in this file, or the shipped convention is missing something. Say so instead of silently deviating.
 
-### Harbor (`@shipbench/harbor`)
+### ShipBench Harbor — a consumer, not a package here
+
+Harbor's source is **not in this repository**. It is documented here because it is the reference external consumer of `@shipbench/core` and `@shipbench/board`, and because changes to those packages' published surface affect it.
 
 **Stack:** Cloudflare ecosystem (Workers, D1, Clerk for auth).
 
@@ -242,7 +256,7 @@ These are deliberate design decisions, not oversights:
 
 - **Tasks live in repos, not databases.** Harbor reads and writes tasks through the GitHub API or local filesystem. It does not have its own task storage. This is the core architectural invariant.
 - **The Board is adapter-driven.** It accepts a `BoardAPI` and renders. It does not make assumptions about where data comes from or how it's persisted.
-- **Agents are supported through convention, not infrastructure.** The `.shipbench/` directory, `AGENTS.md`, and CLI commands are designed to be agent-friendly by default. There is no agent orchestration layer, no task claiming system, no agent-specific workflow logic. Platform-specific agent tooling (Claude Code skills, Cursor rules, etc.) lives in the ShipBench repo as reference files users can copy — it is not bundled into projects.
+- **Agents are supported through convention, not infrastructure.** The `.shipbench/` directory, `AGENTS.md`, and CLI commands are designed to be agent-friendly by default. There is no agent orchestration layer, no task claiming system, no agent-specific workflow logic. Platform-specific agent tooling (Claude Code skills, Cursor rules, etc.) lives in this repository as reference files users can copy — it is not bundled into projects.
 - **Solo developer scope.** The end user is an individual developer. Harbor is multi-account (Clerk, `user_id` scoping everywhere), but each account is an isolated single-developer workspace — no collaboration, no sharing, no permissions model.
 - **Cloudflare-native for Harbor.** Workers, D1, Pages. Auth through Clerk.
 
