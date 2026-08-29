@@ -1,6 +1,6 @@
 {
   "name": "@shipbench/board",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React kanban board for ShipBench. Published so the CLI and out-of-repo hosts can consume it; not a supported standalone library.",
   "license": "MIT",
   "repository": {
