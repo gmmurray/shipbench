@@ -20,21 +20,32 @@ jobs:
       # Push the version bump and open the release pull request.
       contents: write
       pull-requests: write
-      # Required for npm provenance. Without this the publish still succeeds but
-      # ships unattested, which is the failure nobody notices.
+      # Required for npm provenance, and necessary but NOT sufficient: v0.1.0
+      # published with this granted and still attached no attestations, because
+      # changesets invokes `pnpm publish` itself so `--provenance` never reaches
+      # the command line, and NPM_CONFIG_PROVENANCE is an npm-CLI environment
+      # convention pnpm does not appear to honour. Nothing errors; provenance is
+      # simply skipped. Being fixed properly in the trusted-publishing task —
+      # verify against the registry (`dist.attestations`), never against a green
+      # workflow.
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Changesets reads git history to work out what has been released.
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # registry-url makes setup-node write an .npmrc that reads NODE_AUTH_TOKEN,
       # so no token is ever written into the repo.
-      - uses: actions/setup-node@v4
+      #
+      # setup-node v7 removed its dummy NODE_AUTH_TOKEN export. That only
+      # mattered when the variable was unset — this job sets it explicitly
+      # below — but it is the same subsystem that broke the first release
+      # attempt, so check here first if publish auth ever misbehaves again.
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm

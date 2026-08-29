@@ -1,6 +1,6 @@
 ---
 title: 'Publish v0.1.0 of core, CLI, and board from the public repo'
-status: todo
+status: done
 priority: medium
 tags:
   - distribution
@@ -9,7 +9,7 @@ depends_on:
   - publish-readiness-files-license-readmes-scoped-access-metadata
   - release-tooling-changesets-fixed-mode-and-the-provenance-publish-workflow
 created: '2026-08-22T20:35:23.324Z'
-updated: '2026-08-29T16:01:39.522Z'
+updated: '2026-08-29T18:41:04.293Z'
 ---
 
 The actual first publish — `@shipbench/core`, `shipbench`, and `@shipbench/board` at **v0.1.0**, synchronized, from this repo.
@@ -58,3 +58,18 @@ The OTP error reads like a 2FA problem but is not one: the token was never used 
 **Action versions are deliberately not bumped in this change.** Every action in use is a major behind and that is the source of the Node 20 deprecation warning - checkout v4 vs v7, setup-node v4 vs v7, cache v4 vs v6, upload-artifact v4 vs v7, pnpm/action-setup v4 vs v6, changesets/action v1 vs v2. Bumping them in the same push as the auth fix would mean a failed retry has six candidate causes instead of one, on the arc's only irreversible step. The warning is a deprecation runway, not a failure.
 
 changesets/action v2 in particular is not a drop-in: it renames every input this workflow uses (version -> version-script, publish -> publish-script, commit -> commit-message, title -> pr-title), stops honouring GITHUB_TOKEN as an env var in favour of a github-token input, and removes NPM_TOKEN .npmrc handling entirely in favour of trusted publishing - which would undo the fix above unless trusted publishing is configured first. That is its own task, worth doing after the first release lands.
+
+### 2026-08-29T16:34:14.933Z
+Published 2026-08-29. All three packages are live at 0.1.0 with one requirement unmet.
+
+**On the registry, verified rather than inferred:** shipbench, @shipbench/core, and @shipbench/board all at 0.1.0, dist-tag latest, MIT, homepage https://shipbench.dev. The workspace:* rewrite held in the published manifests - shipbench depends on @shipbench/board 0.1.0, board on @shipbench/core 0.1.0. shipbench ships 4 files, 277 KB unpacked.
+
+**Post-publish smoke, against the registry from a scratch directory that has never seen the source.** npx shipbench@0.1.0 init scaffolded a valid .shipbench/ with all five files; task create and task list worked; shipbench board served GET / -> 200 with the root mount node and its hashed asset at 592,141 bytes. That last one is the meaningful check: it proves the CLI resolved @shipbench/board from the registry and served its standalone bundle, which is the packaging path that had no coverage before.
+
+**Provenance did not attach, and this cannot be fixed for 0.1.0.** No dist.attestations on any of the three - only npm's own registry signatures, which every package gets. The workflow set NPM_CONFIG_PROVENANCE: true and granted id-token: write, and it still did not happen. The belt-and-braces reasoning was wrong: changesets invokes pnpm publish itself so --provenance was never on the command line, and NPM_CONFIG_PROVENANCE is an npm-CLI environment convention pnpm does not appear to honour. Nothing errored; provenance was simply skipped - exactly the failure mode the workflow comment claimed to be guarding against.
+
+Attestations attach at publish time and published versions are immutable, so 0.1.0 stays unattested permanently. Tracked in move-releases-to-npm-trusted-publishing-oidc-and-restore-provenance, where trusted publishing makes provenance mandatory rather than optional.
+
+**The auth fix that unblocked it.** Adding NPM_TOKEN alongside NODE_AUTH_TOKEN corrected changesets/action@v1's auth strategy; the publish then needed 2FA bypass enabled on the granular access token. Correction worth recording: granular access tokens are npm's current mechanism and classic publish/automation tokens are legacy, so the earlier guidance in this thread about token types was out of date.
+
+**Definition of done, honestly.** Three packages live and public: met. Clean-machine npx init and board: met. Provenance: not met, permanently, for this version. The out-of-workspace React consumer rendering the published Board was verified through the CLI serving the standalone bundle rather than a React host importing the compiled library - that narrower case was covered during the lib-mode task against a packed tarball, and the published artifact is byte-identical in structure, but it was not re-run against the registry copy.

@@ -1,10 +1,8 @@
 {
   "todo": [
-    "publish-v0-1-0-of-core-cli-and-board-from-the-public-repo"
+    "move-releases-to-npm-trusted-publishing-oidc-and-restore-provenance"
   ],
-  "backlog": [
-    "deploy-shipbench-dev-site-to-cloudflare-workers-static-assets"
-  ],
+  "backlog": [],
   "in-progress": [],
   "review": []
 }
