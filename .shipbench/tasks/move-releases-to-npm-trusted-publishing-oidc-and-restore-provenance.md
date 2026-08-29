@@ -8,7 +8,7 @@ tags:
   - ci
   - security
 created: '2026-08-29T16:33:10.150Z'
-updated: '2026-08-29T19:10:21.741Z'
+updated: '2026-08-29T19:28:52.533Z'
 ---
 
 Replace the long-lived npm token with GitHub OIDC trusted publishing, and get provenance attached — which it currently is not.
@@ -91,3 +91,27 @@ Side effect, intended: pnpm publish from a laptop will now fail, because provena
 2. Only after (1): add a changeset and cut 0.1.1. Then verify dist.attestations is present on the registry for all three - not that the workflow was green, which it also was for the unattested 0.1.0.
 
 3. After 0.1.1 verifies: revoke the granular access token on npmjs.com and delete the NPM_AUTOMATION_TOKEN repository secret. Leaving a working credential behind means a future OIDC break silently falls back to it, which is the failure mode this task exists to remove.
+
+### 2026-08-29T19:26:32.326Z
+Verified 2026-08-29. 0.1.1 published through OIDC trusted publishing with provenance attached on all three packages.
+
+**Independently confirmed against the registry, not inferred from a green workflow** - the distinction that mattered, since 0.1.0's workflow was also green and attached nothing.
+
+All three at 0.1.1, dist-tag latest, each carrying two attestation bundles: npm's own publish attestation (specs/publish/v0.1) and SLSA provenance v1.
+
+Decoded the shipbench@0.1.1 provenance payload rather than trusting the presence of the field, because provenance pointing at the wrong source would be worse than none:
+
+  subject     pkg:npm/shipbench@0.1.1
+  buildType   slsa-framework.github.io/github-actions-buildtypes/workflow/v1
+  workflow    repository https://github.com/gmmurray/shipbench
+              path       .github/workflows/release.yml
+              ref        refs/heads/main
+  builder     https://github.com/actions/runner/github-hosted
+
+The workflow path in the attestation confirms the trusted publisher matched the intended source rather than merely accepting the publish.
+
+**Credential removed.** Owner revoked the granular access token on npmjs.com and deleted the NPM_AUTOMATION_TOKEN repository secret. There is now no long-lived npm credential in the repository, its secrets, or the workflows - so a future OIDC failure has nothing to silently fall back to, which was the specific failure mode this task existed to eliminate.
+
+**Definition of done, against the original list.** No long-lived credential: met. dist.attestations verified on the registry: met, all three. changesets/action on v2 with renamed inputs and github-token passed as an input: met. Old token revoked rather than merely unused: met.
+
+**What stays permanently true:** 0.1.0 remains unattested. Attestations apply at publish time and published versions are immutable, so that version is a permanent record of the gap. 0.1.1 onward carry provenance.

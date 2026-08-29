@@ -57,7 +57,8 @@ pnpm changeset
 ```
 
 `@shipbench/core`, `@shipbench/board`, and `shipbench` release together at the
-same version — see [.changeset/README.md](.changeset/README.md) for why.
+same version — see [.changeset/README.md](.changeset/README.md) for why, and
+[docs/releasing.md](docs/releasing.md) for how a release actually runs.
 
 ## Scope
 

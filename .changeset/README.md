@@ -30,6 +30,10 @@ to changesets — they are never versioned or published.
 
 ## Releasing
 
+**[docs/releasing.md](../docs/releasing.md) is the operational reference** —
+step-by-step, the trusted publisher configuration, how to verify a release, and
+what each failure mode means. The summary:
+
 Releases run from `.github/workflows/release.yml`, not from a laptop. Merging a
 changeset to `main` opens a "Version Packages" pull request; merging *that* pull
 request publishes.

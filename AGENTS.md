@@ -69,7 +69,7 @@ path-filtered to changes that can actually affect the site. See
 
 - **[.github/workflows/ci.yml](.github/workflows/ci.yml)** — every push to `main` and every pull request: install with `--frozen-lockfile`, typecheck, lint, test, build.
 - **[.github/workflows/e2e.yml](.github/workflows/e2e.yml)** — the Playwright harness, filtered to `apps/site/**` and `pnpm-lock.yaml`. The site declares no `@shipbench/*` dependency, so a package change cannot alter its browser behaviour.
-- **[.github/workflows/release.yml](.github/workflows/release.yml)** — changesets. Merging a changeset to `main` opens a version pull request; merging that publishes with npm provenance. See [.changeset/README.md](.changeset/README.md) — the three published packages are a fixed group and always release at the same version.
+- **[.github/workflows/release.yml](.github/workflows/release.yml)** — changesets. Merging a changeset to `main` opens a version pull request; merging that publishes with npm provenance, authenticated by GitHub OIDC rather than a token. [docs/releasing.md](docs/releasing.md) is the operational reference; [.changeset/README.md](.changeset/README.md) explains why the three published packages are a fixed group.
 
 ## Architecture
 
