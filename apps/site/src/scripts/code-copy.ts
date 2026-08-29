@@ -85,7 +85,20 @@ function legacyCopy(text: string): boolean {
   textarea.select();
 
   try {
-    return document.execCommand('copy');
+    // `execCommand` is deprecated, and that is the point — this is the fallback
+    // for the contexts `navigator.clipboard` does not exist in, notably any
+    // non-secure origin. Reached only when the modern path is unavailable, so
+    // removing it would silently break copy rather than modernise anything.
+    //
+    // Called through a cast because the deprecation is carried on the lib.dom
+    // signature, and `astro check` surfaces it as a hint on every run. The cast
+    // replaces the `Document` type rather than intersecting with it — an
+    // intersection leaves the deprecated overload in the set and the hint
+    // survives.
+    const legacy = document as unknown as {
+      execCommand(commandId: string): boolean;
+    };
+    return legacy.execCommand('copy');
   } catch {
     return false;
   } finally {

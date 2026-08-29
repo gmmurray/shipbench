@@ -15,11 +15,19 @@ import { closeDrawers } from './nav.js';
 import { SEARCH_OPEN_EVENT } from './search-events.js';
 
 function isMac(): boolean {
-  const platform =
-    (navigator as { userAgentData?: { platform?: string } }).userAgentData
-      ?.platform ||
-    navigator.platform ||
-    '';
+  // `userAgentData` first, `platform` as the fallback. `platform` is deprecated
+  // but `userAgentData` is Chromium-only — Safari and Firefox have neither
+  // shipped it nor committed to, and Safari is exactly where "is this a Mac"
+  // matters most. Dropping the fallback would mean showing Ctrl to Mac Safari
+  // users, so it stays until the modern API is actually universal.
+  //
+  // Both go through casts: `userAgentData` because lib.dom does not declare it,
+  // `platform` because lib.dom marks it deprecated and `astro check` reports
+  // that as a hint on every run.
+  const nav = navigator as Navigator & {
+    userAgentData?: { platform?: string };
+  } & { platform?: string };
+  const platform = nav.userAgentData?.platform || nav.platform || '';
   return /mac|iphone|ipad|ipod/i.test(platform);
 }
 
