@@ -1,10 +1,35 @@
 {
   "name": "shipbench",
   "version": "0.0.1",
+  "description": "Git-native project management for solo developers. Your task board lives in your repository as Markdown.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gmmurray/shipbench.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://shipbench.dev",
+  "bugs": {
+    "url": "https://github.com/gmmurray/shipbench/issues"
+  },
+  "keywords": [
+    "shipbench",
+    "cli",
+    "project-management",
+    "tasks",
+    "kanban",
+    "markdown",
+    "git",
+    "agents",
+    "solo-developer"
+  ],
   "type": "module",
   "bin": {
     "shipbench": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -14,11 +39,11 @@
   },
   "dependencies": {
     "@shipbench/board": "workspace:*",
-    "@shipbench/core": "workspace:*",
     "chokidar": "^5.0.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {
+    "@shipbench/core": "workspace:*",
     "@types/node": "^26.0.1",
     "gray-matter": "^4.0.3",
     "tsup": "^8.0.0",

@@ -1,9 +1,33 @@
 {
   "name": "@shipbench/core",
   "version": "0.0.1",
+  "description": "Headless library for the ShipBench project convention — parse, validate, and write Markdown task files through a pluggable storage adapter.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gmmurray/shipbench.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://shipbench.dev",
+  "bugs": {
+    "url": "https://github.com/gmmurray/shipbench/issues"
+  },
+  "keywords": [
+    "shipbench",
+    "project-management",
+    "tasks",
+    "kanban",
+    "markdown",
+    "frontmatter",
+    "git",
+    "agents"
+  ],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -15,6 +39,7 @@
     }
   },
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {

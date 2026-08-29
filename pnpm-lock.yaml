@@ -32,9 +32,6 @@ importers:
       '@shipbench/board':
         specifier: workspace:*
         version: link:../../packages/board
-      '@shipbench/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -42,6 +39,9 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0
     devDependencies:
+      '@shipbench/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@types/node':
         specifier: ^26.0.1
         version: 26.2.0

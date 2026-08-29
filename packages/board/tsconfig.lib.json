@@ -3,7 +3,10 @@
   "compilerOptions": {
     "composite": false,
     "declaration": true,
-    "declarationMap": true,
+    // Off deliberately: `files: ["dist"]` ships no `src`, so declaration maps
+    // would point consumers at sources absent from the tarball and
+    // go-to-definition would resolve to nothing.
+    "declarationMap": false,
     "emitDeclarationOnly": true,
     "noEmit": false,
     "outDir": "./dist",

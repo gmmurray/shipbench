@@ -1,6 +1,24 @@
 {
   "name": "@shipbench/board",
   "version": "0.0.1",
+  "description": "React kanban board for ShipBench. Published so the CLI and out-of-repo hosts can consume it; not a supported standalone library.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gmmurray/shipbench.git",
+    "directory": "packages/board"
+  },
+  "homepage": "https://shipbench.dev",
+  "bugs": {
+    "url": "https://github.com/gmmurray/shipbench/issues"
+  },
+  "keywords": [
+    "shipbench",
+    "kanban",
+    "board",
+    "react",
+    "project-management"
+  ],
   "type": "module",
   "main": "./src/index.tsx",
   "types": "./src/index.tsx",
@@ -17,6 +35,7 @@
     "./dist/*": "./dist/*"
   },
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
