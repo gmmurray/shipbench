@@ -1,0 +1,75 @@
+name: Site E2E
+
+# Path-filtered, and the filter is a fact about the dependency graph rather than
+# a cost compromise: `apps/site` declares no `@shipbench/*` dependency and
+# imports none, so a change to core, board, or the CLI cannot alter the site's
+# browser behaviour. Running this on those pull requests would spend a
+# production build plus a Chromium download to learn nothing.
+#
+# `pnpm-lock.yaml` is in the filter deliberately. The site's browser behaviour
+# lives in astro, pagefind, and svelte, so a dependency bump is a real way for
+# it to change without any file under apps/site/ being touched.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/site/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    paths:
+      - 'apps/site/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/e2e.yml'
+  # Available on demand for the case the path filter cannot predict.
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Playwright (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # ~130 MB. Keyed on the lockfile so it re-downloads only when the
+      # Playwright version actually moves.
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Chromium
+        run: pnpm --filter @shipbench/site exec playwright install --with-deps chromium
+
+      # `test:e2e` builds first — the harness runs against a production build
+      # because Pagefind's index is generated after `astro build` and does not
+      # exist under the dev server.
+      - name: Run harness
+        run: pnpm --filter @shipbench/site test:e2e
+
+      # Traces and failure screenshots only; this directory is empty on success.
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: apps/site/e2e/.artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -6,10 +6,14 @@
  * (see the site's `build` script), so it simply does not exist under the dev
  * server — a dev-server harness could not test search at all.
  *
- * Chromium only, and no CI runs these. That is a known limit of this repo, not
- * an oversight: the value here is the four things jsdom structurally cannot do
- * (real WASM search, a real <dialog> focus trap, real first-paint pixels, real
- * layout for axe), available on demand to a human or an agent.
+ * Chromium only. Runs in CI, but path-filtered to changes that can actually
+ * affect the site — `apps/site/**` and `pnpm-lock.yaml` — because the site
+ * declares and imports no `@shipbench/*` package, so a change to core, board,
+ * or the CLI cannot alter its browser behaviour. See .github/workflows/e2e.yml.
+ *
+ * The value here is the four things jsdom structurally cannot do: real WASM
+ * search, a real <dialog> focus trap, real first-paint pixels, and real layout
+ * for axe.
  */
 
 import { existsSync } from 'node:fs';
@@ -34,10 +38,17 @@ export default defineConfig({
   // Traces, videos, and failure screenshots. Gitignored — see e2e/README.md.
   outputDir: './e2e/.artifacts',
   fullyParallel: true,
-  forbidOnly: false,
-  // Local-only harness: a retry would hide a genuinely flaky assertion.
-  retries: 0,
-  reporter: [['list']],
+  // Locally, a stray `.only` while narrowing a failure is the whole point. In
+  // CI it silently reduces the suite to one test and reports green.
+  forbidOnly: Boolean(process.env.CI),
+  // Locally zero, because a retry would hide a genuinely flaky assertion from
+  // the person who just wrote it. In CI, one — but note this does not hide
+  // flake either: Playwright reports a retried-then-passed test as **flaky**
+  // rather than passed, so the signal survives while a slow shared runner does
+  // not turn the whole workflow red. Raise this only with evidence; the
+  // hydration waits in `support/hydration.ts` exist so it should not be needed.
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['github'], ['list']] : [['list']],
 
   use: {
     baseURL: BASE_URL,

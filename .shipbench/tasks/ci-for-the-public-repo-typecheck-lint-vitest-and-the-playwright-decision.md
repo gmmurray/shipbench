@@ -1,13 +1,13 @@
 ---
 title: 'CI for the public repo: typecheck, lint, vitest, and the Playwright decision'
-status: todo
+status: done
 priority: medium
 tags:
   - infra
   - testing
   - ci
 created: '2026-08-22T20:35:23.143Z'
-updated: '2026-08-22T20:35:23.143Z'
+updated: '2026-08-29T15:21:35.373Z'
 ---
 
 Nothing in this repo runs automatically yet. **The Playwright question is the actual decision here, not the YAML.**
@@ -41,3 +41,28 @@ It also sharpens the definition-of-done line below: the interesting case is not 
 - Typecheck, lint, and vitest run automatically on push and PR.
 - A documented, deliberate decision about Playwright, with `apps/site/e2e/README.md` updated to match.
 - A deliberately failing test is shown to fail the workflow — the check is verified to check, not assumed to.
+
+## Task Updates
+
+### 2026-08-29T15:10:40.810Z
+Done 2026-08-29. Two workflows, plus the Playwright decision the task said was the real work.
+
+**The Playwright decision: run it, path-filtered. This turned out to be a fact rather than a judgment call.** apps/site declares no @shipbench/* dependency and imports none - verified both ways. So a change to core, board, or the CLI cannot alter the site's browser behaviour, and running the harness on those pull requests would spend a production build plus a Chromium download to learn nothing. That reframes the option the task posed as a cost compromise into the only one with a defensible signal.
+
+Filter is apps/site/**, pnpm-lock.yaml, and the workflow file, plus workflow_dispatch for the case a filter cannot predict. pnpm-lock.yaml is in there deliberately: everything this harness verifies lives in astro, pagefind, and svelte, so a dependency bump is a real way for site behaviour to change with no file under apps/site/ moving. That is the same shape as the sonner incident.
+
+**.github/workflows/ci.yml** - unconditional on push to main and every PR: install --frozen-lockfile, typecheck, lint, test, build. Build is included because the CLI bundles core and Board writes two outputs into one dist/, neither of which the test suite exercises; a packaging break should surface here rather than at release. pnpm/action-setup reads the pinned packageManager from package.json so CI cannot drift from local.
+
+**.github/workflows/e2e.yml** - path-filtered, Chromium cached on the lockfile hash, failure artifacts uploaded for 7 days.
+
+**The two local-only settings, both now keyed off process.env.CI.** forbidOnly is on in CI - a stray .only silently reduces the suite to one test and reports green. retries goes 0 -> 1 in CI, and the reasoning is recorded next to it because the existing comment argues the opposite: a retry does not hide flake here, since Playwright reports retried-then-passed as *flaky* rather than passed. The signal survives while a slow shared runner does not turn the workflow red. The hydration waits mean it should rarely fire; if it fires regularly that is a bug, not a number to raise.
+
+**The axe question.** Baseline stays a hard gate. It is empty on all four page/theme combinations because someone drove it to zero deliberately, so it is an achievable bar rather than an aspirational one, and the documented escape hatch is regenerating the baseline with a note - not loosening the check.
+
+**The definition-of-done item about proving the check checks.** Could not run the workflow (no push from this session), so verified what the workflow actually depends on. Rather than a synthetic failing test, reproduced the exact historical regression this task cites: restored the [field-sizing:content] assertion in Board.test.tsx against DetailView's field-sizing-content. pnpm test exited **1** with 1 failed / 659 passed, naming the test. Restored the file via git checkout and confirmed clean. Since ci.yml runs pnpm test as a step, a non-zero exit fails the job.
+
+Also verified pnpm install --frozen-lockfile passes against the committed lockfile - that is CI step one and would have failed everything downstream if the manifests and lockfile had drifted during publish readiness. All four steps exit 0 on a clean tree: typecheck, lint, test (660 across 31 files), build.
+
+**Left for the owner:** the first real workflow run happens on push. If astro check needs a content-collection sync step in a cold CI checkout, that is the most likely first failure - it passes locally because .astro/ already exists.
+
+**Note on apps/site/e2e/README.md:** its 'this repo has no CI' paragraph was the known limit the task pointed at. Replaced with a 'When these run' section carrying the filter, its reasoning, the two CI-only settings, and the axe posture.

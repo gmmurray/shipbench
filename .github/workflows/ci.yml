@@ -1,0 +1,54 @@
+name: CI
+
+# Everything here is fast (the vitest suite runs in ~15s) and applies to every
+# workspace, so it is unconditional. The browser harness is a separate,
+# path-filtered workflow — see e2e.yml for why.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the pinned version from package.json#packageManager, so the
+      # workflow cannot drift from what runs locally.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile is the point, not a detail: it fails when the lockfile
+      # disagrees with the manifests instead of silently resolving something
+      # newer. A lockfile regeneration during the repo split pulled a sonner
+      # patch release that broke a Board test, which is exactly the drift this
+      # catches on the PR that introduces it.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      # The published CLI bundles core, and the Board build has two outputs
+      # writing into one dist/. Neither is exercised by the test suite, so build
+      # them here rather than discovering a packaging break at release time.
+      - name: Build
+        run: pnpm build
