@@ -56,5 +56,16 @@ jobs:
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NPM_TOKEN is the name changesets/action@v1 checks to decide its auth
+          # strategy. Without it the action logs "No NPM_TOKEN found, but OIDC is
+          # available - using npm trusted publishing" and takes the trusted-
+          # publishing path — which is not configured for these packages on
+          # npmjs.com, so the registry falls back to demanding an OTP and the
+          # publish dies with ERR_PNPM_OTP_NON_INTERACTIVE. That is exactly what
+          # happened on the first release attempt (2026-08-29).
+          #
+          # NODE_AUTH_TOKEN is kept because actions/setup-node's registry-url
+          # writes an .npmrc that reads it. Both names point at the same secret.
+          NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
