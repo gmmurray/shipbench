@@ -20,14 +20,15 @@ jobs:
       # Push the version bump and open the release pull request.
       contents: write
       pull-requests: write
-      # Required for npm provenance, and necessary but NOT sufficient: v0.1.0
-      # published with this granted and still attached no attestations, because
-      # changesets invokes `pnpm publish` itself so `--provenance` never reaches
-      # the command line, and NPM_CONFIG_PROVENANCE is an npm-CLI environment
-      # convention pnpm does not appear to honour. Nothing errors; provenance is
-      # simply skipped. Being fixed properly in the trusted-publishing task —
-      # verify against the registry (`dist.attestations`), never against a green
-      # workflow.
+      # The OIDC token this exchanges for a registry credential is now the ONLY
+      # way this job can authenticate — there is no npm token anywhere in the
+      # workflow. It also signs the provenance attestation.
+      #
+      # It was granted for v0.1.0 too and that release still shipped unattested,
+      # because provenance was requested through NPM_CONFIG_PROVENANCE, which
+      # pnpm ignores. The permission was never the missing piece. Verify
+      # provenance against the registry (`dist.attestations`), never against a
+      # green workflow.
       id-token: write
 
     steps:
@@ -38,13 +39,12 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      # registry-url makes setup-node write an .npmrc that reads NODE_AUTH_TOKEN,
-      # so no token is ever written into the repo.
-      #
-      # setup-node v7 removed its dummy NODE_AUTH_TOKEN export. That only
-      # mattered when the variable was unset — this job sets it explicitly
-      # below — but it is the same subsystem that broke the first release
-      # attempt, so check here first if publish auth ever misbehaves again.
+      # registry-url is kept for the registry setting even though no token is
+      # supplied. It writes an .npmrc containing `_authToken=${NODE_AUTH_TOKEN}`,
+      # and that variable is now deliberately unset — pnpm 11.1.3+ treats an
+      # unresolved ${VAR} placeholder as empty rather than sending it verbatim,
+      # which is exactly the OIDC-alongside-setup-node case. On an older pnpm
+      # this combination 404s.
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -54,29 +54,21 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # Belt and braces on provenance. `--provenance` is a real pnpm flag, and
-      # NPM_CONFIG_PROVENANCE is the environment route that survives changesets
-      # invoking the package manager on our behalf. Setting both costs nothing;
-      # relying on one and being wrong ships an unattested first release.
+      # No npm credential. Auth is GitHub OIDC exchanged for a short-lived
+      # registry token, per the trusted publisher configured for each package on
+      # npmjs.com. pnpm 11.0.7+ attempts OIDC per package during recursive
+      # publish and only falls back to a static token when OIDC is unavailable —
+      # with no token present there is nothing to fall back to, so a broken OIDC
+      # setup fails loudly instead of silently publishing unattested. That
+      # silent fallback is precisely how v0.1.0 shipped without provenance.
+      #
+      # changesets/action v2 renamed every input used here and no longer reads
+      # GITHUB_TOKEN from the environment; it must be a `github-token` input.
       - name: Version or publish
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
-          version: pnpm release:version
-          publish: pnpm release:publish
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN is the name changesets/action@v1 checks to decide its auth
-          # strategy. Without it the action logs "No NPM_TOKEN found, but OIDC is
-          # available - using npm trusted publishing" and takes the trusted-
-          # publishing path — which is not configured for these packages on
-          # npmjs.com, so the registry falls back to demanding an OTP and the
-          # publish dies with ERR_PNPM_OTP_NON_INTERACTIVE. That is exactly what
-          # happened on the first release attempt (2026-08-29).
-          #
-          # NODE_AUTH_TOKEN is kept because actions/setup-node's registry-url
-          # writes an .npmrc that reads it. Both names point at the same secret.
-          NPM_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version-script: pnpm release:version
+          publish-script: pnpm release:publish
+          commit-message: 'chore: version packages'
+          pr-title: 'chore: version packages'

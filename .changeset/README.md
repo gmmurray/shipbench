@@ -32,6 +32,14 @@ to changesets — they are never versioned or published.
 
 Releases run from `.github/workflows/release.yml`, not from a laptop. Merging a
 changeset to `main` opens a "Version Packages" pull request; merging *that* pull
-request publishes. Provenance is attached via GitHub OIDC, which only works when
-the publish runs in Actions — a local `pnpm publish` would produce an
-unattested tarball.
+request publishes.
+
+**There is no npm token.** Authentication is GitHub OIDC exchanged for a
+short-lived registry credential, against a trusted publisher configured per
+package on npmjs.com. A local `pnpm publish` will fail rather than produce an
+unattested tarball, because `provenance=true` in the repository `.npmrc`
+requires a CI OIDC context. That failure is intended.
+
+If a release ever fails to authenticate, the cause is the trusted publisher
+configuration on npmjs.com — repository, workflow filename, or both — not a
+missing secret. There is deliberately nothing to fall back to.

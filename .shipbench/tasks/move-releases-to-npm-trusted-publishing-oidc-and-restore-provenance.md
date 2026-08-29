@@ -1,6 +1,6 @@
 ---
 title: Move releases to npm trusted publishing (OIDC) and restore provenance
-status: todo
+status: done
 priority: high
 tags:
   - distribution
@@ -8,7 +8,7 @@ tags:
   - ci
   - security
 created: '2026-08-29T16:33:10.150Z'
-updated: '2026-08-29T16:33:10.150Z'
+updated: '2026-08-29T19:10:21.741Z'
 ---
 
 Replace the long-lived npm token with GitHub OIDC trusted publishing, and get provenance attached — which it currently is not.
@@ -66,3 +66,28 @@ A prerelease under a `next` dist-tag would also attach provenance and avoid movi
 - The next published version shows `dist.attestations` on the registry — checked against the registry, not inferred from a green workflow.
 - `changesets/action` is on v2 with every renamed input updated and `github-token` passed as an input.
 - The old token is revoked, not merely unused.
+
+## Task Updates
+
+### 2026-08-29T19:08:10.746Z
+Workflow side done 2026-08-29. Two owner actions remain before a release can run, and they are blocking - detailed at the end.
+
+**The make-or-break question, settled from pnpm's own changelog rather than assumed:** pnpm supports OIDC trusted publishing, and this repo is well past every relevant fix. 11.0.7 made trusted publishing take precedence over a static _authToken and attempt OIDC per package during recursive publish. 11.0.9 fixed pnpm publish --provenance returning 422. 11.1.3 fixed a 404 when OIDC ran alongside an actions/setup-node .npmrc containing an unresolved ${NODE_AUTH_TOKEN} placeholder - which is exactly this workflow's shape once the token is removed. 11.4.0 required provenance before treating trusted publisher metadata as strongest trust evidence. Pinned version is 11.21.0.
+
+**That also explains v0.1.0 conclusively, replacing the earlier guess.** 11.0.7's behaviour is: OIDC when applicable, static token as fallback. Trusted publishing was not configured, so OIDC was not applicable, pnpm fell back to the token, and published without provenance. The failure was silent by design - fallback is a feature. Removing the token removes the fallback, so a broken OIDC setup now fails loudly instead of shipping unattested.
+
+**Workflow changes.** changesets/action v1 -> v2 with every input renamed: version -> version-script, publish -> publish-script, commit -> commit-message, title -> pr-title, and GITHUB_TOKEN moved from env to a github-token input. NPM_TOKEN, NODE_AUTH_TOKEN, and NPM_CONFIG_PROVENANCE are all gone - there is no npm credential anywhere in the workflows now, verified by grep. setup-node's registry-url is kept for the registry setting; its .npmrc placeholder resolves to empty on pnpm 11.1.3+.
+
+**Provenance now goes through .npmrc, not the environment.** provenance=true in a committed repository .npmrc. NPM_CONFIG_PROVENANCE is an npm-CLI convention pnpm ignores, which is why v0.1.0 shipped unattested despite it being set; pnpm does read .npmrc. Checked that .npmrc is not gitignored - a silently-ignored file would have defeated the entire fix.
+
+Side effect, intended: pnpm publish from a laptop will now fail, because provenance needs a CI OIDC context. Documented in .changeset/README.md alongside the note that a failed release now means the trusted publisher config is wrong, not that a secret is missing.
+
+**Verification possible from here:** install --frozen-lockfile, build, and 660 tests pass with the new .npmrc; no credential references remain in any workflow; v2 input names match the release notes. Everything else needs a real run.
+
+**BLOCKING - owner actions, in this order.**
+
+1. Configure a trusted publisher on npmjs.com for each of the three packages - shipbench, @shipbench/core, @shipbench/board. Package settings, publishing access, trusted publisher. Provider GitHub Actions, owner gmmurray, repository shipbench, workflow filename release.yml. All three need it individually; one missing entry fails that package only, mid-release, after the others have published.
+
+2. Only after (1): add a changeset and cut 0.1.1. Then verify dist.attestations is present on the registry for all three - not that the workflow was green, which it also was for the unattested 0.1.0.
+
+3. After 0.1.1 verifies: revoke the granular access token on npmjs.com and delete the NPM_AUTOMATION_TOKEN repository secret. Leaving a working credential behind means a future OIDC break silently falls back to it, which is the failure mode this task exists to remove.
