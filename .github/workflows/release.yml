@@ -1,0 +1,60 @@
+name: Release
+
+# Merging a changeset to main opens a "Version Packages" pull request. Merging
+# that pull request runs this again and publishes. Two merges, one release.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version or publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      # Push the version bump and open the release pull request.
+      contents: write
+      pull-requests: write
+      # Required for npm provenance. Without this the publish still succeeds but
+      # ships unattested, which is the failure nobody notices.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Changesets reads git history to work out what has been released.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      # registry-url makes setup-node write an .npmrc that reads NODE_AUTH_TOKEN,
+      # so no token is ever written into the repo.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Belt and braces on provenance. `--provenance` is a real pnpm flag, and
+      # NPM_CONFIG_PROVENANCE is the environment route that survives changesets
+      # invoking the package manager on our behalf. Setting both costs nothing;
+      # relying on one and being wrong ships an unattested first release.
+      - name: Version or publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm release:version
+          publish: pnpm release:publish
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTOMATION_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
