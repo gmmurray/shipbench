@@ -1,6 +1,6 @@
 {
   "name": "@shipbench/core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Headless library for the ShipBench project convention — parse, validate, and write Markdown task files through a pluggable storage adapter.",
   "license": "MIT",
   "repository": {
