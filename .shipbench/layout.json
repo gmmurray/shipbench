@@ -1,6 +1,5 @@
 {
   "todo": [
-    "fix-rendering-defects-on-the-published-docs-site",
     "rewrite-the-terminal-board-reference-to-describe-the-tool-not-its-implementation",
     "stop-the-project-files-spec-describing-core-instead-of-the-file-format",
     "fix-the-homepage-hero-demo-showing-a-slug-shipbench-would-never-generate",
@@ -8,5 +7,7 @@
   ],
   "backlog": [],
   "in-progress": [],
-  "review": []
+  "review": [
+    "fix-rendering-defects-on-the-published-docs-site"
+  ]
 }

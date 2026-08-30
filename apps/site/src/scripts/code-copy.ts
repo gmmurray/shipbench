@@ -166,8 +166,12 @@ function addCopyButton(pre: HTMLPreElement): void {
     setButtonState(button, copied ? 'copied' : 'failed');
   });
 
+  const shell = document.createElement('div');
+  shell.className = 'code-block-shell';
+
   pre.classList.add('copy-enabled');
-  pre.append(button);
+  pre.before(shell);
+  shell.append(pre, button);
 }
 
 function setupCodeCopyButtons(): void {

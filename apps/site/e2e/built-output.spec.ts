@@ -326,6 +326,18 @@ test.describe('heading hierarchy survives the build', () => {
   }
 });
 
+test('docs tables ship as accessible scroll regions before JavaScript runs', () => {
+  const page = html('docs/cli-reference');
+  const tables = page.match(/<table>/g) ?? [];
+  const regions =
+    page.match(
+      /<div class="table-scroll" tabindex="0" role="region" aria-label="[^"]+ table">/g,
+    ) ?? [];
+
+  expect(tables.length).toBeGreaterThan(0);
+  expect(regions).toHaveLength(tables.length);
+});
+
 test.describe('landing-page flow survives the build', () => {
   test('keeps repository mechanics, local interfaces, and Harbor distinct', () => {
     const home = html('');

@@ -89,6 +89,16 @@ same page with the bootstrap's call wrapped in a `setTimeout` and requires the
 sampler to catch it. Without that, a no-flash test that silently stopped
 working would look identical to a passing one.
 
+### `docs-rendering.spec.ts` — navigation-stable prose controls
+
+Navigates between table-heavy docs pages in both directions through
+`ClientRouter`, then checks each table's scroll region and accessible name and
+each section's permalink. A document-scoped probe fails if the navigation falls
+back to a full reload and masks the regression.
+
+At the 320px width floor, the same file scrolls a long code block to its limit
+and verifies that the copy button stays pinned to the block's top-right corner.
+
 ### `a11y.spec.ts` — axe over two pages in both themes
 
 `axe-baseline.json` records the rule IDs that fire today, per page and theme. A
@@ -183,6 +193,7 @@ re-run rather than working around it.
 e2e/
 ├── search.spec.ts          # real Pagefind index + native <dialog> focus trap
 ├── theme.spec.ts           # first-paint theme correctness, plus its self-check
+├── docs-rendering.spec.ts  # prose enhancements across swaps + pinned copy control
 ├── a11y.spec.ts            # axe, baselined
 ├── screenshots.spec.ts     # capture only
 ├── built-output.spec.ts    # dist/ probes, no browser

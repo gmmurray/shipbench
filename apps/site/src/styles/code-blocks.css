@@ -31,8 +31,16 @@
   color: var(--shiki-light) !important;
 }
 
-pre.copy-enabled {
+.code-block-shell {
   position: relative;
+}
+
+.prose .code-block-shell {
+  margin: 20px 0 28px;
+}
+
+.prose .code-block-shell > pre {
+  margin: 0;
 }
 
 .code-copy-button {

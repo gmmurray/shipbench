@@ -131,6 +131,8 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-family:
     var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   background: var(--canvas);

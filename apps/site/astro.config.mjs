@@ -2,9 +2,11 @@
 
 import { readFileSync } from 'node:fs';
 import cloudflare from '@astrojs/cloudflare';
+import { satteri } from '@astrojs/markdown-satteri';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import { defineConfig, fontProviders } from 'astro/config';
+import tableRegions from './src/utils/satteri-table-regions.mjs';
 
 // The CLI is the namesake ShipBench artifact. Core, CLI, and Board release in
 // lockstep, so its manifest is the source of truth for the displayed version.
@@ -31,6 +33,7 @@ export default defineConfig({
   },
 
   markdown: {
+    processor: satteri({ hastPlugins: [tableRegions] }),
     // Dual themes make Shiki emit a CSS custom property per token instead of a
     // single baked color. `defaultColor: 'dark'` puts dark in the inline style
     // and light behind `--shiki-light`, keeping dark — the signature theme —

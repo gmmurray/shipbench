@@ -63,6 +63,9 @@ importers:
       '@astrojs/cloudflare':
         specifier: ^14.1.1
         version: 14.2.3(@types/node@26.2.0)(astro@7.2.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(jiti@2.7.0)(yaml@2.9.0))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.125.0)(yaml@2.9.0)
+      '@astrojs/markdown-satteri':
+        specifier: 0.3.7
+        version: 0.3.7
       '@astrojs/sitemap':
         specifier: ^3.7.3
         version: 3.7.3

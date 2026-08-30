@@ -3,10 +3,11 @@
  *
  * This replaces two near-identical inline scripts — one in Header.astro for the
  * nav drawer, one in docs/[...slug].astro for the docs-nav drawer — each of
- * which had to guard itself with a `window.__site*Bound` flag because an inline
- * script re-executes on every ClientRouter swap. A bundled module does not: it
- * is evaluated once per full page load, and a listener on `document` survives
- * swaps because `document` is never replaced. Same pattern as search-triggers.ts.
+ * which had to guard itself with a `window.__site*Bound` flag. Body scripts
+ * inserted by a ClientRouter swap are inert, so relying on them to re-execute
+ * leaves the incoming page uninitialised. This bundled module is evaluated once
+ * per full page load, and its delegated listener survives swaps because
+ * `document` is never replaced. Same pattern as search-triggers.ts.
  *
  * Consolidating also fixes the reason the drawers needed touching at all: a
  * drawer that stays open after an in-page jump covers the section it just

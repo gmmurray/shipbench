@@ -1,12 +1,12 @@
 ---
 title: Fix rendering defects on the published docs site
-status: todo
+status: review
 priority: high
 tags:
   - docs
   - site
 created: '2026-08-30T14:05:28.596Z'
-updated: '2026-08-30T14:07:11.467Z'
+updated: '2026-08-30T20:20:04.684Z'
 ---
 
 Three defects on the published docs, all found in the days after launch, all reproduced on `/docs/cli-reference/` though none are specific to that page. Two of them share a root: layout that is only correct under conditions the page does not guarantee.
@@ -72,3 +72,8 @@ The button needs a positioned ancestor that does not scroll — a wrapper elemen
 - Code blocks render at their authored size on a real Android device.
 - `nav.ts`'s claim about inline script re-execution matches observed behaviour.
 - e2e covers the navigation case and the copy button. The mobile font check is manual and its result recorded here.
+
+## Task Updates
+
+### 2026-08-30T20:20:03.867Z
+Implemented build-time accessible table regions, ClientRouter-safe heading permalinks, a non-scrolling copy-button shell, and text-size-adjust: 100%. Verification: site unit tests 42/42; site e2e 100 passed, 1 intentionally skipped; repository typecheck and lint passed. Android manual result: unavailable on this host because no Android device or ADB is installed. The built CSS contains the adjustment, but the owner must confirm the authored code size on a real Android device during review.
