@@ -7,7 +7,7 @@ tags:
   - site
   - branding
 created: '2026-08-30T14:34:48.082Z'
-updated: '2026-08-30T14:35:38.517Z'
+updated: '2026-08-30T14:43:13.905Z'
 ---
 
 A pass over the homepage — [`index.astro`](../../apps/site/src/pages/index.astro), [`HeroWorkspaceWindow.astro`](../../apps/site/src/components/HeroWorkspaceWindow.astro), [`config/site.ts`](../../apps/site/src/config/site.ts) — checking copy against the naming and branding doctrine in [AGENTS.md](../../AGENTS.md).
@@ -50,9 +50,9 @@ The doctrine gives the descriptor in sentence case: "Git-native project manageme
 
 The doctrine says "don't invent variants" but never says whether casing counts as one. Title-casing a page title is an ordinary convention, so this is likely fine — but "Git-Native" is a visible re-styling of a string the doctrine calls canonical, and it currently differs from the same string one click away on GitHub.
 
-## 4. There is a third canonical string, and the doctrine doesn't know about it
+## 4. The problem statement is a theme, not a string
 
-The doctrine governs two strings. In practice there is a third — the problem statement — and it appears in at least three places, no two identical:
+The doctrine governs two strings. In practice there is a third thing — the problem statement — appearing in at least three places, no two identical:
 
 | Where | Text |
 | --- | --- |
@@ -60,9 +60,28 @@ The doctrine governs two strings. In practice there is a third — the problem s
 | `index.astro` hero subhead | "**Standing up** a tracker for every new project **costs more than it's worth**, so most projects never get one." |
 | [`overview.md`](../../apps/site/src/content/docs/overview.md) | "**Setting up** a tracker for every new project **costs more than it saves**, so most projects never get one and…" |
 
-Two of the three agree; the homepage is the outlier. The variation buys nothing — these are not three different points, they are one sentence typed three times.
+**Do not promote it to a canonical string.** The variants exist because three surfaces have three different jobs — a search-result snippet, a subhead read after the `h1` has already made its claim, and the opening of a documentation page. One sentence cannot hold all three shapes, and forcing it to is what produced the drift.
 
-This is the most consequential of the four, because it is the line doing the most work on the site: it is the meta description, the hero subhead, and the opening of the docs. Either promote it to a third canonical string with a stated home, or decide it is a theme rather than a string and stop treating near-identical phrasings as a problem. What it should not be is unowned.
+**The phrasing needs replacing either way.** "Costs more than it saves" / "costs more than it's worth" reads as ad copy, for three reasons worth writing down because they generalize past this line:
+
+- **Ledger vocabulary.** *Costs*, *worth*, *saves* assert a valuation. Everywhere else the site earns its claims by showing a mechanism; this line just announces a verdict.
+- **The weak clause leads.** "Most projects never get one" is the strong half — an observation about behaviour, and checkable. Using it as support for the valuation inverts them.
+- **No mechanism.** It never says *why* a tracker is too heavy. [`why.md`](../../apps/site/src/content/docs/why.md) does, and concretely: tools like Linear and Jira "are built to coordinate people, and coordination is most of what you pay for in setup cost and process surface."
+
+The site already owns better phrasing than the line it keeps paraphrasing. `index.astro`'s own why-section has "overhead for a team you don't have," and `why.md` has the enumeration — "create the workspace, name the columns, invite yourself, wire up whatever integration lets your coding agent see any of it." Mine those before inventing a fourth variant.
+
+**Watch for collision.** Any hero rewrite reaching for "built to coordinate people" or "a team you don't have" duplicates the why-section two scroll-lengths below it ([`index.astro:72`](../../apps/site/src/pages/index.astro)). If the hero takes that angle, the why-section needs a different one.
+
+Directions per surface, rather than one string stretched across all three:
+
+| Surface | Direction |
+| --- | --- |
+| Hero subhead | Consider cutting the problem clause entirely. The `h1` already asserts placement, and the why-section is the very next thing on the page. The subhead then reads: "ShipBench makes the repository itself the board — Markdown tasks, Git history, nothing to sign up for." |
+| Hero subhead, if a clause stays | Give it the angle the why-section only mentions in passing — that you pay the setup again per project — so the two do not restate each other. |
+| Meta description | Needs the shelf and the reason as one standalone pair, under 155 characters. For example: "Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — tasks as Markdown, versioned in Git." (147) |
+| `overview.md` | Keep the second half — the `TODO.md` that stopped reflecting reality is the good part. Replace only the valuation: "…so standing one up per repository is mostly ceremony for a team of one. The plan ends up in your head instead, or in a `TODO.md` that stopped reflecting reality a week ago." |
+
+What the doctrine should record is the constraint, not the sentence: state the problem as a mechanism, never as a valuation, and keep ledger vocabulary out of it.
 
 ## Also worth fixing while here (not doctrine)
 
@@ -81,4 +100,5 @@ Neither is a branding question; both are cheap.
 
 - AGENTS.md answers all four questions, including the correction to its own meta-description rule.
 - Every tagline and descriptor instance on the site matches the decisions.
-- The problem statement has one settled form, or a recorded decision that it does not need one.
+- The doctrine records the problem statement as a theme with a stated constraint (mechanism, not valuation) rather than as a fourth canonical string.
+- No surface still states the problem in ledger vocabulary.
