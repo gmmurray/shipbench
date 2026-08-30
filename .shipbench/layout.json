@@ -1,5 +1,8 @@
 {
-  "todo": [],
+  "todo": [
+    "fix-rendering-defects-on-the-published-docs-site",
+    "rewrite-the-terminal-board-reference-to-describe-the-tool-not-its-implementation"
+  ],
   "backlog": [],
   "in-progress": [],
   "review": []
