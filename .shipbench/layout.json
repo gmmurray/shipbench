@@ -1,7 +1,8 @@
 {
   "todo": [
     "fix-rendering-defects-on-the-published-docs-site",
-    "rewrite-the-terminal-board-reference-to-describe-the-tool-not-its-implementation"
+    "rewrite-the-terminal-board-reference-to-describe-the-tool-not-its-implementation",
+    "stop-the-project-files-spec-describing-core-instead-of-the-file-format"
   ],
   "backlog": [],
   "in-progress": [],
