@@ -1,12 +1,12 @@
 ---
 title: Fix rendering defects on the published docs site
-status: review
+status: done
 priority: high
 tags:
   - docs
   - site
 created: '2026-08-30T14:05:28.596Z'
-updated: '2026-08-30T20:20:04.684Z'
+updated: '2026-08-30T20:51:04.400Z'
 ---
 
 Three defects on the published docs, all found in the days after launch, all reproduced on `/docs/cli-reference/` though none are specific to that page. Two of them share a root: layout that is only correct under conditions the page does not guarantee.

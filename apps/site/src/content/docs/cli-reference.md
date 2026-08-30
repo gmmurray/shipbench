@@ -3,7 +3,7 @@ title: ShipBench CLI Reference
 description: Commands, flags, JSON payloads, and agent-oriented query patterns for the ShipBench CLI.
 group: Reference
 order: 1
-updated: 2026-08-08
+updated: 2026-08-30
 ---
 
 The ShipBench CLI reads and writes the `.shipbench/` project rooted at your current directory, or at the directory selected with the global `-C` option.
@@ -229,9 +229,7 @@ shipbench task list --available --status backlog --tag research --json
 shipbench task list --blocked --json
 ```
 
-Availability results sort by configured priority, then oldest `created` timestamp, then slug. The order suggests what to inspect first; ShipBench does not assign work. In JSON, `position` still reports the task's board position rather than its rank in these results.
-
-This ranking ignores manual board placement, so it can disagree with the order a plain `shipbench task list` returns — a task sitting first in its column may come back third under `--available`. That is expected, not a bug: the two answer different questions, and ShipBench does not treat either as the authoritative one. Both are available from a single `--available --json` call, since every result still carries its board `position`.
+Availability results sort by configured priority, then oldest `created` timestamp, then slug. Use that order to choose what to inspect next; plain `task list` order describes where tasks appear on the board. A task can therefore appear first in its column and third in the availability results. With `--json`, read the array order for availability rank and each task's `position` for board placement. ShipBench does not assign work.
 
 `--available` and `--blocked` conflict with each other. Neither can be combined with `--archived`.
 
@@ -415,9 +413,9 @@ It is **read-only and takes no keyboard input** — Ctrl-C exits, nothing else i
 
 `--status` chooses which columns render; the other three filter tasks inside them, and while any of them is active every column header reads `shown/total`.
 
-The board takes over the screen while it runs and restores what was there on exit. As the terminal narrows it degrades in fixed steps — the done column collapses to a count on the status line, then empty columns do, then columns give way to full-width stacked sections — so widening the window never shows you less. Tasks whose `status` matches no configured column are never dropped; they collect in an `UNCATEGORIZED` column that no step collapses.
+The board replaces the current terminal screen while it runs and restores it on exit. It adapts to narrow terminals, and widening the window never shows you less. Tasks whose `status` matches no configured column remain visible under `UNCATEGORIZED`.
 
-The first read is allowed to fail, because there is nothing to show yet. Every read after it is not: a broken `config.json` or a storage error keeps the last good frame on screen and puts a warning on the status line. A task file caught mid-write is not fatal at all — the board repaints normally and the file's problem shows up as a warning count instead.
+You can edit task files while the board is open. If it cannot load the project at startup, it tells you why. Once it is running, a broken config or failed read leaves the last good board on screen and adds a warning to the status line.
 
 The terminal board marks a task with unfinished dependencies by replacing the priority meter's separator with a warning mark: `››·!Blocked task`. In narrower columns, where the meter is hidden, the row starts with `!`. Archived dependencies count as satisfied, even when an archived file is malformed; malformed prerequisites add a warning instead of a blocked marker. The view rereads the archive after project changes, so archiving or unarchiving a dependency updates the marker without a restart.
 

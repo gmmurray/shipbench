@@ -2,14 +2,14 @@
 title: >-
   Rewrite the terminal board reference to describe the tool, not its
   implementation
-status: todo
+status: done
 priority: medium
 tags:
   - docs
   - site
   - copy
 created: '2026-08-30T14:05:28.734Z'
-updated: '2026-08-30T14:07:11.467Z'
+updated: '2026-08-30T21:04:18.985Z'
 ---
 
 The `shipbench board terminal` section of the [CLI reference](../../apps/site/src/content/docs/cli-reference.md) documents how the code behaves rather than what the tool does for you. It is accurate, and it is well written. It is aimed at the wrong reader.

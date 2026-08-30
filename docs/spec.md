@@ -385,6 +385,20 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 - `shipbench task archive --done [--keep=N]` — Bulk-archives done tasks, keeping the N most-recently-updated. `--keep` defaults to `done_display.max`.
 - `shipbench task unarchive <slug>` — Restores an archived task as it was.
 - `shipbench board` — Starts a local web server hosting the Board UI with file watching for live updates. Standalone mode.
+- `shipbench board terminal [-s <statuses>] [--tag <tag>] [-a <assignee>] [-p <priority>]` — Opens a read-only live board in the current terminal. Aliases: `term`, `tui`.
+
+**Terminal board behavior.** The terminal board enters the alternate screen while
+it runs and restores the previous screen on exit. Its responsive layout degrades
+in a fixed order: the done column collapses to a status-line count, empty columns
+collapse next, and columns then become full-width stacked sections. Widening the
+terminal never reveals less. Tasks outside the configured columns collect in an
+`UNCATEGORIZED` column, which remains visible at every width.
+
+The initial read may show an error because no valid frame exists yet. After the
+first successful read, a config or storage failure keeps the last good frame on
+screen and reports the failure on the status line. A task file caught mid-write
+does not invalidate the frame; the board repaints and includes the problem in its
+warning count.
 
 Auto-generated `--help` and `-v, --version` via commander. Distribution: the CLI bundles `@shipbench/core` and `gray-matter` (CJS) into a single ESM file via tsup, and is installable globally via `pnpm link --global` or npm.
 
