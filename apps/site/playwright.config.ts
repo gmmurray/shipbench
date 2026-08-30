@@ -35,6 +35,9 @@ if (!existsSync(new URL('dist/client/pagefind/pagefind.js', import.meta.url))) {
 
 export default defineConfig({
   testDir: './e2e',
+  // Stops the preview daemon. The wrapper's signal handlers cover POSIX and CI;
+  // this covers Windows, where Playwright terminates rather than signals.
+  globalTeardown: './e2e/support/global-teardown.ts',
   // Traces, videos, and failure screenshots. Gitignored — see e2e/README.md.
   outputDir: './e2e/.artifacts',
   fullyParallel: true,
@@ -69,12 +72,23 @@ export default defineConfig({
   webServer: {
     // Wrangler-backed preview, courtesy of @astrojs/cloudflare. Serves exactly
     // what deploys, including /pagefind/*.
-    command: `pnpm exec astro preview --port ${PORT}`,
+    //
+    // Launched through a wrapper rather than `astro preview` directly: Astro's
+    // preview command daemonizes and exits within seconds, which Playwright
+    // reads as the server having died ("Process from config.webServer exited
+    // early") before any test runs. The wrapper holds the foreground and stops
+    // the server on teardown. See e2e/support/preview-server.mjs.
+    command: `node ./e2e/support/preview-server.mjs ${PORT}`,
     cwd: siteDir,
     url: BASE_URL,
-    reuseExistingServer: true,
+    // False deliberately. The wrapper cleans up after itself, so a server on
+    // this port means something went wrong rather than something is reusable —
+    // and a stale one serves its startup-time asset manifest, making /pagefind/*
+    // 404 and the search specs fail as though the index had regressed. Failing
+    // on the port conflict is a far cheaper diagnosis than that.
+    reuseExistingServer: false,
     timeout: 120_000,
-    stdout: 'ignore',
+    stdout: 'pipe',
     stderr: 'pipe',
   },
 });

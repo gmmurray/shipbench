@@ -1,6 +1,6 @@
 ---
 title: 'Playwright webServer aborts: astro preview now daemonizes'
-status: todo
+status: done
 priority: high
 tags:
   - site
@@ -8,7 +8,7 @@ tags:
   - ci
   - infra
 created: '2026-08-29T19:59:38.850Z'
-updated: '2026-08-29T19:59:38.850Z'
+updated: '2026-08-30T19:56:39.983Z'
 ---
 
 `pnpm --filter @shipbench/site test:e2e` fails before running a single test:
@@ -66,3 +66,25 @@ Whichever is chosen, `reuseExistingServer` deserves revisiting. It is what makes
 - No listening server survives a completed or failed run.
 - A real CI run of `e2e.yml` is green — this is the first time that workflow will have executed, so it needs watching rather than assuming.
 - `e2e/README.md` updated so the stale-server section does not misdirect.
+
+## Task Updates
+
+### 2026-08-29T20:13:41.173Z
+Done 2026-08-29. pnpm --filter @shipbench/site test:e2e runs the full suite from a clean port and leaves nothing behind.
+
+**Fix: option 1 from the task - a foreground wrapper.** e2e/support/preview-server.mjs starts the preview, polls until it answers, holds the foreground so Playwright sees a live process, and stops the daemon on SIGTERM/SIGINT. playwright.config.ts points webServer.command at it.
+
+**Signals alone were not enough, and the first attempt proved it.** With only the wrapper's handlers, a completed run still left pid 20276 listening. On Windows Playwright terminates the webServer process rather than signalling it, so the handlers never fire. Added e2e/support/global-teardown.ts, which Playwright always runs after a suite on every platform. The signal handlers stay as the POSIX and interrupt path - that is genuine belt-and-braces, unlike the NPM_CONFIG_PROVENANCE case where one of the two routes silently did nothing, and both were verified here rather than assumed.
+
+**reuseExistingServer flipped to false.** It was what made a stale server look like a Pagefind index regression: a leftover process keeps serving its startup-time asset manifest, so HTML resolves off disk while /pagefind/* 404s and the search specs fail with 'Search index unavailable'. The wrapper now refuses to start on a busy port and prints the stop command. Verified by occupying 4321 with a decoy server: exits 1 with the remedy rather than adopting it.
+
+**Two bugs introduced and caught during the work, both worth recording because they are the same class this repo keeps hitting.**
+
+1. My spawnSync calls used an args array with shell: true, which emits DEP0190 on every run - adding deprecation noise in the same session as a task about removing it. Changed to a single command string; shell is still required for pnpm's .CMD shim on Windows. Verified 0 DEP0190 in the run output.
+2. An unused spawn import put astro check back to 1 hint immediately after cleanup-typecheck-warnings had driven it to 0. The two new support files are inside the checked set - 38 files became 40 - so anything added here is now subject to that bar. Removed; back to 0 hints across 40 files.
+
+**Verified.** test:e2e from a verified-clean port: exit 0, 97 passed, 1 skipped, 0 DEP0190, port clear afterwards. Port-conflict path exits 1 with a useful message. Full typecheck, lint, 660 tests, build all exit 0. astro check 0 errors, 0 warnings, 0 hints.
+
+**e2e/README.md rewritten where it misdirected.** The old 'a second run can reuse a stale server' section described Playwright adopting a leftover process, which is no longer what happens and would send the next reader chasing the wrong thing - that section cost two runs during diagnosis. Replaced with how the preview server is actually started, why the wrapper exists, why reuseExistingServer is false, and what the port-conflict message means. Support file listing updated.
+
+**Still unverified from here: CI.** This will be the first execution of e2e.yml - the path filter is apps/site/**, and nothing touching it has been pushed since CI was added. Ubuntu should be the easier case, since signals work there and the wrapper's handlers apply, but it has never run. Watch that first run rather than assuming.

@@ -147,18 +147,35 @@ cannot see, and it is the single largest source of flake here. Use
 `waitForIsland` / `waitForSearchReady` from `support/hydration.ts` — they key
 off `<astro-island>` dropping its `ssr` attribute, not a timeout.
 
-**A second run in the same session can reuse a stale server.** Playwright's
-`webServer` reuses whatever already listens on 4321 rather than starting its
-own. `pnpm test:e2e` rebuilds `dist/` first, so a preview process left over from
-an earlier run keeps serving its startup-time asset manifest — HTML routes still
-resolve off disk, but `/pagefind/*` 404s, and the five search specs fail with
-"Search index unavailable" as though the index had regressed. It hasn't. Kill
-the listener on 4321 and re-run:
+## How the preview server is started
 
-```bash
-netstat -ano | grep :4321      # find the PID
-taskkill //PID <pid> //F       # Git Bash on Windows; use kill -9 elsewhere
+`webServer.command` points at `support/preview-server.mjs`, not at `astro
+preview` directly, because Astro's preview command **daemonizes**: it starts a
+background server, prints its pid, and exits 0 within seconds. Playwright expects
+that command to stay in the foreground and reports `Process from
+config.webServer exited early` when it does not, before running a single test.
+Astro has a `--background` flag but no `--foreground`; backgrounding is already
+the default.
+
+The wrapper starts the preview, waits for it to answer, holds the foreground, and
+stops it on `SIGTERM`/`SIGINT`. `globalTeardown` stops it as well, because on
+Windows Playwright terminates the process rather than signalling it, so the
+handlers never run and the daemon would be left listening.
+
+**`reuseExistingServer` is `false` on purpose.** A leftover server keeps serving
+its startup-time asset manifest, so HTML routes still resolve off disk while
+`/pagefind/*` 404s and the search specs fail with "Search index unavailable" as
+though the index had regressed. Adopting one silently turns a stale process into
+what looks like a real bug. The wrapper refuses to start on a busy port instead:
+
 ```
+Port 4321 is already in use.
+...
+  pnpm --filter @shipbench/site exec astro preview stop
+```
+
+If that ever appears, something exited without cleaning up — stop the server and
+re-run rather than working around it.
 
 ## Files
 
@@ -172,7 +189,9 @@ e2e/
 ├── axe-baseline.json       # accepted rule IDs per page:theme
 ├── support/
 │   ├── hydration.ts        # island-hydration waits
-│   └── theme.ts            # theme seeding, paint sampling, throttling
+│   ├── theme.ts            # theme seeding, paint sampling, throttling
+│   ├── preview-server.mjs  # foreground wrapper around the daemonizing preview
+│   └── global-teardown.ts  # stops the preview daemon (Windows-safe cleanup)
 ├── screenshots/            # gitignored output
 └── .artifacts/             # gitignored traces and failure screenshots
 ```
