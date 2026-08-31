@@ -3,10 +3,10 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-08-05
+updated: 2026-08-30
 ---
 
-The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, local board, ShipBench Harbor, and coding agents are clients of the same project data.
+The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, local board, ShipBench Harbor, and coding agents are clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
 
 ## Directory structure
 
@@ -51,7 +51,7 @@ Read the narrowest thing that answers the question. Because each task has a slug
 
 Column IDs are the valid values for a task's `status`; labels are display text. `default_column` receives new tasks that omit `--status`. `done_column` identifies completion for dependency checks, board ordering, display limits, and bulk archiving.
 
-ShipBench deep-merges a partial `config.json` over built-in defaults when it reads the project. You may omit blocks you do not customize. Arrays such as `columns` and `priority.values` define the complete configured list, so include every value you want to keep when replacing them.
+`config.json` may be partial. Readers deep-merge it over the built-in defaults, so you may omit blocks you do not customize. Arrays such as `columns` and `priority.values` define the complete configured list, so include every value you want to keep when replacing them.
 
 ## Task files
 
@@ -87,16 +87,16 @@ The YAML frontmatter carries structured data. The content below it is the task d
 | `assignee` | No | Freeform informational label. It does not claim or lock work. |
 | `tags` | No | Array of freeform strings. |
 | `depends_on` | No | Array of task slugs that must finish first. |
-| `created` | Yes | ISO 8601 timestamp set once by core. |
+| `created` | Yes | ISO 8601 timestamp recorded when the task is created and never changed. |
 | `updated` | Yes | ISO 8601 timestamp changed by task-content and status mutations. Layout-only reorders and archiving leave the task file unchanged. |
 
-Unknown frontmatter fields are preserved on read and reported as warnings. Core never strips data it does not own.
+Readers preserve unknown frontmatter fields and report them as warnings. Subsequent writes must retain fields they do not recognize.
 
 ## Slugs and dependencies
 
-Core slugifies titles to lowercase, hyphenated filenames. If a slug exists in either the live or archive directory, core appends a numeric suffix such as `setup-auth-2.md`. Archived slugs remain reserved so dependency references stay unambiguous.
+New task filenames derive from their titles: lowercase, hyphenated, and stripped of special characters. If the resulting slug exists in either the live or archive directory, task creation appends a numeric suffix such as `setup-auth-2.md`. Archived slugs remain reserved so dependency references stay unambiguous.
 
-`depends_on` is data, not a lock. It does not prevent edits or column moves. On write, core rejects an unknown slug, a self-reference, and a direct two-task cycle. On read, a dangling dependency produces a warning without hiding the task.
+`depends_on` is data, not a lock. It does not prevent edits or column moves. Writes reject an unknown slug, a self-reference, and a direct two-task cycle. Reads keep a task with a dangling dependency visible and report a warning.
 
 A dependency is satisfied when it is:
 
@@ -120,9 +120,9 @@ shipbench task comment setup-github-oauth \
   "Switched to PKCE after the security review."
 ```
 
-This is a suggested writing convention, not an enforced rule. Core stores arbitrary `{ timestamp, text }` entries and never judges their prose. You may use the section as a freeform comments log. It is a curated task record, not an automatically generated change log; Git already records file history.
+This placement heuristic is guidance, not a validation rule. Update text may contain arbitrary Markdown; readers do not judge its prose. You may use the section as a freeform comments log. It is a curated task record, not an automatically generated change log; Git already records file history.
 
-Core returns parsed Updates as `Task.comments` and keeps them separate from `Task.body`. If the section is malformed, core preserves its raw Markdown in the body and returns an `updates` warning instead of dropping the task.
+A well-formed trailing Updates section is separate from the task description above it. If the section is malformed, readers keep its raw Markdown with the description, return no parsed entries, and report an `updates` warning instead of dropping the task.
 
 You may correct an entry's text or delete a wrong entry. Commands address entries by zero-based index:
 
@@ -156,7 +156,7 @@ Tracked or ignored, `layout.json` stores a partial index of manual placements as
 }
 ```
 
-Treat this file as machine-managed. Board drag-and-drop and core mutations update it. It is not a complete snapshot of visible order. It can omit whole columns and unlisted tasks, never retains `done_column`, may carry stale slugs until another layout write, and may be absent or gitignored.
+Treat this file as machine-managed. Operations that change manual task placement update it. It is not a complete snapshot of visible order. It can omit whole columns and unlisted tasks, never retains `done_column`, may carry stale slugs until another layout write, and may be absent or gitignored.
 
 Visible ordering combines `config.json`, the task files, and the partial layout index:
 
@@ -168,19 +168,19 @@ Visible ordering combines `config.json`, the task files, and the partial layout 
 - `done_column` ignores layout and sorts by `updated`, newest first.
 - `done_display.max` caps the visible done tasks; search bypasses the cap.
 
-Do not read `layout.json` alone to determine board order; it can give an incomplete or stale answer. `shipbench task list` reports live tasks in configured column order and visible within-column order, and JSON output includes each task's zero-based `position` within its column. Code clients can apply core's `orderedTasksForColumn` to the task files. Direct file readers can apply the rules above to the individually addressable task files.
+Do not read `layout.json` alone to determine board order; it can give an incomplete or stale answer. `shipbench task list` reports live tasks in configured column order and visible within-column order, and JSON output includes each task's zero-based `position` within its column. Direct file readers can apply the rules above to the individually addressable task files.
 
 ## Archiving
 
 Archiving moves a task byte-for-byte to `tasks/archive/<slug>.md`. It does not change frontmatter, status, or timestamps, so unarchiving restores the same task.
 
-Any task can be archived, but core blocks a non-done task with live dependents unless the caller explicitly forces it. Bulk archiving is always explicit; ShipBench never archives tasks automatically.
+Any task can be archived. An archive request for a non-done task with live dependents must fail unless the caller explicitly forces it. Bulk archiving is always explicit; the convention defines no automatic archiving.
 
 See the [ShipBench CLI Reference](/docs/cli-reference) for archive commands and safeguards.
 
 ## Validation model
 
-ShipBench is strict on writes and graceful on reads.
+The convention requires strict writes and graceful reads.
 
 - Writes reject invalid statuses, priorities, timestamps, dependencies, and malformed fields.
 - Reads return recoverable tasks with warnings, including unknown statuses and fields.

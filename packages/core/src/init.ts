@@ -264,7 +264,7 @@ Visible order comes from \`config.json\`, the task files, and this partial index
 - The Uncategorized column and the \`done_column\` both ignore \`layout\` entirely.
 - The CLI and Board do not record \`layout[done_column]\`; any existing entry is removed on the next layout write.
 
-Do not read \`layout.json\` alone to determine board order. \`shipbench task list\` returns live tasks in canonical board order, and its JSON output includes each task's zero-based \`position\` within its column. Code clients can apply \`orderedTasksForColumn\` to the task files. Treat the index as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but Harbor and fresh clones will then fall back to deterministic \`created\`-descending order for unlisted tasks.
+Do not read \`layout.json\` alone to determine board order. \`shipbench task list --json\` returns live tasks in canonical board order, including each task's zero-based \`position\` within its column. Direct file readers must apply the rules above. Treat the index as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but Harbor and fresh clones will then fall back to deterministic \`created\`-descending order for unlisted tasks.
 
 ## Task files
 
@@ -400,7 +400,7 @@ Note that \`depends_on\` and the task's column are orthogonal. A column says whe
 
 \`layout.json\` is a partial, machine-managed index, not the visible order. It can omit \`done_column\`, unlisted tasks, and whole columns; retain stale slugs until another layout write; or be absent or gitignored. Reading it alone can therefore give the wrong answer.
 
-\`shipbench task list\` reports live tasks in configured column order and visible within-column order; JSON output includes each task's zero-based \`position\` within its column. Code clients can apply \`orderedTasksForColumn\` to the task files. When working directly with the plain files, combine task statuses with \`config.json\` and the ordering rules in \`README.md\`; do not use \`layout.json\` alone as the answer.
+\`shipbench task list --json\` reports live tasks in configured column order and visible within-column order, including each task's zero-based \`position\` within its column. When working directly with the plain files, combine task statuses with \`config.json\` and the ordering rules in \`README.md\`; do not use \`layout.json\` alone as the answer.
 
 ## Changing Board Order
 

@@ -3,7 +3,7 @@ title: 'Recipe: Gitignore layout.json'
 description: Stop committing the board's manual ordering index to remove the most conflict-prone file in .shipbench/, and tell agents to read board order from the CLI instead.
 group: Workflows
 order: 5
-updated: 2026-08-08
+updated: 2026-08-30
 ---
 
 ## What it does
@@ -40,9 +40,10 @@ Use the CLI instead:
     shipbench task list --json
 
 Live tasks come back in configured column order and visible within-column
-order, and each task carries a zero-based `position` within its column. A code
-client can apply core's `orderedTasksForColumn` to the task files for the same
-result.
+order, and each task carries a zero-based `position` within its column. If the
+CLI is unavailable, combine task statuses with `config.json` and the ordering
+rules in `.shipbench/README.md`; never infer visible order from `layout.json`
+alone.
 
 Do not hand-edit `layout.json`. Reordering happens through
 `shipbench task move` with a placement flag (`--top`, `--bottom`,

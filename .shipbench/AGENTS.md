@@ -115,7 +115,7 @@ Note that `depends_on` and the task's column are orthogonal. A column says where
 
 `layout.json` is a partial, machine-managed index, not the visible order. It can omit `done_column`, unlisted tasks, and whole columns; retain stale slugs until another layout write; or be absent or gitignored. Reading it alone can therefore give the wrong answer.
 
-`shipbench task list` reports live tasks in configured column order and visible within-column order; JSON output includes each task's zero-based `position` within its column. Code clients can apply `orderedTasksForColumn` to the task files. When working directly with the plain files, combine task statuses with `config.json` and the ordering rules in `README.md`; do not use `layout.json` alone as the answer.
+`shipbench task list --json` reports live tasks in configured column order and visible within-column order, including each task's zero-based `position` within its column. When working directly with the plain files, combine task statuses with `config.json` and the ordering rules in `README.md`; do not use `layout.json` alone as the answer.
 
 ## Changing Board Order
 

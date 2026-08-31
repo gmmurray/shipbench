@@ -9,6 +9,19 @@ pnpm changeset          # describe a change (interactive)
 pnpm changeset:status    # what would be released, and at what bump
 ```
 
+## When a change needs a changeset
+
+Add a changeset when a published package changes behavior that consumers can
+observe. This includes runtime behavior, CLI output, public APIs, and files the
+package generates or scaffolds.
+
+Do not add a changeset for changes limited to private packages, the site,
+repository-only documentation, tests, or internal refactoring that leaves
+published behavior unchanged. Repository tooling also needs no changeset unless
+it changes a published artifact.
+
+When a change spans both categories, decide from the published part.
+
 ## Fixed mode — read this before adding a package
 
 `@shipbench/core`, `@shipbench/board`, and `shipbench` are a **fixed group**:

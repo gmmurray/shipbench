@@ -178,10 +178,11 @@ describe('initProject', () => {
     expect(agents).toContain('zero-based `position` within its column');
   });
 
-  it('writes a README that distinguishes layout storage from visible order', async () => {
+  it('explains visible order without exposing the internal layout API', async () => {
     const adapter = memoryAdapter();
     await initProject(adapter, { name: 'Test Project' });
     const readme = adapter.files.get('.shipbench/README.md') ?? '';
+    const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
     expect(readme).toContain(
       '`layout.json` is a partial, machine-managed index of manual placements',
@@ -192,7 +193,12 @@ describe('initProject', () => {
     expect(readme).toContain(
       'Read the narrowest thing that answers the question',
     );
-    expect(readme).toContain('`orderedTasksForColumn`');
+    expect(readme).toContain('Direct file readers must apply the rules above');
+    expect(agents).toContain(
+      'combine task statuses with `config.json` and the ordering rules in `README.md`',
+    );
+    expect(readme).not.toContain('orderedTasksForColumn');
+    expect(agents).not.toContain('orderedTasksForColumn');
   });
 
   it('documents the time-anchored Updates heuristic and mutation commands', async () => {

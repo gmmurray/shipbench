@@ -1,13 +1,13 @@
 ---
 title: Stop the project-files spec describing core instead of the file format
-status: todo
+status: done
 priority: medium
 tags:
   - docs
   - site
   - convention
 created: '2026-08-30T14:18:20.706Z'
-updated: '2026-08-30T14:18:58.658Z'
+updated: '2026-08-31T02:21:45.351Z'
 ---
 
 A follow-on from `rewrite-the-terminal-board-reference-to-describe-the-tool-not-its-implementation`. That task fixes one section; this one is the result of sweeping the rest of the docs for the same family of problem.
@@ -75,3 +75,8 @@ One borderline case, deliberately left alone: quickstart's "ShipBench slugifies 
 - `shipbench init` no longer scaffolds `orderedTasksForColumn` into a new project's `README.md` or `AGENTS.md`.
 - This repository's `.shipbench/AGENTS.md` matches the corrected scaffold.
 - Typecheck, lint, and the test suite pass — the `init.ts` edits are code, not prose.
+
+## Task Updates
+
+### 2026-08-30T21:30:53.906Z
+While completing this task, the scaffold-template edit exposed a release-policy gap: the repository documented fixed-group behavior and release mechanics, but not which changes require a changeset. Added a decision rule to .changeset/README.md: observable changes from published packages, including generated or scaffolded files, need a changeset; private-only docs, tests, tooling, and behavior-preserving refactors do not.
