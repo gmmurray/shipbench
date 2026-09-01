@@ -1,13 +1,13 @@
 ---
 title: Settle the branding doctrine questions the homepage pass surfaced
-status: review
+status: done
 priority: medium
 tags:
   - docs
   - site
   - branding
 created: '2026-08-30T14:34:48.082Z'
-updated: '2026-09-01T22:51:38.197Z'
+updated: '2026-09-01T23:00:45.715Z'
 ---
 
 A pass over the homepage — [`index.astro`](../../apps/site/src/pages/index.astro), [`HeroWorkspaceWindow.astro`](../../apps/site/src/components/HeroWorkspaceWindow.astro), [`config/site.ts`](../../apps/site/src/config/site.ts) — checking copy against the naming and branding doctrine in [AGENTS.md](../../AGENTS.md).

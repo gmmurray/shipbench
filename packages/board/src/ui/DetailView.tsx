@@ -612,15 +612,15 @@ function TaskUpdatesSection({
         </span>
       </div>
       {comments.length > 0 ? (
-        <ol className="grid gap-4">
+        <ol className="grid gap-5">
           {comments.map((comment, index) => (
             <li
-              className="border-l border-sb-divider pl-4"
+              className="border-t border-sb-divider pt-5 first:border-t-0 first:pt-0"
               key={`${comment.timestamp}-${index}`}
             >
-              <div className="flex min-h-9 items-start justify-between gap-3">
+              <div className="flex min-h-9 items-center justify-between gap-3">
                 <time
-                  className="font-mono text-[12px] text-sb-silver"
+                  className="font-mono text-[11px] uppercase tracking-[0.14em] text-sb-frosted"
                   dateTime={comment.timestamp}
                   title={comment.timestamp}
                 >
@@ -723,7 +723,7 @@ function TaskUpdatesSection({
 
       {readOnly ? null : (
         <form
-          className="mt-5 border-t border-sb-divider pt-4"
+          className="mt-5 border-t border-sb-iron pt-5"
           onSubmit={event => void handleSubmit(event)}
         >
           <label

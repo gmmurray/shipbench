@@ -1,10 +1,8 @@
 {
   "todo": [
-    "make-task-updates-visually-separable-in-the-board-detail-view"
+    "give-the-board-window-a-project-specific-title-and-a-favicon"
   ],
   "backlog": [],
   "in-progress": [],
-  "review": [
-    "settle-the-branding-doctrine-questions-the-homepage-pass-surfaced"
-  ]
+  "review": []
 }
