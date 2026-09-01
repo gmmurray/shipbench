@@ -12,9 +12,9 @@ Tells every agent that the board is branch-local: one checkout owns task `status
 
 ## When you'd want it
 
-Any time more than one agent works at once, since that is when [worktrees](/docs/concurrent-agents) start being worth their cost. It is also worth adopting the first time an agent works on a branch at all, even alone: the failure it prevents is a status change that looks applied and is not, and one agent can hit that as easily as three.
+Any time more than one agent works at once, since that is when [worktrees](/docs/concurrent-agents/) start being worth their cost. It is also worth adopting the first time an agent works on a branch at all, even alone: the failure it prevents is a status change that looks applied and is not, and one agent can hit that as easily as three.
 
-Skip it if all work happens on `main`. In the [solo trunk workflow](/docs/solo-trunk-workflow) there is only one checkout, so there is nothing for the rule to disambiguate.
+Skip it if all work happens on `main`. In the [solo trunk workflow](/docs/solo-trunk-workflow/) there is only one checkout, so there is nothing for the rule to disambiguate.
 
 ## The block
 

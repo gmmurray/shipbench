@@ -63,7 +63,7 @@ const { isDocs = false } = Astro.props;
     ) : (
       <>
         <div class="header-actions desktop-nav">
-          <a class="nav-link" href="/docs/overview">Docs</a>
+          <a class="nav-link" href="/docs/overview/">Docs</a>
           <a class="nav-link" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
           <a class="nav-link" href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
           <ThemeToggle client:load />
@@ -89,7 +89,7 @@ const { isDocs = false } = Astro.props;
           <span>Search docs...</span>
         </button>
         <a href="/">Home</a>
-        <a href="/docs/overview">Docs</a>
+        <a href="/docs/overview/">Docs</a>
         <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
         <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
         <div class="mobile-nav-theme">
@@ -99,7 +99,7 @@ const { isDocs = false } = Astro.props;
       </nav>
     ) : (
       <nav class="mobile-nav-links">
-        <a href="/docs/overview">Docs</a>
+        <a href="/docs/overview/">Docs</a>
         <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
         <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
         <div class="mobile-nav-theme">

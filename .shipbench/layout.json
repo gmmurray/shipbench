@@ -1,8 +1,10 @@
 {
   "todo": [
-    "settle-the-branding-doctrine-questions-the-homepage-pass-surfaced"
+    "make-task-updates-visually-separable-in-the-board-detail-view"
   ],
   "backlog": [],
   "in-progress": [],
-  "review": []
+  "review": [
+    "settle-the-branding-doctrine-questions-the-homepage-pass-surfaced"
+  ]
 }

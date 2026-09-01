@@ -15,7 +15,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { waitForSearchReady } from './support/hydration.js';
 
-const DOCS_PAGE = '/docs/overview';
+const DOCS_PAGE = '/docs/overview/';
 
 /** Navigate and wait until both halves of search are live. */
 async function gotoDocs(page: Page, path: string = DOCS_PAGE): Promise<void> {
@@ -206,7 +206,7 @@ test.describe('docs search', () => {
       .innerText();
 
     await Promise.all([
-      page.waitForURL(url => url.pathname !== `${DOCS_PAGE}/`),
+      page.waitForURL(url => url.pathname !== DOCS_PAGE),
       page.keyboard.press('Enter'),
     ]);
 

@@ -7,7 +7,7 @@ for (const width of WIDE_VIEWPORTS) {
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('/docs/overview');
+    await page.goto('/docs/overview/');
 
     const shell = page.locator('.docs-shell');
     const header = page.locator('.docs-header-inner');
@@ -47,7 +47,7 @@ test('sticky docs navigation sits flush with the rendered header', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/docs/overview');
+  await page.goto('/docs/overview/');
 
   await page.evaluate(() => window.scrollTo(0, 400));
   await expect
@@ -72,7 +72,7 @@ test('sticky docs navigation sits flush with the rendered header', async ({
 
 test('docs table of contents still drops out at 1120px', async ({ page }) => {
   await page.setViewportSize({ width: 1120, height: 900 });
-  await page.goto('/docs/overview');
+  await page.goto('/docs/overview/');
 
   await expect(page.locator('.toc-sidebar')).toBeHidden();
   await expect(page.locator('.sidebar')).toBeVisible();
@@ -83,7 +83,7 @@ test('docs sidebar still becomes the mobile drawer at 760px', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 760, height: 900 });
-  await page.goto('/docs/overview');
+  await page.goto('/docs/overview/');
 
   await expect(page.locator('.toc-sidebar')).toBeHidden();
   await expect(page.locator('.sidebar')).toBeHidden();

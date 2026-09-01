@@ -3,12 +3,17 @@ declare const __SHIPBENCH_VERSION__: string;
 export const SITE_CONFIG = {
   name: 'ShipBench',
   version: __SHIPBENCH_VERSION__,
-  title: 'ShipBench — Git-Native Project Management for Solo Developers',
   // Tagline vs. descriptor (AGENTS.md › Naming and branding): `title` carries
-  // the descriptor because its job is search and categorization. The
-  // description gets to carry the reason, which is what earns the click.
+  // the descriptor because its job is search and categorization, in the
+  // descriptor's own sentence case — re-casing it would be a variant, and the
+  // lowercase form also renders narrower, which this string needs at 61
+  // characters. `description` carries the reason instead: it is the
+  // search-result snippet, and the title beside it has already said the shelf.
+  title: 'ShipBench — Git-native project management for solo developers',
+  // States the problem as a mechanism, not a valuation, per the doctrine.
+  // 147 characters — under the ~155 where snippets get cut mid-word.
   description:
-    'Setting up a tracker for every new project costs more than it saves, so most projects never get one. ShipBench keeps tasks as Markdown in your Git repository.',
+    'Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — tasks as Markdown, versioned in Git.',
   url: 'https://shipbench.dev',
   harborUrl: 'https://harbor.shipbench.dev',
   githubUrl: 'https://github.com/gmmurray/shipbench',

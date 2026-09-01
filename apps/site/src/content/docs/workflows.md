@@ -20,8 +20,8 @@ Use it as-is for a simple solo loop. Add columns only when they answer a real qu
 
 | Workflow | Use it when |
 | --- | --- |
-| [Solo trunk](/docs/solo-trunk-workflow) | One stream of work at a time. The task move and the code travel in the same commit, on `main`. |
-| [Concurrent agents with worktrees](/docs/concurrent-agents) | Two or more agents working at once. One task gets one branch, one directory, and one agent. |
+| [Solo trunk](/docs/solo-trunk-workflow/) | One stream of work at a time. The task move and the code travel in the same commit, on `main`. |
+| [Concurrent agents with worktrees](/docs/concurrent-agents/) | Two or more agents working at once. One task gets one branch, one directory, and one agent. |
 
 Worktrees are an isolation tool, not a requirement. Sequential work needs neither a worktree nor a feature branch, and starting there costs nothing — the second workflow is the first one plus isolation, and you can move to it the day you actually run two agents.
 
@@ -29,9 +29,9 @@ Worktrees are an isolation tool, not a requirement. Sequential work needs neithe
 
 A recipe is one optional convention with the exact text to paste. Each page states what the convention does, when you would want it, the block itself, and what it costs.
 
-- [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules) — keep task status truthful while agents work on branches.
-- [Recipe: human review gate](/docs/recipe-review-gate) — let agents submit finished work without marking it complete.
-- [Recipe: gitignore `layout.json`](/docs/recipe-gitignore-layout) — drop the most conflict-prone file in `.shipbench/`.
+- [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) — keep task status truthful while agents work on branches.
+- [Recipe: human review gate](/docs/recipe-review-gate/) — let agents submit finished work without marking it complete.
+- [Recipe: gitignore `layout.json`](/docs/recipe-gitignore-layout/) — drop the most conflict-prone file in `.shipbench/`.
 
 These are options with stated tradeoffs, not best practices, and adopting none of them is a supported answer. ShipBench ships the data and the operations; the process is yours.
 

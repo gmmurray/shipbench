@@ -14,7 +14,7 @@ Use one worktree for one task:
 1 task ↔ 1 branch ↔ 1 worktree ↔ 1 agent
 ```
 
-Worktrees are an isolation tool, not the default requirement for sequential work. If you are running one agent at a time, the [solo trunk workflow](/docs/solo-trunk-workflow) is enough.
+Worktrees are an isolation tool, not the default requirement for sequential work. If you are running one agent at a time, the [solo trunk workflow](/docs/solo-trunk-workflow/) is enough.
 
 ## Route status through the canonical checkout
 
@@ -36,7 +36,7 @@ Those changes ride the task branch and merge in with the code. What an agent mus
 - edit a task description without first reading the current version from the canonical checkout, since the worktree's copy may be stale;
 - touch anything else under `.shipbench/`: other agents' tasks, `config.json`, `layout.json`.
 
-One directory owns status; task branches carry everything else. [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules) has this stated as a block you can paste into your repository's `AGENTS.md`, so each agent reads it without you repeating it in a prompt.
+One directory owns status; task branches carry everything else. [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) has this stated as a block you can paste into your repository's `AGENTS.md`, so each agent reads it without you repeating it in a prompt.
 
 ## Claim concurrent tasks in the canonical checkout
 
@@ -82,7 +82,7 @@ shipbench task comment build-api \
 
 The agent should commit code, tests, its own task's description changes, and Updates on its task branch. It should not change any task's `status` from the worktree, touch another agent's task, or create orchestration state outside the repository.
 
-Decide which status represents a finished agent handoff and write it down. With the default columns, the task can stay `in-progress` until a human verifies it. If you would rather agents signal "done with my part" without closing the task, add [Recipe: human review gate](/docs/recipe-review-gate).
+Decide which status represents a finished agent handoff and write it down. With the default columns, the task can stay `in-progress` until a human verifies it. If you would rather agents signal "done with my part" without closing the task, add [Recipe: human review gate](/docs/recipe-review-gate/).
 
 ## Integrate on `main`
 
@@ -132,6 +132,6 @@ Use `shipbench task list --blocked --json` when a candidate cannot start, `task 
 
 Three optional pieces of this workflow have pasteable blocks, so your agents read the rules instead of being told them each time:
 
-- [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules) — the status rule above, as agent instructions.
-- [Recipe: human review gate](/docs/recipe-review-gate) — a `review` column plus the ownership line that makes it mean something.
-- [Recipe: gitignore `layout.json`](/docs/recipe-gitignore-layout) — worth reading if merges keep conflicting on board order.
+- [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) — the status rule above, as agent instructions.
+- [Recipe: human review gate](/docs/recipe-review-gate/) — a `review` column plus the ownership line that makes it mean something.
+- [Recipe: gitignore `layout.json`](/docs/recipe-gitignore-layout/) — worth reading if merges keep conflicting on board order.

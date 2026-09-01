@@ -14,6 +14,15 @@ export default defineConfig({
         },
       },
       {
+        // Source conventions the compiler cannot express. Reads the source
+        // tree off disk, so it is neither a unit test nor a browser one.
+        test: {
+          name: '@shipbench/site:source',
+          include: ['src/test/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
         // Svelte components. Mirrors packages/board/vitest.config.ts.
         plugins: [svelte()],
         // Without the browser condition, `svelte` resolves to its server entry

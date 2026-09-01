@@ -47,6 +47,12 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Separate step because apps/site cannot be a project in the root vitest
+      # config — see the comment there. Without this its suite runs nowhere in
+      # CI, which is how the internal-links guard would have been decorative.
+      - name: Test (site)
+        run: pnpm --filter @shipbench/site test
+
       # The published CLI bundles core, and the Board build has two outputs
       # writing into one dist/. Neither is exercised by the test suite, so build
       # them here rather than discovering a packaging break at release time.

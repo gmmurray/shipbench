@@ -30,7 +30,7 @@ const baseline: Baseline = JSON.parse(
 
 const PAGES = [
   { path: '/', name: 'landing' },
-  { path: '/docs/overview', name: 'docs' },
+  { path: '/docs/overview/', name: 'docs' },
 ] as const;
 
 const THEMES: OsScheme[] = ['dark', 'light'];

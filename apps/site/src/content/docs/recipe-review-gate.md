@@ -14,7 +14,7 @@ Adds a `review` column between `in-progress` and `done`, and reserves `done` for
 
 When agents produce work you intend to check before accepting. The default lifecycle forces a choice between leaving finished work in `in-progress`, where it looks unstarted, and letting an agent close its own task, which makes `done` mean "an agent thinks so."
 
-It pays off most with [concurrent agents](/docs/concurrent-agents), where several tasks finish while you are reading the first one, and the board is the only thing tracking which are waiting on you.
+It pays off most with [concurrent agents](/docs/concurrent-agents/), where several tasks finish while you are reading the first one, and the board is the only thing tracking which are waiting on you.
 
 ## The block
 

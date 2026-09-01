@@ -6,9 +6,9 @@ Git-native project management for solo developers. Your project plan lives insid
 
 ## Why
 
-Setting up a tracker for every new project costs more than it saves, so most projects never get one — the plan ends up in your head, in a chat log, or in a `TODO.md` that stopped reflecting reality a week ago.
+Every new repository starts with the same setup before a line of code exists: create a workspace, name the columns, wire up an integration. Most projects skip it, and the plan ends up in your head, in a chat log, or in a `TODO.md` that stopped reflecting reality a week ago.
 
-That cost used to be invisible. A team amortizes one workspace across a year and a dozen people. A solo developer working with AI has inverted the ratio: many projects, short cycles, one person. Hosted trackers are built to coordinate people you don't have, and todo lists sit in the right place but hold no state.
+That overhead used to be invisible. A team amortizes one workspace across a year and a dozen people. A solo developer working with AI has inverted the ratio: many projects, short cycles, one person. Hosted trackers are built to coordinate people you don't have, and todo lists sit in the right place but hold no state.
 
 Your repository already contains your code, your documentation, and your architecture decisions. **ShipBench's premise is that your project plan belongs there too.**
 

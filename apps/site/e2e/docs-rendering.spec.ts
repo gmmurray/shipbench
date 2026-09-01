@@ -71,14 +71,14 @@ test('table regions and section permalinks survive client navigation in both dir
     });
   });
 
-  await clickDocsLink(page, '/docs/convention-spec');
+  await clickDocsLink(page, '/docs/convention-spec/');
   expect(
     await page.evaluate(() => 'shipbenchE2eNavigationProbe' in document),
     'the docs link performed a full reload instead of a ClientRouter swap',
   ).toBe(true);
   await expectEnhancedProse(page);
 
-  await clickDocsLink(page, '/docs/cli-reference');
+  await clickDocsLink(page, '/docs/cli-reference/');
   expect(
     await page.evaluate(() => 'shipbenchE2eNavigationProbe' in document),
     'the return link performed a full reload instead of a ClientRouter swap',

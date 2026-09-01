@@ -27,8 +27,8 @@ const VIEWPORTS = [
 
 const PAGES = [
   { path: '/', name: 'landing' },
-  { path: '/docs/overview', name: 'docs-overview' },
-  { path: '/docs/cli-reference', name: 'docs-cli-reference' },
+  { path: '/docs/overview/', name: 'docs-overview' },
+  { path: '/docs/cli-reference/', name: 'docs-cli-reference' },
 ] as const;
 
 const THEMES: OsScheme[] = ['dark', 'light'];
@@ -71,7 +71,7 @@ test('screenshots: open search dialog, both themes', async ({ page }) => {
   for (const theme of THEMES) {
     await seedThemeChoice(page, theme);
     await page.emulateMedia({ colorScheme: theme });
-    await page.goto('/docs/overview');
+    await page.goto('/docs/overview/');
     await waitForSearchReady(page);
 
     await page.getByRole('button', { name: 'Search documentation' }).click();

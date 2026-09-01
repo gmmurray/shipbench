@@ -28,7 +28,7 @@ import {
   throttleFirstPaint,
 } from './support/theme.js';
 
-const PAGES = ['/', '/docs/overview'] as const;
+const PAGES = ['/', '/docs/overview/'] as const;
 
 const CONFLICTS: { stored: OsScheme; os: OsScheme }[] = [
   { stored: 'light', os: 'dark' },
@@ -90,7 +90,7 @@ for (const { stored, os } of CONFLICTS) {
  * parsed. That is also why throttleFirstPaint delays scripts rather than CSS.
  */
 test('the flash detector catches a deferred bootstrap', async ({ page }) => {
-  await page.route('**/docs/overview', async route => {
+  await page.route('**/docs/overview/', async route => {
     const response = await route.fetch();
     const original = await response.text();
     const body = original.replace(
@@ -109,7 +109,7 @@ test('the flash detector catches a deferred bootstrap', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await throttleFirstPaint(page);
 
-  await page.goto('/docs/overview', { waitUntil: 'load' });
+  await page.goto('/docs/overview/', { waitUntil: 'load' });
 
   const samples = await readPaintSamples(page);
   expect(
@@ -168,7 +168,7 @@ test('a ClientRouter navigation keeps the chosen theme', async ({ page }) => {
   // on astro:after-swap; this is the assertion for that.
   await seedThemeChoice(page, 'light');
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto('/docs/overview');
+  await page.goto('/docs/overview/');
 
   const html = page.locator('html');
   await expect(html).toHaveAttribute('data-theme', 'light');

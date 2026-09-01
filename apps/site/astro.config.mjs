@@ -28,8 +28,12 @@ export default defineConfig({
     },
   },
 
+  // The build format is `directory`, so every route's real URL carries a
+  // trailing slash and a bare path costs a 307 before the 200. Point this at
+  // the canonical form so /docs is one hop, not two, and author internal links
+  // the same way — src/test/internal-links.test.ts holds that line.
   redirects: {
-    '/docs': '/docs/overview',
+    '/docs': '/docs/overview/',
   },
 
   markdown: {

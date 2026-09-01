@@ -14,7 +14,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 const LAYOUTS = [
   { name: 'landing', path: '/' },
-  { name: 'docs', path: '/docs/overview' },
+  { name: 'docs', path: '/docs/overview/' },
 ] as const;
 
 const MOBILE = { width: 390, height: 844 };
@@ -239,7 +239,7 @@ test.describe('mobile drawers', () => {
   test('docs drawer toggles and its links meet the touch minimum', async ({
     page,
   }) => {
-    await page.goto('/docs/overview');
+    await page.goto('/docs/overview/');
 
     const toggle = page.locator('#mobile-docs-toggle');
     const drawer = page.locator('#mobile-docs-drawer');
@@ -265,7 +265,7 @@ test.describe('mobile drawers', () => {
     // BaseLayout. If that consolidation had missed a page, the toggle on it
     // would simply do nothing — which is what this checks on the docs layout,
     // where the removed listener used to live.
-    await page.goto('/docs/overview');
+    await page.goto('/docs/overview/');
     await page.locator('#mobile-docs-toggle').click();
     await expect(page.locator('#mobile-docs-drawer')).toHaveClass(/open/);
 

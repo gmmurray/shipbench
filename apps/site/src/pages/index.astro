@@ -36,13 +36,17 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
     <section class="hero page-width">
       <span class="hero-badge">Plans that ship with the work</span>
       <h1>Everything else lives in your repository. <span>So should the plan.</span></h1>
+      {/* No problem clause here on purpose (AGENTS.md › Naming and branding).
+          The h1 has already made the claim, and the why-section is the very
+          next thing on the page — a compressed version of its argument in the
+          subhead only restates it two scroll-lengths early. */}
       <p class="subhead">
-        Standing up a tracker for every new project costs more than it's worth, so most projects never get one. ShipBench makes the repository itself the board — Markdown tasks, Git history, nothing to sign up for.
+        ShipBench makes the repository itself the board — Markdown tasks, Git history, nothing to sign up for.
       </p>
 
       <div class="hero-cta">
         <a class="button primary" href="#start">Get Started</a>
-        <a class="button" href="/docs/overview">Read the Docs</a>
+        <a class="button" href="/docs/overview/">Read the Docs</a>
         <a class="button" href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">View on GitHub</a>
       </div>
 
@@ -171,7 +175,7 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
           lines={quickstartSnippet}
         />
       </div>
-      <a class="quickstart-more-link" href="/docs/quickstart">Full quickstart guide &rarr;</a>
+      <a class="quickstart-more-link" href="/docs/quickstart/">Full quickstart guide &rarr;</a>
     </section>
 
     <!-- Harbor Teaser Section -->

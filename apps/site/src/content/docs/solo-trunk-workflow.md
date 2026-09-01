@@ -32,6 +32,6 @@ It also keeps the board honest for free. The status change is a working-tree edi
 
 ## When to leave it
 
-Move to [concurrent agents with worktrees](/docs/concurrent-agents) when two agents would otherwise write in the same checkout. That is the real trigger — collisions in source files, task files, dependency installs, and test output. Wanting a branch for its own sake is not.
+Move to [concurrent agents with worktrees](/docs/concurrent-agents/) when two agents would otherwise write in the same checkout. That is the real trigger — collisions in source files, task files, dependency installs, and test output. Wanting a branch for its own sake is not.
 
 Adopting worktrees does not undo anything here. The concurrent workflow is this loop with isolation added around it, and `main` stays the checkout that owns task status either way.

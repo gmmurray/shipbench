@@ -106,4 +106,4 @@ shipbench task list --available --json
 shipbench task get build-the-landing-page
 ```
 
-See the [ShipBench CLI Reference](/docs/cli-reference) for every command and [Workflows](/docs/workflows) for a branch-aware multi-agent flow.
+See the [ShipBench CLI Reference](/docs/cli-reference/) for every command and [Workflows](/docs/workflows/) for a branch-aware multi-agent flow.

@@ -34,7 +34,7 @@ Three specific things got harder, and each one is a place todo lists break:
 
 Your repository already contains your code, your documentation, and your architecture decisions. **ShipBench's premise is that your project plan belongs there too.**
 
-Not adjacent to the repository. Not synced with it. Inside it — a [`.shipbench/` directory](/docs/convention-spec), versioned alongside everything else, structured enough to carry status, priority, and dependencies through an ambitious project, plain enough to stay Markdown in Git.
+Not adjacent to the repository. Not synced with it. Inside it — a [`.shipbench/` directory](/docs/convention-spec/), versioned alongside everything else, structured enough to carry status, priority, and dependencies through an ambitious project, plain enough to stay Markdown in Git.
 
 ## What follows from that
 
@@ -44,7 +44,7 @@ Not adjacent to the repository. Not synced with it. Inside it — a [`.shipbench
 
 **Git carries it.** History, branching, and portability come free because the plan is just files. Planning changes ride along with the branch that implements them. Every clone is complete. Nothing is stranded behind a service.
 
-**Multiple repositories work by default.** Each project carries its own plan, so there's no central system to keep in sync and nothing to set up per project beyond [`shipbench init`](/docs/quickstart). Managing more projects costs proportionally more work, not exponentially more overhead.
+**Multiple repositories work by default.** Each project carries its own plan, so there's no central system to keep in sync and nothing to set up per project beyond [`shipbench init`](/docs/quickstart/). Managing more projects costs proportionally more work, not exponentially more overhead.
 
 ## What ShipBench declines to decide
 
@@ -78,5 +78,5 @@ ShipBench began with a concrete frustration rather than a market thesis. Standin
 
 ## Next
 
-- [Overview](/docs/overview) — what ShipBench is and how the project system, CLI, local board, and ShipBench Harbor fit together.
-- [Quickstart](/docs/quickstart) — initialize a repository, create a task, and open the local board.
+- [Overview](/docs/overview/) — what ShipBench is and how the project system, CLI, local board, and ShipBench Harbor fit together.
+- [Quickstart](/docs/quickstart/) — initialize a repository, create a task, and open the local board.

@@ -6,6 +6,10 @@ export default defineConfig({
       'packages/core',
       'packages/board',
       'apps/cli',
+      // apps/site is deliberately absent. Its Svelte project needs the svelte
+      // plugin and `resolve.conditions: ['browser']`, neither of which survives
+      // being referenced from here — mount() throws
+      // lifecycle_function_unavailable. It runs as its own CI step instead.
       {
         // Repo-level, because it is not any one package's: it checks the
         // doctrine's palette against both implementations of it in this repo

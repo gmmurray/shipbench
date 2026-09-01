@@ -24,9 +24,22 @@ This section is public on purpose. It governs every ShipBench surface — this r
 **Tagline vs. descriptor**: two canonical strings with different jobs. Don't swap them and don't invent variants.
 
 - **Tagline — "Plans that ship with the work."** Carries the reason. Use it where a human reads it as a statement: the site footer, the hero, the social image, the top of a README. Deliberately domain-neutral — ShipBench is used for writing and posts as well as code (see [docs/why.md](docs/why.md)), so the tagline must never narrow to code.
-- **Descriptor — "Git-native project management for solo developers."** Says what shelf the project is on and carries no reason. Use it where the job is search and categorization: `<title>`, meta description, the GitHub repository description, npm.
+- **Descriptor — "Git-native project management for solo developers."** Says what shelf the project is on and carries no reason. Use it where the job is search and categorization: `<title>`, the GitHub repository description, npm.
 
 The two must not appear as each other's neighbors restating one claim twice. `docs/why.md` is the full argument both compress.
+
+**The description slot is not the descriptor's.** A meta description is not a shelf label — it is the search-result snippet, read by someone deciding whether to click, and the `<title>` sitting beside it has already done the categorizing. So the title carries the shelf and the description carries the reason. This governs `og:description` and `twitter:description` too, since they inherit the same string, and it is why `apps/site/src/config/site.ts` writes a reason into `description` rather than repeating the descriptor.
+
+**Terminal punctuation belongs to the context, not to the string.** The tagline is a sentence and keeps its period wherever it is read as one: the social image headline, an alt string, the top of a README. Standalone label contexts drop it, the way any badge, chip, or footer colophon does — the site's hero badge and footer both render `Plans that ship with the work` bare. Both forms are the tagline; neither is a variant.
+
+**The descriptor keeps its sentence case.** It is a sentence, not a name, so re-casing it is inventing a variant even when no word changes: "Git-Native" reads as a proper noun the thing isn't, and it diverges from the identical string on GitHub and npm one click away. That includes `<title>`, the one slot where title-casing is the ordinary convention. Sentence case also renders narrower, which matters where the full string sits near the ~60-character mark search results truncate around.
+
+**The problem statement is a theme, not a third canonical string.** Most surfaces have to say why a hosted tracker is a bad fit for one developer, and that wording is deliberately *not* shared. A search-result snippet, a subhead read after the `h1` has already made its claim, and the opening of a docs page are three different shapes; one sentence stretched across all three is what produced the drift this rule exists to stop. What is fixed is the constraint, not the sentence:
+
+- **State a mechanism, never a valuation.** "Costs more than it saves" announces a verdict. "Built to coordinate a team, and you configure it again for every repository" says what actually happens. Everywhere else this project earns its claims by showing a mechanism; the problem statement does not get an exemption.
+- **Keep ledger vocabulary out of it** — _costs_, _worth_, _saves_, _tax_, _pays for itself_. Those words assert a valuation by their nature, whatever sentence they land in.
+- **Lead with the checkable half.** "Most projects never get one" is an observation about behaviour. It is the evidence, not support for a verdict, so don't demote it to a subordinate clause.
+- **Mine `docs/why.md` before writing a new variant.** The long form is already there and already concrete. Then check the surfaces a reader meets alongside yours: if the section two scroll-lengths down takes the same angle, take a different one.
 
 **Domain**: `shipbench.dev` is the official, owned domain. Harbor lives under it (`harbor.shipbench.dev`), never on its own apex. No Harbor-first domain.
 

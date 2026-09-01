@@ -88,7 +88,7 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
             return (
               <a
                 class={`sidebar-link ${isActive ? 'active' : ''}`}
-                href={`/docs/${item.id}`}
+                href={`/docs/${item.id}/`}
               >
                 <span>{item.data.title}</span>
               </a>
@@ -112,7 +112,7 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
                 return (
                   <a
                     class={`sidebar-link ${isActive ? 'active' : ''}`}
-                    href={`/docs/${item.id}`}
+                    href={`/docs/${item.id}/`}
                   >
                     <span>{item.data.title}</span>
                   </a>
@@ -130,10 +130,10 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
          individually so breadcrumbs and "Next →" cards never match a query. -->
     <main class="doc-content" id="main-content" tabindex="-1" data-pagefind-body>
       <nav class="breadcrumb" aria-label="Breadcrumb navigation" data-pagefind-ignore>
-        <a class="crumb-link" href="/docs/overview">Docs</a>
+        <a class="crumb-link" href="/docs/overview/">Docs</a>
         <span class="crumb-chev">›</span>
         {groupFirstDoc ? (
-          <a class="crumb-link" href={`/docs/${groupFirstDoc.id}`}>{doc.data.group}</a>
+          <a class="crumb-link" href={`/docs/${groupFirstDoc.id}/`}>{doc.data.group}</a>
         ) : (
           <span class="crumb-text">{doc.data.group}</span>
         )}
@@ -162,14 +162,14 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
       <!-- Page Pagination Links -->
       <nav class="doc-pagination" aria-label="Doc page pagination" data-pagefind-ignore>
         {prevDoc ? (
-          <a class="pagination-card" href={`/docs/${prevDoc.id}`}>
+          <a class="pagination-card" href={`/docs/${prevDoc.id}/`}>
             <div class="pagination-dir">← Previous</div>
             <div class="pagination-title">{prevDoc.data.title}</div>
           </a>
         ) : <div />}
 
         {nextDoc ? (
-          <a class="pagination-card next" href={`/docs/${nextDoc.id}`}>
+          <a class="pagination-card next" href={`/docs/${nextDoc.id}/`}>
             <div class="pagination-dir">Next →</div>
             <div class="pagination-title">{nextDoc.data.title}</div>
           </a>

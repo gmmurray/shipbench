@@ -176,7 +176,7 @@ Archiving moves a task byte-for-byte to `tasks/archive/<slug>.md`. It does not c
 
 Any task can be archived. An archive request for a non-done task with live dependents must fail unless the caller explicitly forces it. Bulk archiving is always explicit; the convention defines no automatic archiving.
 
-See the [ShipBench CLI Reference](/docs/cli-reference) for archive commands and safeguards.
+See the [ShipBench CLI Reference](/docs/cli-reference/) for archive commands and safeguards.
 
 ## Validation model
 

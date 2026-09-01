@@ -136,7 +136,7 @@ shipbench task comment build-api \
   "Switched to cursor pagination after the load test."
 ```
 
-See [Task Updates](/docs/convention-spec#task-updates) for the time-anchored-fact heuristic.
+See [Task Updates](/docs/convention-spec/#task-updates) for the time-anchored-fact heuristic.
 
 Edit only an entry's text with its zero-based index. ShipBench preserves the entry timestamp and updates the task timestamp:
 
