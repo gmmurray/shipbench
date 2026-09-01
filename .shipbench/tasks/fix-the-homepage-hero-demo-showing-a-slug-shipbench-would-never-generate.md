@@ -1,13 +1,13 @@
 ---
 title: Fix the homepage hero demo showing a slug ShipBench would never generate
-status: todo
+status: done
 priority: high
 tags:
   - site
   - copy
   - bug
 created: '2026-08-30T14:34:47.929Z'
-updated: '2026-08-30T14:35:05.266Z'
+updated: '2026-09-01T22:15:50.111Z'
 ---
 
 The hero workspace preview is the first thing a visitor sees, and it demonstrates ShipBench producing a slug ShipBench cannot produce.

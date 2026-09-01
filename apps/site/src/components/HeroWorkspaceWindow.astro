@@ -14,7 +14,7 @@ const taskFileSnippet = [
 ];
 
 const cliWorkflowSnippet = [
-  { prompt: '›', text: 'shipbench task move setup-github-auth --to=review' },
+  { prompt: '›', text: 'shipbench task move setup-github-oauth --to=review' },
   { comment: true, text: '✔ updated status: review' },
   { comment: true, text: '✔ updated timestamp: 2026-07-22T17:18:00Z' },
   {},
@@ -150,7 +150,7 @@ const cliWorkflowSnippet = [
     <div class="split-visual-body">
       <div class="visual-pane">
         <span class="pane-tag">Direct Markdown</span>
-        <div class="visual-pane-title">setup-github-auth.md</div>
+        <div class="visual-pane-title">setup-github-oauth.md</div>
         <CodeBlock copyable={false} label="Example ShipBench task file" lines={taskFileSnippet} />
       </div>
 
