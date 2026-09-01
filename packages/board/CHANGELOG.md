@@ -1,5 +1,17 @@
 # @shipbench/board
 
+## 0.2.0
+
+### Minor Changes
+
+- bac700d: Name the browser tab after the project and ship a favicon, so boards open for several repos are distinguishable. The name is `config.name` — the same value the header breadcrumb renders — and the new `documentTitle` option keeps the behavior opt-in, so embedded hosts that own their own routing and tab title are unaffected.
+
+### Patch Changes
+
+- 7d32f8a: Separate task updates in the detail view so each entry is visually distinct. Entries are divided by a hairline rule instead of sharing one continuous left border, and the timestamp now reads as a header rather than as more body prose.
+- Updated dependencies [e8f7c03]
+  - @shipbench/core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

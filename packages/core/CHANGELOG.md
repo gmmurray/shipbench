@@ -1,5 +1,11 @@
 # @shipbench/core
 
+## 0.2.0
+
+### Patch Changes
+
+- e8f7c03: Keep scaffolded project documentation on public CLI commands and file-format rules instead of exposing an internal layout helper.
+
 ## 0.1.1
 
 ### Patch Changes
