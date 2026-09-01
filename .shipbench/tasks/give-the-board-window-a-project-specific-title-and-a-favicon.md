@@ -1,13 +1,13 @@
 ---
 title: Give the board window a project-specific title and a favicon
-status: todo
+status: review
 priority: medium
 tags:
   - board
   - ui
   - cli
 created: '2026-09-01T22:52:14.000Z'
-updated: '2026-09-01T22:52:14.000Z'
+updated: '2026-09-01T23:25:49.029Z'
 ---
 
 Every board tab is identical in the browser. The title is a hardcoded
@@ -31,33 +31,37 @@ to `standalone.html` with no templating. So this is a client-side
 `document.title`, not a server-rendered one. That is the right answer anyway —
 Harbor gets the same behavior without the CLI's server being involved.
 
-**The open question is where the name comes from**, and it should be decided
-before any code moves:
+**The name comes from `config.name`.** This was written up as an open question
+between a directory basename and a new config field; it is neither, because the
+field already exists and the basename is already its default.
 
-1. **Directory basename**, handed to the board by the CLI. Zero configuration,
-   correct almost always, and wrong in the ordinary case where the checkout
-   directory isn't the project's name.
-2. **A `name` field in `config.json`.** Explicit and always right, but it is a
-   change to the convention itself — spec, `.shipbench/AGENTS.md`, and the
-   `init` scaffold all move with it, and it makes every existing board
-   nameless until edited.
+`ShipbenchConfig.name` is declared in [types.ts](../../packages/core/src/types.ts#L60),
+is **required** — `loadConfig` rejects a config without a non-empty name — and
+`shipbench init` already defaults it to the current directory name behind
+`-n, --name`. So "directory basename" was never an alternative to the config
+field; it is the value that field is seeded with at init, after which the
+project can edit it. Zero-configuration correctness and an explicit override
+are both already shipped.
 
-Worth considering: (1) now with (2) layered later as an override, so the
-default needs no configuration and the escape hatch exists when the basename
-is wrong. Decide it explicitly rather than defaulting into it.
+The board already holds it: [BoardHeader.tsx](../../packages/board/src/ui/BoardHeader.tsx#L75)
+reads `config?.name` and renders it in the breadcrumb. The work is to set
+`document.title` from the config the board already loads.
 
-Plumbing note: `CreateBoardOptions` in
-[index.tsx](../../packages/board/src/index.tsx#L6) already carries
-board-owned options (`themeControl`), and a `projectName?: string` belongs
-there. It does **not** belong on `BoardAPI` — that interface is core's
-published contract, and this is presentation the host supplies, not data the
-host serves. Keeping it in board options means core is untouched. The CLI's
-`standalone.tsx` then needs the value from the server; adding it to the
-existing `/api/config` response is likely cheaper than a new endpoint, but
-check whether that muddies a response that currently mirrors `config.json`.
+**Do not add `projectName` to `CreateBoardOptions`.** An earlier draft of this
+task proposed exactly that, and it would have been a mistake: a host-supplied
+name is a second source of truth competing with `config.name`, and since the
+breadcrumb renders the config value, the tab and the breadcrumb could show two
+different names for the same board. It would also split identity across hosts —
+the CLI would report the checkout directory while Harbor reported the GitHub
+repository name, for one project, in the one place whose entire job is saying
+which project this is. No new published API surface is needed, in board options
+or on `BoardAPI`.
 
-The board must stay correct when no name is supplied — Harbor may not pass one
-— and fall back to the current `ShipBench Board`.
+The remaining judgment call is small: `DEFAULT_CONFIG.name` is
+`'Untitled Project'`, the deep-merge safety net for a config missing the field.
+Prefer rendering it as-is over special-casing the string — comparing UI against a
+default value is hidden coupling, and "Untitled Project" is both honest and still
+more distinguishable than today's identical tabs.
 
 ## The favicon
 
@@ -79,23 +83,45 @@ needs a dark-background variant to stay legible against a dark browser chrome.
 
 ## Scope
 
-`standalone.html`, `index.html`, `standalone.tsx`, `CreateBoardOptions`, and
-whatever the CLI's board server has to expose to supply the name. Not the
-terminal board. Not a `config.json` schema change unless option (2) is the
-decision — and if it is, the convention surfaces move with it in the same
-change, not after.
+Board-side only: wherever `document.title` gets set from the already-loaded
+config, plus `standalone.html` and `index.html` for the icon and the static
+fallback title. No core change, no CLI change, no board-server change, no new
+endpoint. Not the terminal board.
 
 ## Definition of done
 
 - Two boards open for two different projects are distinguishable by tab title
   and by icon, including when tabs are narrow enough to hide the title.
-- A host that supplies no project name still gets a sensible title and a
+- A board whose config carries no name still gets a sensible title and a
   working icon.
+- The title agrees with the breadcrumb — one name per board, from one source.
 - The favicon resolves with no network access.
-- The name's source is decided and written down, not left implicit in the
-  implementation.
-- `pnpm --filter @shipbench/board test`, `pnpm --filter shipbench test`, and
-  `pnpm typecheck` pass.
-- **A changeset.** Both published packages are affected and this is visible
-  behavior. Minor rather than patch if `CreateBoardOptions` gains a member —
-  that is a new published API surface, even though it is additive and optional.
+- `pnpm --filter @shipbench/board test` and `pnpm typecheck` pass.
+- **A patch changeset**, against `@shipbench/board` alone. Visible behavior
+  changes, but no published API surface is added.
+
+## Task Updates
+
+### 2026-09-01T23:13:28.892Z
+Corrected the task before implementing: the open question it posed does not exist.
+
+ShipbenchConfig.name is already declared, already required (loadConfig errors with 'Config must define a non-empty name'), and shipbench init already defaults it to the current directory name behind -n, --name. So the two options this task framed as alternatives are the same option — the directory basename is the config field's seed value at init, not a competing source. This repo's own config.json reads name: shipbench. BoardHeader.tsx already does config?.name and renders it in the breadcrumb, so the board holds the value today.
+
+Consequence for the plan: no CreateBoardOptions.projectName, no BoardAPI change, no core change, no board-server change, no new endpoint. The work is setting document.title from config the board already loads. The changeset drops from minor to patch against @shipbench/board alone, since no published API surface is added.
+
+Worth recording why the rejected plumbing was actively wrong rather than merely redundant: a host-supplied name is a second source of truth competing with config.name, and because the breadcrumb renders the config value, the tab and the breadcrumb could disagree about the same board. It would also split identity across hosts — the CLI reporting the checkout directory while Harbor reports the GitHub repository name — for one project, in the one place whose job is saying which project this is.
+
+Description and definition of done rewritten to match. Implementation not started; awaiting go-ahead on the title format.
+
+### 2026-09-01T23:25:44.339Z
+Implemented. Title comes from config.name via a useDocumentTitle hook reading the same store value BoardHeader renders, so the tab and breadcrumb cannot disagree. Format is '<name> — ShipBench Board'; a config with no usable name falls back to the bare 'ShipBench Board', which is also the static title in the HTML so the tab reads the same before the first config load resolves.
+
+One deviation from the approved plan, for correctness. I had said no new API surface, but setting document.title unconditionally from a library component would clobber the tab title of any embedded host — Harbor owns its own routing and title, and would never get it back. So the behavior is opt-in behind documentTitle on CreateBoardOptions and BoardProps, defaulting off, mirroring the existing themeControl precedent exactly ('standalone hosts pass true; the embed omits it'). This is not the projectName option the earlier draft proposed and this task rejected — it carries no name, only ownership of the window chrome, so config.name remains the single source. Consequence: the changeset is minor rather than patch, and the fixed group moves to 0.2.0. Effect cleanup restores the previous title on unmount, covered by a test.
+
+Favicon added as a generated asset rather than a hand copy: packages/board/public/logo.svg joins STANDALONE_SVG_OUTPUTS in scripts/brand/assets.ts, so pnpm generate:icons emits it and the existing byte-identity test in brand-assets.test.ts fails if it ever drifts from docs/brand/logo-mark.svg. Bundled, not hot-linked. Both standalone.html and the demo index.html link it, and the demo passes documentTitle so dev exercises what ships. vite.lib.config.ts sets publicDir: false so the library build does not re-emit the standalone's asset.
+
+Verified against a real browser on a production build, with all off-origin requests aborted to simulate no network: title 'shipbench — ShipBench Board', breadcrumb 'shipbench', /logo.svg 200 image/svg+xml, zero off-origin and zero failed requests. Incidentally confirmed the actual goal — port 4321 turned out to be another ShipBench board already running for a different project, and it read 'obelisk-conduit — ShipBench Board' while this repo's read 'shipbench — ShipBench Board'.
+
+Noted, not fixed: browsers draw tab icons at 16px, below the 20px floor docs/brand/README.md documents for the mark. Rendered at 16/32/64 on both light and dark chrome, the baked canvas tile keeps it legible and unmistakably not a blank page icon. The site takes the same approach — it ships the SVG as its preferred favicon and deliberately has no 16px output — so this is consistent rather than a new exception.
+
+5 new board tests (131 total), 665 root tests, typecheck, and lint pass.

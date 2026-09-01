@@ -9,27 +9,37 @@ import { BoardHeader } from './BoardHeader.js';
 import { BoardToaster } from './BoardToaster.js';
 import { ChevronDefs } from './Chevron.js';
 import { SyncEffects } from './SyncEffects.js';
+import { useDocumentTitle } from './useDocumentTitle.js';
 
 export interface BoardProps {
   api: BoardAPI;
   /** Standalone hosts pass true to show the theme toggle; the embed omits it
    *  and inherits the host's theme. */
   themeControl?: boolean;
+  /** Standalone hosts pass true to name the browser tab after the project; the
+   *  embed omits it and leaves the tab title to the host's own routing. */
+  documentTitle?: boolean;
 }
 
-export function Board({ api, themeControl }: BoardProps) {
+export function Board({ api, themeControl, documentTitle }: BoardProps) {
   return (
     <BoardStoreProvider api={api}>
-      <BoardShell api={api} themeControl={themeControl} />
+      <BoardShell
+        api={api}
+        themeControl={themeControl}
+        documentTitle={documentTitle}
+      />
     </BoardStoreProvider>
   );
 }
 
-function BoardShell({ api, themeControl }: BoardProps) {
+function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
   const refresh = useBoardStore(state => state.refresh);
   const hasLoaded = useBoardStore(state => state.hasLoaded);
   const initialLoadError = useBoardStore(state => state.initialLoadError);
   const isSyncing = useBoardStore(state => state.isSyncing);
+
+  useDocumentTitle(documentTitle);
 
   useEffect(() => {
     void refresh();

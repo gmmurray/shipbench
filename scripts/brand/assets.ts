@@ -9,7 +9,14 @@ export interface RasterAsset {
   out: string[];
 }
 
-export const STANDALONE_SVG_OUTPUTS = ['apps/site/public/logo.svg'] as const;
+export const STANDALONE_SVG_OUTPUTS = [
+  'apps/site/public/logo.svg',
+  // The board's favicon. A tab icon is a context with no page, so it takes the
+  // baked standalone form rather than the themed in-page symbol. Bundled rather
+  // than fetched from shipbench.dev: the CLI board is a local tool and must work
+  // with no network.
+  'packages/board/public/logo.svg',
+] as const;
 
 export const RASTER_ASSETS: RasterAsset[] = [
   {

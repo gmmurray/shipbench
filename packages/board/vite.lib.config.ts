@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // public/ holds the standalone app's favicon. The standalone build already
+  // copied it; a library has no use for it and should not re-emit it.
+  publicDir: false,
   build: {
     outDir: 'dist',
     // dist also contains the standalone app consumed by the CLI. The package

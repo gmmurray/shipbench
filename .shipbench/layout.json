@@ -1,8 +1,8 @@
 {
-  "todo": [
-    "give-the-board-window-a-project-specific-title-and-a-favicon"
-  ],
+  "todo": [],
   "backlog": [],
   "in-progress": [],
-  "review": []
+  "review": [
+    "give-the-board-window-a-project-specific-title-and-a-favicon"
+  ]
 }

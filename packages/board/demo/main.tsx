@@ -31,7 +31,7 @@ function Demo() {
           Read-only demo
         </label>
       </div>
-      <Board api={api} />
+      <Board api={api} documentTitle />
     </>
   );
 }

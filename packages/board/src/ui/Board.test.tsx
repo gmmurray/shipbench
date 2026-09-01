@@ -112,6 +112,60 @@ function api(overrides: Partial<BoardAPI> = {}): BoardAPI {
   };
 }
 
+describe('Board document title', () => {
+  it('names the tab after the project once config loads', async () => {
+    render(<Board api={api()} documentTitle />);
+
+    await waitFor(() => {
+      expect(document.title).toBe('Test Project — ShipBench Board');
+    });
+  });
+
+  it('takes the name from the same config the breadcrumb renders', async () => {
+    render(<Board api={api()} documentTitle />);
+
+    // One source of truth: a tab and a breadcrumb that disagree would mean the
+    // name had been supplied twice.
+    const breadcrumbName = await screen.findByText('Test Project');
+    expect(document.title).toBe(
+      `${breadcrumbName.textContent} — ShipBench Board`,
+    );
+  });
+
+  it('falls back to the bare product title when config carries no name', async () => {
+    render(
+      <Board
+        api={api({
+          getConfig: vi.fn(async () => ({ ...config, name: '   ' })),
+        })}
+        documentTitle
+      />,
+    );
+
+    await screen.findByText('To Do');
+    expect(document.title).toBe('ShipBench Board');
+  });
+
+  it('leaves the tab title alone for embedded hosts that own their routing', async () => {
+    document.title = 'Harbor';
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    expect(document.title).toBe('Harbor');
+  });
+
+  it('restores the host title when the board unmounts', async () => {
+    document.title = 'Harbor';
+    const { unmount } = render(<Board api={api()} documentTitle />);
+
+    await waitFor(() => {
+      expect(document.title).toBe('Test Project — ShipBench Board');
+    });
+    unmount();
+    expect(document.title).toBe('Harbor');
+  });
+});
+
 describe('Board', () => {
   it('renders configured columns and an Uncategorized column only when needed', async () => {
     render(<Board api={api()} />);

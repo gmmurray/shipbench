@@ -111,4 +111,4 @@ if (!rootElement) throw new Error('No #root element found in index.html.');
 // via CSS with no script).
 applyStoredBoardTheme();
 
-createBoard(rootElement, { api, themeControl: true });
+createBoard(rootElement, { api, themeControl: true, documentTitle: true });
