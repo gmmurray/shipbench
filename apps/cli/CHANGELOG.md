@@ -1,5 +1,13 @@
 # shipbench
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [bac700d]
+- Updated dependencies [7d32f8a]
+  - @shipbench/board@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
