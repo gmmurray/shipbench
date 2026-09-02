@@ -169,6 +169,59 @@ describe('createTask', () => {
     expect(task.slug).toBe('my-task-2');
   });
 
+  it('writes a Markdown description supplied at creation', async () => {
+    const adapter = memoryAdapter();
+    const body = 'First paragraph.\n\n- A bullet with an em dash — kept.';
+
+    const task = await createTask(
+      adapter,
+      DEFAULT_CONFIG,
+      'With body',
+      undefined,
+      body,
+    );
+
+    expect(task.body).toBe(body);
+    const written = adapter.files.get('.shipbench/tasks/with-body.md') ?? '';
+    expect(matter(written).content.trim()).toBe(body);
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'with-body');
+    expect(reread?.body).toBe(body);
+    expect(reread?.comments).toEqual([]);
+  });
+
+  it('rejects a description containing the Updates marker', async () => {
+    const adapter = memoryAdapter();
+
+    await expect(
+      createTask(
+        adapter,
+        DEFAULT_CONFIG,
+        'Sneaky',
+        undefined,
+        'Description\n\n## Task Updates\n\n### 2026-01-01T00:00:00Z\nNope.',
+      ),
+    ).rejects.toThrow(/task comment/);
+    expect(adapter.files.has('.shipbench/tasks/sneaky.md')).toBe(false);
+  });
+
+  it('allows the Updates marker inside a code fence', async () => {
+    const adapter = memoryAdapter();
+    const body = 'Shows the convention:\n\n```markdown\n## Task Updates\n```';
+
+    const task = await createTask(
+      adapter,
+      DEFAULT_CONFIG,
+      'Fenced marker',
+      undefined,
+      body,
+    );
+
+    expect(task.body).toBe(body);
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'fenced-marker');
+    expect(reread?.body).toBe(body);
+    expect(reread?.comments).toEqual([]);
+  });
+
   it('appends the new slug to layout[status] so it has a stable position', async () => {
     const adapter = memoryAdapter();
     const config = { ...DEFAULT_CONFIG, layout: { todo: ['existing'] } };
@@ -277,6 +330,71 @@ Customer escalation made this high priority.`,
     expect(written).toContain('Rewritten description');
     expect(written).toContain('### 2026-07-24T20:00:00Z');
     expect(written).toContain('Customer escalation made this high priority.');
+  });
+
+  it('clears the description when passed an empty body', async () => {
+    adapter.files.set(
+      '.shipbench/tasks/my-task.md',
+      taskFile(
+        {
+          title: 'My Task',
+          status: 'todo',
+          created: originalCreated,
+          updated: originalCreated,
+        },
+        `Original description
+
+## Task Updates
+
+### 2026-07-24T20:00:00Z
+Still here.`,
+      ),
+    );
+
+    const { task } = await updateTask(
+      adapter,
+      DEFAULT_CONFIG,
+      'my-task',
+      {},
+      '',
+    );
+
+    expect(task.body).toBe('');
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'my-task');
+    expect(reread?.body).toBe('');
+    expect(reread?.comments).toEqual([
+      { timestamp: '2026-07-24T20:00:00Z', text: 'Still here.' },
+    ]);
+  });
+
+  it('keeps non-ASCII characters in a rewritten description', async () => {
+    const body = 'Sé — “quoted”, café, 日本語.';
+    const { task } = await updateTask(
+      adapter,
+      DEFAULT_CONFIG,
+      'my-task',
+      {},
+      body,
+    );
+
+    expect(task.body).toBe(body);
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'my-task');
+    expect(reread?.body).toBe(body);
+  });
+
+  it('rejects a description containing the Updates marker', async () => {
+    const before = adapter.files.get('.shipbench/tasks/my-task.md');
+
+    await expect(
+      updateTask(
+        adapter,
+        DEFAULT_CONFIG,
+        'my-task',
+        {},
+        'Description\n\n## Task Updates\n\n### 2026-01-01T00:00:00Z\nNope.',
+      ),
+    ).rejects.toThrow(/task comment/);
+    expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(before);
   });
 
   it('updates layout.json when status changes', async () => {

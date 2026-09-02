@@ -1,13 +1,13 @@
 ---
 title: Give the board window a project-specific title and a favicon
-status: review
+status: done
 priority: medium
 tags:
   - board
   - ui
   - cli
 created: '2026-09-01T22:52:14.000Z'
-updated: '2026-09-01T23:25:49.029Z'
+updated: '2026-09-01T23:33:49.034Z'
 ---
 
 Every board tab is identical in the browser. The title is a hardcoded

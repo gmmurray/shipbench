@@ -25,7 +25,9 @@ import {
   type Task,
   taskFileSlugs,
   unarchiveTask,
+  updateTask,
 } from '@shipbench/core';
+import { readFile } from 'node:fs/promises';
 import { Command, InvalidArgumentError, Option } from 'commander';
 import {
   openBrowser,
@@ -68,6 +70,10 @@ export interface CliOptions {
   fetch?: typeof fetch;
   /** Git command runner used by Harbor connect commands. */
   runGit?: GitRunner;
+  /** Reads a `--body-file` path as UTF-8. Defaults to node:fs/promises. */
+  readTextFile?: (path: string) => Promise<string>;
+  /** Reads stdin for `--body-file -`. Defaults to consuming process.stdin. */
+  readStdin?: () => Promise<string>;
   /** Whether stdout is an interactive terminal. Defaults to process.stdout.isTTY. */
   isInteractive?: boolean;
   /** Environment used for terminal capability checks. Defaults to process.env. */
@@ -208,6 +214,38 @@ function formatTaskDependencyGraph(
   return lines;
 }
 
+interface BodyOptions {
+  body?: string;
+  bodyFile?: string;
+}
+
+/**
+ * `--body-file` is the documented path for agents because the alternatives
+ * route the description through the shell: a quoted multi-line argument hits
+ * PowerShell quoting rules, and a pipe hits PowerShell 5.1's Windows-1252
+ * decode, which corrupts every non-ASCII character. Reading the file here means
+ * Node opens it as UTF-8 and the bytes never touch the shell.
+ */
+function bodyOption(): Option {
+  return new Option(
+    '--body <text>',
+    'Description as Markdown text',
+  ).conflicts(['bodyFile']);
+}
+
+function bodyFileOption(): Option {
+  return new Option(
+    '--body-file <path>',
+    'Read the description from a UTF-8 file; "-" reads stdin',
+  ).conflicts(['body']);
+}
+
+async function readProcessStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 function enableExitOverride(command: Command): void {
   command.exitOverride();
   for (const child of command.commands) enableExitOverride(child);
@@ -239,6 +277,24 @@ export function createCli(opts: CliOptions): Command {
     });
   const fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));
   const runGit = opts.runGit ?? runGitCommand;
+  const readTextFile =
+    opts.readTextFile ?? ((path: string) => readFile(path, 'utf8'));
+  const readStdin = opts.readStdin ?? readProcessStdin;
+
+  /** Resolves `--body` / `--body-file` to the description, or undefined when neither was passed. */
+  const resolveBody = async (raw: BodyOptions): Promise<string | undefined> => {
+    if (raw.bodyFile === undefined) return raw.body;
+    if (raw.bodyFile === '-') return readStdin();
+    try {
+      return await readTextFile(raw.bodyFile);
+    } catch (error) {
+      throw new Error(
+        `Cannot read --body-file "${raw.bodyFile}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  };
 
   const program = new Command()
     .name('shipbench')
@@ -403,16 +459,29 @@ export function createCli(opts: CliOptions): Command {
       accumulateCommaList,
       [] as string[],
     )
+    .addOption(bodyOption())
+    .addOption(bodyFileOption())
     .option('--json', 'Output the created task as JSON')
+    .addHelpText(
+      'after',
+      '\nPrefer --body-file for anything multi-line: the file is read as UTF-8 by\nShipBench, so the description never passes through shell quoting or encoding.\n',
+    )
     .action(async (title: string, raw) => {
+      const body = await resolveBody(raw);
       const config = await loadCliConfig();
-      const created = await createTask(adapter, config, title, {
-        status: raw.status,
-        assignee: raw.assignee,
-        priority: raw.priority,
-        tags: raw.tags,
-        depends_on: raw.dependsOn,
-      });
+      const created = await createTask(
+        adapter,
+        config,
+        title,
+        {
+          status: raw.status,
+          assignee: raw.assignee,
+          priority: raw.priority,
+          tags: raw.tags,
+          depends_on: raw.dependsOn,
+        },
+        body,
+      );
 
       if (raw.json) {
         data(
@@ -432,6 +501,63 @@ export function createCli(opts: CliOptions): Command {
       }
       chrome(`Created task: ${created.slug}`);
     });
+
+  const editCommand = task
+    .command('edit <slug>')
+    .description("Replace a task's Markdown description")
+    .addOption(bodyOption())
+    .addOption(bodyFileOption())
+    .option('--json', 'Output the edited task as JSON')
+    .addHelpText(
+      'after',
+      '\nThe description is replaced whole and an empty value clears it. The Task\nUpdates section is never touched — use `shipbench task comment` for those.\n',
+    );
+
+  editCommand.action(async (slug: string, raw) => {
+    const body = await resolveBody(raw);
+    if (body === undefined) {
+      editCommand.error(
+        'Provide --body <text> or --body-file <path> (use "-" to read stdin).',
+      );
+      return;
+    }
+
+    const config = await loadCliConfig();
+    const existing = await getTask(adapter, config, slug);
+    if (!existing) {
+      const archived = await getTask(adapter, config, slug, { archived: true });
+      editCommand.error(
+        archived
+          ? `Task '${slug}' is archived. Unarchive it before editing.`
+          : `Task '${slug}' not found.`,
+      );
+      return;
+    }
+
+    const { task: edited } = await updateTask(adapter, config, slug, {}, body);
+
+    if (raw.json) {
+      data(
+        JSON.stringify(
+          {
+            slug: edited.slug,
+            status: edited.frontmatter.status,
+            frontmatter: edited.frontmatter,
+            body: edited.body,
+            comments: edited.comments,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+    chrome(
+      body.trim()
+        ? `Updated description on ${edited.slug}`
+        : `Cleared description on ${edited.slug}`,
+    );
+  });
 
   const comment = task
     .command('comment')

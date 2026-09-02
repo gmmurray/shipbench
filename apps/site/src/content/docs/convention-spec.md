@@ -3,7 +3,7 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-08-30
+updated: 2026-09-02
 ---
 
 The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, local board, ShipBench Harbor, and coding agents are clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
@@ -123,6 +123,8 @@ shipbench task comment setup-github-oauth \
 This placement heuristic is guidance, not a validation rule. Update text may contain arbitrary Markdown; readers do not judge its prose. You may use the section as a freeform comments log. It is a curated task record, not an automatically generated change log; Git already records file history.
 
 A well-formed trailing Updates section is separate from the task description above it. If the section is malformed, readers keep its raw Markdown with the description, return no parsed entries, and report an `updates` warning instead of dropping the task.
+
+The `## Task Updates` line is what divides the two, so a description cannot contain one of its own. Writes reject a description carrying that heading, because the next read would file everything below it as entries. The heading counts only outside a code fence, so a description may quote it in fenced Markdown.
 
 You may correct an entry's text or delete a wrong entry. Commands address entries by zero-based index:
 

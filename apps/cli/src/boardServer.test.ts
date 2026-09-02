@@ -321,6 +321,28 @@ describe('board REST API', () => {
     expect(body.frontmatter.status).toBe('todo');
   });
 
+  it('rejects a description carrying the Updates marker with a 400', async () => {
+    const fixture = await makeFixture();
+    const config = await loadConfig(fixture.adapter);
+    await createTask(fixture.adapter, config, 'Editable');
+    const server = await startFixture(fixture);
+
+    const { response, body } = await json<{ error: string }>(
+      server,
+      '/api/tasks/editable',
+      jsonInit(
+        {
+          fields: {},
+          body: 'Description\n\n## Task Updates\n\n### 2026-01-01T00:00:00Z\nNope.',
+        },
+        'PATCH',
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/task comment/);
+  });
+
   it('returns 404 for missing tasks', async () => {
     const fixture = await makeFixture();
     const server = await startFixture(fixture);

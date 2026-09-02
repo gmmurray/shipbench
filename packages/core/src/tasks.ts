@@ -196,6 +196,27 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
 }
 
 /**
+ * Rejects a description that carries the Updates marker.
+ *
+ * `serializeTask` writes `task.body` verbatim and the next `parseTaskBody`
+ * splits at the first unfenced `## Task Updates` heading, so a description
+ * containing one either turns part of itself into comments or reads back as a
+ * malformed Updates section. Neither is recoverable by the caller, so refuse
+ * the write instead. Fenced occurrences are safe — the parser ignores them too.
+ */
+function assertBodyWithoutUpdatesMarker(body: string): void {
+  let fence: MarkdownFence | null = null;
+  for (const line of body.split(/\r?\n/)) {
+    if (!fence && line.trimEnd() === UPDATES_HEADING) {
+      throw new Error(
+        `Invalid task description: remove the "${UPDATES_HEADING}" heading — that section is written by \`task comment\`. Put the heading in a code fence if the description means it literally.`,
+      );
+    }
+    fence = updateFence(line, fence);
+  }
+}
+
+/**
  * `matter`, minus a cache that poisons itself.
  *
  * gray-matter memoizes by content, and it inserts the still-empty result into
@@ -503,7 +524,10 @@ export async function createTask(
   config: ShipbenchConfig,
   title: string,
   fields?: Partial<TaskFrontmatter>,
+  body?: string,
 ): Promise<Task> {
+  if (body !== undefined) assertBodyWithoutUpdatesMarker(body);
+
   const [existingFiles, archivedFiles] = await Promise.all([
     adapter.listFiles(TASKS_DIR),
     adapter.listFiles(ARCHIVE_DIR),
@@ -544,7 +568,7 @@ export async function createTask(
       created: now,
       updated: now,
     },
-    body: '',
+    body: body ?? '',
     comments: [],
   };
 
@@ -574,6 +598,8 @@ export async function updateTask(
   fields: Partial<TaskFrontmatter>,
   body?: string,
 ): Promise<{ task: Task; layout?: BoardLayout }> {
+  if (body !== undefined) assertBodyWithoutUpdatesMarker(body);
+
   const path = `${TASKS_DIR}/${slug}.md`;
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);

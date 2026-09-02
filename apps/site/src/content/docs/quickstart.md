@@ -3,7 +3,7 @@ title: Quickstart
 description: Install the ShipBench CLI, initialize a repository, create a task, and open the local Kanban board.
 group: Getting Started
 order: 2
-updated: 2026-08-05
+updated: 2026-09-02
 ---
 
 ShipBench keeps your project plan in the repository itself. Tasks are Markdown files under `.shipbench/tasks/`, so Git, your editor, the ShipBench CLI, the local board, and coding agents all work from the same source.
@@ -63,6 +63,15 @@ shipbench task create "Build the landing page" \
   --priority high \
   --tags site,frontend \
   --assignee agent
+```
+
+Write the description with the task instead of opening the file afterward.
+`--body` takes text; `--body-file` reads a Markdown file as UTF-8, which is the
+one to use for anything multi-line:
+
+```bash
+shipbench task create "Build the landing page" --body-file plan.md
+shipbench task edit build-the-landing-page --body-file revised-plan.md
 ```
 
 ShipBench slugifies the title, avoids collisions across live and archived tasks, validates the metadata, and sets the `created` and `updated` timestamps.

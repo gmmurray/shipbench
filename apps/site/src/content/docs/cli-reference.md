@@ -3,7 +3,7 @@ title: ShipBench CLI Reference
 description: Commands, flags, JSON payloads, and agent-oriented query patterns for the ShipBench CLI.
 group: Reference
 order: 1
-updated: 2026-08-30
+updated: 2026-09-02
 ---
 
 The ShipBench CLI reads and writes the `.shipbench/` project rooted at your current directory, or at the directory selected with the global `-C` option.
@@ -80,6 +80,8 @@ Creates a task, generates a collision-safe slug, and sets both timestamps.
 | `-p, --priority <priority>` | Configured priority value. |
 | `-t, --tags <tags>` | Comma-separated tags. |
 | `-d, --depends-on <slugs>` | Comma-separated dependency slugs; may be repeated. |
+| `--body <text>` | Description as Markdown text. |
+| `--body-file <path>` | Read the description from a UTF-8 file; `-` reads stdin. |
 
 ```bash
 shipbench task create "Build API" \
@@ -89,6 +91,47 @@ shipbench task create "Build API" \
   --depends-on choose-database \
   --depends-on define-schema
 ```
+
+`--body` and `--body-file` are mutually exclusive, and a task created without
+either has an empty description.
+
+Prefer `--body-file` for anything longer than a sentence. It reads the file as
+UTF-8 directly, so the description never passes through shell quoting or a
+shell's encoding. That is what makes it the reliable path on Windows, where
+PowerShell 5.1 decodes UTF-8 as Windows-1252 and corrupts every non-ASCII
+character in a quoted argument and in a pipe alike.
+
+```bash
+shipbench task create "Build API" --body-file plan.md
+shipbench task create "Build API" --body "Cursor pagination, no offsets."
+```
+
+### `shipbench task edit`
+
+```bash
+shipbench task edit <slug> (--body <text> | --body-file <path>) [--json]
+```
+
+Replaces a task's Markdown description and updates its `updated` timestamp.
+`created` is never touched, and the trailing `## Task Updates` section is left
+exactly as it was — use [`shipbench task comment`](#shipbench-task-comment) for
+those.
+
+The description is replaced whole; there is no append. An empty value clears it:
+
+```bash
+shipbench task edit build-api --body-file revised-plan.md
+shipbench task edit build-api --body ""
+```
+
+A description may not contain a `## Task Updates` heading of its own — that
+heading is what divides the description from the entries below it, so the write
+is rejected rather than filing part of the description as Updates. Put the
+heading in a code fence when a description means it literally. See
+[Task Updates](/docs/convention-spec/#task-updates).
+
+`--json` emits the edited task in the same shape as
+[`shipbench task get`](#shipbench-task-get).
 
 ### `shipbench task move`
 

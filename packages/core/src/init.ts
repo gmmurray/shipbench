@@ -272,6 +272,8 @@ Every file in \`tasks/\` is a Markdown document with a YAML frontmatter block. S
 
 Read the narrowest thing that answers the question. Because each task has a slug, read one task when one task is enough. Use list, search, or archive reads only for broader questions.
 
+Write a description with the task instead of after it: \`shipbench task create "Task title" --body-file description.md\`, and \`shipbench task edit <slug> --body-file revised.md\` to replace one. ShipBench reads the file as UTF-8 itself, so multi-line Markdown never passes through shell quoting or a shell's encoding.
+
 Each task may end with a reserved \`## Task Updates\` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append with \`shipbench task comment <slug> "What changed and why."\`, edit text with \`shipbench task comment edit <slug> <index> "Corrected text."\`, or delete with \`shipbench task comment delete <slug> <index>\`. Indices are zero-based. Edits preserve the entry's timestamp; Git preserves earlier text and deleted entries.
 
 Archived tasks live in \`tasks/archive/\` and are excluded from normal board reads. Archiving moves the file without changing its frontmatter or timestamps; unarchiving restores the same file to \`tasks/\`.
@@ -345,6 +347,8 @@ Before adding an entry, ask: **Would this fact still be true or relevant regardl
 This heuristic is guidance, not a validation rule. Core stores each entry as \`{ timestamp, text }\` and never judges or reformats the prose. A project may use Updates as a general comments log if that serves its workflow.
 
 Append through \`shipbench task comment <slug> "What changed and why."\`. Edit text with \`shipbench task comment edit <slug> <index> "Corrected text."\`; delete an entry with \`shipbench task comment delete <slug> <index>\`. Indices are zero-based. Editing never changes the entry's timestamp. Git preserves earlier text and deleted entries.
+
+A description may not contain a \`## Task Updates\` heading of its own — the next read would file part of it as entries, so ShipBench rejects the write. Put the heading in a code fence when a description means it literally.
 
 Do not hand-edit content below the \`## Task Updates\` marker when the CLI is available.
 
@@ -429,6 +433,8 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Inspect dependencies**: \`shipbench task graph --json\`
 - **Include descriptions in a list**: \`shipbench task list --json --include-body\`
 - **Create a task**: \`shipbench task create "Task title" --status=todo\`
+- **Create a task with a description**: \`shipbench task create "Task title" --body-file=description.md\` (or \`--body "One-line description."\`)
+- **Rewrite a description**: \`shipbench task edit <slug> --body-file=description.md\` (replaces it whole; \`--body ""\` clears it)
 - **Create a dependent task**: \`shipbench task create "Task title" --depends-on=other-slug,another-slug\`
 - **Add a time-anchored update**: \`shipbench task comment <slug> "What changed and why."\`
 - **Edit an update's text**: \`shipbench task comment edit <slug> <index> "Corrected text."\`
@@ -450,7 +456,7 @@ Use direct edits only when the CLI is unavailable or when changing task descript
 
 - **Create a task**: Add a new \`.md\` file in \`tasks/\` following the format above.
 - **Move a task**: Change the \`status\` field and update the \`updated\` timestamp.
-- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`.
+- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. The CLI reaches descriptions — use \`task edit\` rather than rewriting a file by hand.
 - **Add an Update without the CLI**: Append a \`### <ISO 8601 timestamp>\` heading and text below the trailing \`## Task Updates\` marker.
 - **Edit an Update without the CLI**: Change only its text; preserve the \`###\` timestamp heading and update the frontmatter \`updated\` value.
 - **Delete an Update without the CLI**: Remove its heading and text, remove an empty \`## Task Updates\` section, and update the frontmatter \`updated\` value.
@@ -460,7 +466,7 @@ Use direct edits only when the CLI is unavailable or when changing task descript
 
 - Never invent status values not listed in \`config.json\`.
 - Reorder tasks only when the user explicitly asks for it.
-- Always update the \`updated\` timestamp when modifying a task.
+- Always update the \`updated\` timestamp when modifying a task by hand. Every CLI mutation maintains it for you.
 - Do not modify \`config.json\` unless explicitly asked.
 - Do not read \`layout.json\` as the visible order or modify it; the CLI and Board own this partial index.
 - Do not read or modify \`tasks/archive/\` unless the user explicitly asks about archived work.

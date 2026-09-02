@@ -3,7 +3,7 @@ title: 'Recipe: Multi-Agent Worktree Rules'
 description: A pasteable AGENTS.md block that keeps task status truthful when agents work from Git worktrees, by routing every status change through the canonical checkout.
 group: Workflows
 order: 3
-updated: 2026-08-08
+updated: 2026-09-02
 ---
 
 ## What it does
@@ -39,7 +39,8 @@ When you are working inside a feature worktree:
   alone. Do not move the task on your branch as a substitute.
 
 - You may write to your own task from the worktree: append Task Updates with
-  `shipbench task comment`, refine its description, and create follow-up tasks
+  `shipbench task comment`, rewrite its description with
+  `shipbench task edit <slug> --body-file <path>`, and create follow-up tasks
   you discover along the way. Those changes ride your branch and merge in with
   the code.
 

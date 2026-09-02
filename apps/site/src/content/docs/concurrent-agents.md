@@ -3,7 +3,7 @@ title: Concurrent Agents with Worktrees
 description: Run several agents at once by giving each task its own Git worktree and branch, while one canonical checkout keeps task status authoritative.
 group: Workflows
 order: 2
-updated: 2026-08-08
+updated: 2026-09-02
 ---
 
 Two agents writing in one checkout can collide in source files, task files, dependency installs, and test output. Git worktrees give each concurrent task its own directory and branch while sharing the repository's object database.
@@ -27,7 +27,7 @@ shipbench -C ~/code/my-project task move build-api --to in-progress
 The rule is narrow on purpose. From inside its worktree, an agent may still write to the board files that belong to its own task:
 
 - append Updates with `shipbench task comment`;
-- refine its own task's description;
+- refine its own task's description with `shipbench task edit`;
 - create follow-up tasks it discovers along the way.
 
 Those changes ride the task branch and merge in with the code. What an agent must not do from a worktree:

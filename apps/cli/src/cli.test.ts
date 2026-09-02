@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -86,6 +86,8 @@ interface Harness {
 
 interface HarnessOptions {
   fetch?: typeof fetch;
+  readTextFile?: (path: string) => Promise<string>;
+  readStdin?: () => Promise<string>;
   getGitRemoteOrigin?: (cwd: string) => Promise<string>;
   runGit?: GitRunner;
   isInteractive?: boolean;
@@ -142,6 +144,8 @@ function harness(
     out: line => stdout.push(line),
     err: line => stderr.push(line),
     fetch: options.fetch,
+    readTextFile: options.readTextFile,
+    readStdin: options.readStdin,
     runGit,
     isInteractive: options.isInteractive,
     env: options.env,
@@ -671,6 +675,212 @@ describe('shipbench task create', () => {
     await expect(
       h.run('task', 'create', 'Wire it up', '--depends-on=ghost'),
     ).rejects.toThrow(/unknown dependency "ghost"/i);
+  });
+});
+
+describe('shipbench task create with a description', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+  });
+
+  it('writes --body as the task description', async () => {
+    await h.run('task', 'create', 'Setup auth', '--body', 'Wire up OAuth.');
+
+    const raw = h.adapter.files.get('.shipbench/tasks/setup-auth.md');
+    expect(matter(raw!).content.trim()).toBe('Wire up OAuth.');
+  });
+
+  it('reads a multi-line UTF-8 description from --body-file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'shipbench-body-'));
+    const path = join(dir, 'body.md');
+    const body = '# Heading\n\nAn em dash — and café, kept verbatim.';
+    await writeFile(path, body, 'utf8');
+
+    try {
+      await h.run('task', 'create', 'From file', '--body-file', path);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+
+    const raw = h.adapter.files.get('.shipbench/tasks/from-file.md');
+    expect(matter(raw!).content.trim()).toBe(body);
+  });
+
+  it('reads the description from stdin for --body-file -', async () => {
+    const piped = harness(undefined, {
+      readStdin: async () => 'Piped description.',
+    });
+    await piped.run('init');
+    await piped.run('task', 'create', 'Piped', '--body-file', '-');
+
+    const raw = piped.adapter.files.get('.shipbench/tasks/piped.md');
+    expect(matter(raw!).content.trim()).toBe('Piped description.');
+  });
+
+  it('rejects --body together with --body-file', async () => {
+    await expect(
+      h.run('task', 'create', 'Both', '--body', 'x', '--body-file', 'y.md'),
+    ).rejects.toMatchObject({ code: 'commander.conflictingOption' });
+    expect(h.adapter.files.has('.shipbench/tasks/both.md')).toBe(false);
+  });
+
+  it('names the path when --body-file cannot be read', async () => {
+    await expect(
+      h.run('task', 'create', 'Missing file', '--body-file', 'no-such.md'),
+    ).rejects.toThrow(/Cannot read --body-file "no-such\.md"/);
+    expect(h.adapter.files.has('.shipbench/tasks/missing-file.md')).toBe(false);
+  });
+
+  it('rejects a description carrying the Updates marker', async () => {
+    await expect(
+      h.run(
+        'task',
+        'create',
+        'Sneaky',
+        '--body',
+        'Description\n\n## Task Updates\n\n### 2026-01-01T00:00:00Z\nNope.',
+      ),
+    ).rejects.toThrow(/task comment/);
+    expect(h.adapter.files.has('.shipbench/tasks/sneaky.md')).toBe(false);
+  });
+});
+
+describe('shipbench task edit', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    await h.run('task', 'create', 'Build api', '--body', 'Original text.');
+    setTaskCreated(h, 'build-api', '2026-01-01T00:00:00.000Z');
+    setTaskUpdated(h, 'build-api', '2026-01-01T00:00:00.000Z');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+  });
+
+  it('replaces the description, preserving created and bumping updated', async () => {
+    await h.run('task', 'edit', 'build-api', '--body', 'Rewritten text.');
+
+    const parsed = matter(
+      h.adapter.files.get('.shipbench/tasks/build-api.md')!,
+    );
+    expect(parsed.content.trim()).toBe('Rewritten text.');
+    expect(parsed.data.created).toBe('2026-01-01T00:00:00.000Z');
+    expect(Date.parse(parsed.data.updated)).toBeGreaterThan(
+      Date.parse('2026-01-01T00:00:00.000Z'),
+    );
+    expect(h.stdout).toEqual([]);
+    expect(h.stderr.at(-1)).toBe('Updated description on build-api');
+  });
+
+  it('leaves the Updates section untouched', async () => {
+    await h.run('task', 'comment', 'build-api', 'Scope changed after review.');
+    await h.run('task', 'edit', 'build-api', '--body', 'Rewritten text.');
+
+    const written = h.adapter.files.get('.shipbench/tasks/build-api.md') ?? '';
+    expect(written).toContain('Rewritten text.');
+    expect(written).toContain('## Task Updates');
+    expect(written).toContain('Scope changed after review.');
+    expect(written).not.toContain('Original text.');
+  });
+
+  it('clears the description when given an empty body', async () => {
+    await h.run('task', 'edit', 'build-api', '--body', '');
+
+    const parsed = matter(
+      h.adapter.files.get('.shipbench/tasks/build-api.md')!,
+    );
+    expect(parsed.content.trim()).toBe('');
+    expect(h.stderr.at(-1)).toBe('Cleared description on build-api');
+  });
+
+  it('reads a UTF-8 description from --body-file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'shipbench-body-'));
+    const path = join(dir, 'body.md');
+    const body = 'Rewritten — with café and 日本語.';
+    await writeFile(path, body, 'utf8');
+
+    try {
+      await h.run('task', 'edit', 'build-api', '--body-file', path);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+
+    const parsed = matter(
+      h.adapter.files.get('.shipbench/tasks/build-api.md')!,
+    );
+    expect(parsed.content.trim()).toBe(body);
+  });
+
+  it('emits the edited task as JSON and skips the stderr confirmation', async () => {
+    await h.run('task', 'comment', 'build-api', 'Scope changed after review.');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+
+    await h.run('task', 'edit', 'build-api', '--body', 'Rewritten.', '--json');
+
+    expect(h.stderr).toEqual([]);
+    const payload = JSON.parse(h.stdout.join('\n'));
+    expect(payload).toMatchObject({
+      slug: 'build-api',
+      status: 'todo',
+      body: 'Rewritten.',
+      comments: [
+        {
+          timestamp: expect.any(String),
+          text: 'Scope changed after review.',
+        },
+      ],
+    });
+  });
+
+  it('requires --body or --body-file', async () => {
+    await expect(h.run('task', 'edit', 'build-api')).rejects.toMatchObject({
+      code: 'commander.error',
+      exitCode: 1,
+    });
+    expect(h.stderr.join('\n')).toContain('Provide --body <text>');
+  });
+
+  it('rejects an unknown task', async () => {
+    await expect(
+      h.run('task', 'edit', 'ghost', '--body', 'x'),
+    ).rejects.toMatchObject({ code: 'commander.error', exitCode: 1 });
+    expect(h.stderr.join('\n')).toContain("Task 'ghost' not found.");
+  });
+
+  it('points at unarchive when the task is archived', async () => {
+    await h.run('task', 'move', 'build-api', '--to=done');
+    await h.run('task', 'archive', 'build-api');
+    h.stderr.length = 0;
+
+    await expect(
+      h.run('task', 'edit', 'build-api', '--body', 'x'),
+    ).rejects.toMatchObject({ code: 'commander.error', exitCode: 1 });
+    expect(h.stderr.join('\n')).toContain(
+      "Task 'build-api' is archived. Unarchive it before editing.",
+    );
+  });
+
+  it('rejects a description carrying the Updates marker', async () => {
+    await expect(
+      h.run(
+        'task',
+        'edit',
+        'build-api',
+        '--body',
+        'Text\n\n## Task Updates\n\n### 2026-01-01T00:00:00Z\nNope.',
+      ),
+    ).rejects.toThrow(/task comment/);
+    const parsed = matter(
+      h.adapter.files.get('.shipbench/tasks/build-api.md')!,
+    );
+    expect(parsed.content.trim()).toBe('Original text.');
   });
 });
 
