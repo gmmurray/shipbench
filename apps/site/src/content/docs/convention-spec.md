@@ -122,9 +122,11 @@ shipbench task comment setup-github-oauth \
 
 This placement heuristic is guidance, not a validation rule. Update text may contain arbitrary Markdown; readers do not judge its prose. You may use the section as a freeform comments log. It is a curated task record, not an automatically generated change log; Git already records file history.
 
+Only a `### <ISO 8601 timestamp>` line at the start of a line, outside a code fence, opens an entry. Every other heading in an entry belongs to that entry's text, so an update is free to use `##` or `####` for its own structure. Three shapes are refused on write instead, because the next read would file them as structure rather than prose: a `## Task Updates` heading of its own, a line-initial heading whose text is a date, and an unclosed code fence. Indenting the line by four spaces or fencing it keeps any of them as literal text.
+
 A well-formed trailing Updates section is separate from the task description above it. If the section is malformed, readers keep its raw Markdown with the description, return no parsed entries, and report an `updates` warning instead of dropping the task.
 
-The `## Task Updates` line is what divides the two, so a description cannot contain one of its own. Writes reject a description carrying that heading, because the next read would file everything below it as entries. The heading counts only outside a code fence, so a description may quote it in fenced Markdown.
+The `## Task Updates` line is what divides the two, so a description cannot contain one of its own. Writes reject a description carrying that heading, because the next read would file everything below it as entries. The heading counts only outside a code fence, so a description may quote it in fenced Markdown — and for the same reason a description may not leave a fence open, which would put the real marker inside a code block and hide every entry below it.
 
 You may correct an entry's text or delete a wrong entry. Commands address entries by zero-based index:
 

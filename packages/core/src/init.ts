@@ -276,6 +276,8 @@ Write a description with the task instead of after it: \`shipbench task create "
 
 Each task may end with a reserved \`## Task Updates\` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append with \`shipbench task comment <slug> "What changed and why."\`, edit text with \`shipbench task comment edit <slug> <index> "Corrected text."\`, or delete with \`shipbench task comment delete <slug> <index>\`. Indices are zero-based. Edits preserve the entry's timestamp; Git preserves earlier text and deleted entries.
 
+Both commands also take \`--body <text>\` and \`--body-file <path>\` in place of the positional text, and \`--body-file\` is the one to reach for when an update runs to several lines: ShipBench reads the file as UTF-8 itself, so the prose never passes through shell quoting or a shell's encoding.
+
 Archived tasks live in \`tasks/archive/\` and are excluded from normal board reads. Archiving moves the file without changing its frontmatter or timestamps; unarchiving restores the same file to \`tasks/\`.
 `;
 }
@@ -348,7 +350,11 @@ This heuristic is guidance, not a validation rule. Core stores each entry as \`{
 
 Append through \`shipbench task comment <slug> "What changed and why."\`. Edit text with \`shipbench task comment edit <slug> <index> "Corrected text."\`; delete an entry with \`shipbench task comment delete <slug> <index>\`. Indices are zero-based. Editing never changes the entry's timestamp. Git preserves earlier text and deleted entries.
 
-A description may not contain a \`## Task Updates\` heading of its own — the next read would file part of it as entries, so ShipBench rejects the write. Put the heading in a code fence when a description means it literally.
+Append and edit both accept \`--body <text>\` or \`--body-file <path>\` instead of the positional text, the same pair \`task create\` and \`task edit\` take. Use \`--body-file\` for anything multi-line: ShipBench reads the file as UTF-8, so the text never passes through shell quoting or encoding.
+
+Update text is prose. Markdown headings inside it are yours to use — only a column-0 \`### <ISO 8601 timestamp>\` line opens a new entry. Three things are rejected on write, because the next read would mis-file them: a \`## Task Updates\` heading of its own, a column-0 heading whose text is a date, and an unclosed code fence.
+
+A description may not contain a \`## Task Updates\` heading of its own — the next read would file part of it as entries, so ShipBench rejects the write. It also may not leave a code fence open, which would swallow the marker below it and hide every entry. Put the heading in a code fence when a description means it literally.
 
 Do not hand-edit content below the \`## Task Updates\` marker when the CLI is available.
 
@@ -437,7 +443,8 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Rewrite a description**: \`shipbench task edit <slug> --body-file=description.md\` (replaces it whole; \`--body ""\` clears it)
 - **Create a dependent task**: \`shipbench task create "Task title" --depends-on=other-slug,another-slug\`
 - **Add a time-anchored update**: \`shipbench task comment <slug> "What changed and why."\`
-- **Edit an update's text**: \`shipbench task comment edit <slug> <index> "Corrected text."\`
+- **Add a multi-line update**: \`shipbench task comment <slug> --body-file update.md\`
+- **Edit an update's text**: \`shipbench task comment edit <slug> <index> "Corrected text."\` (also takes \`--body-file\`)
 - **Delete an update**: \`shipbench task comment delete <slug> <index>\`
 - **Move a task**: \`shipbench task move <slug> --to=in-progress\`
 - **Complete a task**: \`shipbench task move <slug> --to=done\`

@@ -20,6 +20,18 @@ const LAYOUT_PATH = '.shipbench/layout.json';
 const UPDATES_HEADING = '## Task Updates';
 const ISO_8601_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+/** A column-0 ATX heading, captured as (marker, text). */
+const ATX_HEADING = /^(#{1,6})\s+(.+?)\s*$/;
+/**
+ * Distinguishes an entry heading from a heading in an entry's prose.
+ *
+ * Only the `### <ISO 8601 timestamp>` form opens an entry, but a hand-written
+ * one at the wrong level still needs to be caught rather than silently folded
+ * into the previous entry. A leading calendar date is what separates the two:
+ * an update writing about `#### 2026-01-04T09:00:00Z` meant a heading; one
+ * writing `#### Rollback plan` meant prose.
+ */
+const ENTRY_HEADING_TEXT = /^\d{4}-\d{2}-\d{2}/;
 const updatesParseWarnings = new WeakMap<Task, string>();
 type Awaitable<T> = T | PromiseLike<T>;
 
@@ -141,12 +153,21 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
     const fenceOnLine = /^\s{0,3}(`{3,}|~{3,})/.test(line);
 
     if (outsideFence && !fenceOnLine) {
-      const heading = line.match(/^###\s+(.+?)\s*$/);
-      if (heading) {
+      const heading = line.match(ATX_HEADING);
+      // Everything else a heading can say belongs to the entry's prose. Only a
+      // heading that was reaching for a timestamp is judged as an entry heading.
+      if (heading && ENTRY_HEADING_TEXT.test(heading[2]!)) {
+        if (heading[1]!.length !== 3) {
+          return malformedUpdates(
+            body,
+            `expected each entry heading to use "### <ISO 8601 timestamp>".`,
+          );
+        }
+
         const previousError = finishComment();
         if (previousError) return malformedUpdates(body, previousError);
 
-        const nextTimestamp = heading[1]!;
+        const nextTimestamp = heading[2]!;
         if (
           !ISO_8601_TIMESTAMP.test(nextTimestamp) ||
           Number.isNaN(Date.parse(nextTimestamp))
@@ -159,13 +180,6 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
         timestamp = nextTimestamp;
         textLines = [];
         continue;
-      }
-
-      if (/^#{1,6}(?:\s|$)/.test(line)) {
-        return malformedUpdates(
-          body,
-          `expected each entry heading to use "### <ISO 8601 timestamp>".`,
-        );
       }
     }
 
@@ -196,13 +210,20 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
 }
 
 /**
- * Rejects a description that carries the Updates marker.
+ * Rejects a description the next read would mis-file.
  *
- * `serializeTask` writes `task.body` verbatim and the next `parseTaskBody`
- * splits at the first unfenced `## Task Updates` heading, so a description
- * containing one either turns part of itself into comments or reads back as a
- * malformed Updates section. Neither is recoverable by the caller, so refuse
- * the write instead. Fenced occurrences are safe — the parser ignores them too.
+ * `serializeTask` writes `task.body` verbatim above the Updates section, and
+ * the next `parseTaskBody` splits at the first unfenced `## Task Updates`
+ * heading. Two descriptions break that split:
+ *
+ * - One carrying the marker itself either turns part of itself into comments or
+ *   reads back as a malformed Updates section.
+ * - One leaving a code fence open swallows the real marker below it, so every
+ *   entry silently disappears from `task get`, the board, and search while
+ *   still sitting in the file.
+ *
+ * Neither is recoverable by the caller, so refuse the write instead. Fenced
+ * occurrences of the marker are safe — the parser ignores those too.
  */
 function assertBodyWithoutUpdatesMarker(body: string): void {
   let fence: MarkdownFence | null = null;
@@ -213,6 +234,49 @@ function assertBodyWithoutUpdatesMarker(body: string): void {
       );
     }
     fence = updateFence(line, fence);
+  }
+  if (fence) {
+    throw new Error(
+      'Invalid task description: close the code fence this description opens. An open fence runs past the end of the description and hides the Updates section from every read.',
+    );
+  }
+}
+
+/**
+ * Rejects Updates entry text the next read would mis-file.
+ *
+ * `serializeTask` writes entry text verbatim under its `### <timestamp>`
+ * heading, so text that reads as structure rather than prose writes cleanly and
+ * then fails on the *next* read — and a task whose Updates section is malformed
+ * refuses every `task comment` command, including the ones that would repair
+ * it. Fail here, on the command that caused it, while the file is still good.
+ *
+ * The rules mirror the branches of `parseTaskBody`. A heading is prose unless it
+ * reaches for a timestamp, which is why ordinary Markdown headings are fine in
+ * an update.
+ */
+function assertCommentTextIsParsable(text: string): void {
+  let fence: MarkdownFence | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    if (!fence) {
+      if (line.trimEnd() === UPDATES_HEADING) {
+        throw new Error(
+          `Invalid task update: remove the "${UPDATES_HEADING}" heading — a second one would leave the section unreadable. Put it in a code fence if the update means it literally.`,
+        );
+      }
+      const heading = line.match(ATX_HEADING);
+      if (heading && ENTRY_HEADING_TEXT.test(heading[2]!)) {
+        throw new Error(
+          `Invalid task update: "${line.trim()}" reads as an entry heading and would split this update in two. Indent it, fence it, or drop the leading "#".`,
+        );
+      }
+    }
+    fence = updateFence(line, fence);
+  }
+  if (fence) {
+    throw new Error(
+      'Invalid task update: close the code fence this update opens. An open fence runs past the end of the update and swallows the entries below it.',
+    );
   }
 }
 
@@ -664,6 +728,7 @@ export async function addComment(
   if (!normalizedText) {
     throw new Error('Task update text must not be blank.');
   }
+  assertCommentTextIsParsable(normalizedText);
 
   const path = `${TASKS_DIR}/${slug}.md`;
   const content = await adapter.readFile(path);
@@ -717,6 +782,7 @@ export async function editComment(
   if (!normalizedText) {
     throw new Error('Task update text must not be blank.');
   }
+  assertCommentTextIsParsable(normalizedText);
 
   const path = `${TASKS_DIR}/${slug}.md`;
   const content = await adapter.readFile(path);

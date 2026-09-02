@@ -227,16 +227,34 @@ interface BodyOptions {
  * Node opens it as UTF-8 and the bytes never touch the shell.
  */
 function bodyOption(): Option {
-  return new Option(
-    '--body <text>',
-    'Description as Markdown text',
-  ).conflicts(['bodyFile']);
+  return new Option('--body <text>', 'Description as Markdown text').conflicts([
+    'bodyFile',
+  ]);
 }
 
 function bodyFileOption(): Option {
   return new Option(
     '--body-file <path>',
     'Read the description from a UTF-8 file; "-" reads stdin',
+  ).conflicts(['body']);
+}
+
+/**
+ * The same pair for `task comment`, which is the command most likely to be
+ * handed long prose and was the last one that could only take it as a quoted
+ * argument. Both reuse the `body` / `bodyFile` option names so `resolveBody`
+ * serves every command that takes Markdown.
+ */
+function updateTextOption(): Option {
+  return new Option('--body <text>', 'Update text as Markdown').conflicts([
+    'bodyFile',
+  ]);
+}
+
+function updateTextFileOption(): Option {
+  return new Option(
+    '--body-file <path>',
+    'Read the update text from a UTF-8 file; "-" reads stdin',
   ).conflicts(['body']);
 }
 
@@ -296,9 +314,37 @@ export function createCli(opts: CliOptions): Command {
     }
   };
 
+  /**
+   * Resolves update text from the positional argument or the body options.
+   * Only one of the two may be present: silently preferring either would let a
+   * mistyped command write text the caller did not mean to record. Commander
+   * reports an omitted optional argument as `null`, not `undefined`.
+   */
+  const resolveUpdateText = async (
+    command: Command,
+    positional: string | null | undefined,
+    raw: BodyOptions,
+  ): Promise<string | undefined> => {
+    const fromOption = await resolveBody(raw);
+    if (positional != null && fromOption !== undefined) {
+      command.error(
+        'Pass the update text once: either positionally or with --body / --body-file, not both.',
+      );
+      return undefined;
+    }
+    return positional ?? fromOption;
+  };
+
   const program = new Command()
     .name('shipbench')
     .description('Git-native project management for solo developers.')
+    // Each command's options are parsed where they are written. Without this,
+    // an option declared on a parent claims every later occurrence of its flag,
+    // so `task comment edit <slug> <index> --body-file <path>` hands the path
+    // to `task comment` and leaves the subcommand with nothing. It also stops
+    // `-C` from being read anywhere but before the subcommand, which is the
+    // only place `resolveProjectDirectory` looks for it.
+    .enablePositionalOptions()
     .version(VERSION, '-v, --version', 'output the version')
     .option(
       '-C <path>',
@@ -559,41 +605,60 @@ export function createCli(opts: CliOptions): Command {
     );
   });
 
-  const comment = task
+  const BODY_FILE_HELP =
+    '\nPrefer --body-file for anything multi-line: the file is read as UTF-8 by\nShipBench, so the text never passes through shell quoting or encoding.\n';
+
+  const commentCommand = task
     .command('comment')
     .description('Manage timestamped entries in the task Updates section')
     .argument('[slug]', 'Task slug')
     .argument('[text]', 'Update text')
-    .action(async (slug?: string, text?: string) => {
-      if (!slug || text === undefined) {
-        throw new InvalidArgumentError(
-          'Append requires a task slug and update text.',
-        );
-      }
-      const config = await loadCliConfig();
-      const updated = await addComment(adapter, config, slug, text);
-      chrome(`Added update to ${updated.slug}`);
-    });
+    .addOption(updateTextOption())
+    .addOption(updateTextFileOption())
+    .addHelpText('after', BODY_FILE_HELP);
 
-  comment
-    .command('edit <slug> <index> <text>')
+  commentCommand.action(async (slug: string | undefined, text, raw) => {
+    const resolved = await resolveUpdateText(commentCommand, text, raw);
+    if (!slug || resolved === undefined) {
+      throw new InvalidArgumentError(
+        'Append requires a task slug and update text (positional, --body <text>, or --body-file <path>).',
+      );
+    }
+    const config = await loadCliConfig();
+    const updated = await addComment(adapter, config, slug, resolved);
+    chrome(`Added update to ${updated.slug}`);
+  });
+
+  const commentEditCommand = commentCommand
+    .command('edit <slug> <index> [text]')
     .description(
       'Edit an Updates entry by zero-based index without changing its timestamp',
     )
-    .action(async (slug: string, index: string, text: string) => {
-      const config = await loadCliConfig();
-      const parsedIndex = parseNonNegativeInteger(index);
-      const updated = await editComment(
-        adapter,
-        config,
-        slug,
-        parsedIndex,
-        text,
-      );
-      chrome(`Edited update ${parsedIndex} on ${updated.slug}`);
-    });
+    .addOption(updateTextOption())
+    .addOption(updateTextFileOption())
+    .addHelpText('after', BODY_FILE_HELP);
 
-  comment
+  commentEditCommand.action(async (slug: string, index: string, text, raw) => {
+    const resolved = await resolveUpdateText(commentEditCommand, text, raw);
+    if (resolved === undefined) {
+      commentEditCommand.error(
+        'Provide the replacement text positionally, or with --body <text> or --body-file <path>.',
+      );
+      return;
+    }
+    const config = await loadCliConfig();
+    const parsedIndex = parseNonNegativeInteger(index);
+    const updated = await editComment(
+      adapter,
+      config,
+      slug,
+      parsedIndex,
+      resolved,
+    );
+    chrome(`Edited update ${parsedIndex} on ${updated.slug}`);
+  });
+
+  commentCommand
     .command('delete <slug> <index>')
     .description('Delete an Updates entry by zero-based index')
     .action(async (slug: string, index: string) => {

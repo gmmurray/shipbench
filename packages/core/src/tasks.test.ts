@@ -204,6 +204,21 @@ describe('createTask', () => {
     expect(adapter.files.has('.shipbench/tasks/sneaky.md')).toBe(false);
   });
 
+  it('rejects a description that leaves a code fence open', async () => {
+    const adapter = memoryAdapter();
+
+    await expect(
+      createTask(
+        adapter,
+        DEFAULT_CONFIG,
+        'Open fence',
+        undefined,
+        'Run this:\n\n```sh\npnpm build',
+      ),
+    ).rejects.toThrow(/close the code fence/);
+    expect(adapter.files.has('.shipbench/tasks/open-fence.md')).toBe(false);
+  });
+
   it('allows the Updates marker inside a code fence', async () => {
     const adapter = memoryAdapter();
     const body = 'Shows the convention:\n\n```markdown\n## Task Updates\n```';
@@ -397,6 +412,21 @@ Still here.`,
     expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(before);
   });
 
+  it('rejects a description that leaves a code fence open', async () => {
+    const before = adapter.files.get('.shipbench/tasks/my-task.md');
+
+    await expect(
+      updateTask(
+        adapter,
+        DEFAULT_CONFIG,
+        'my-task',
+        {},
+        'Run this:\n\n```sh\npnpm build',
+      ),
+    ).rejects.toThrow(/close the code fence/);
+    expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(before);
+  });
+
   it('updates layout.json when status changes', async () => {
     const customAdapter = memoryAdapter({
       '.shipbench/layout.json': JSON.stringify({ todo: ['my-task'] }),
@@ -562,6 +592,77 @@ Second decision.`,
       deleteComment(adapter, DEFAULT_CONFIG, 'my-task', -1),
     ).rejects.toThrow(/invalid task update index/i);
     expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(original);
+  });
+
+  it('round-trips an update whose text carries Markdown headings', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/my-task.md': taskFile({
+        title: 'My Task',
+        status: 'todo',
+        created: '2026-01-01T00:00:00.000Z',
+        updated: '2026-01-01T00:00:00.000Z',
+      }),
+    });
+    const text = `Rolled back.
+
+## What broke
+The backfill deadlocked.`;
+
+    await addComment(adapter, DEFAULT_CONFIG, 'my-task', text);
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'my-task');
+
+    expect(reread!.comments).toEqual([{ timestamp: expect.any(String), text }]);
+  });
+
+  it.each([
+    [
+      'a second Updates marker',
+      'Documented the convention:\n\n## Task Updates',
+      /remove the "## Task Updates" heading/,
+    ],
+    [
+      'a line that reads as an entry heading',
+      'Backfilled it.\n\n### 2026-07-24T20:00:00Z\nSecond thought.',
+      /reads as an entry heading/,
+    ],
+    [
+      'an unclosed code fence',
+      'Ran this:\n\n```sh\npnpm build',
+      /close the code fence/,
+    ],
+  ])('refuses update text containing %s rather than writing a file it cannot read back', async (_label, text, message) => {
+    const original = taskFile({
+      title: 'My Task',
+      status: 'todo',
+      created: '2026-01-01T00:00:00.000Z',
+      updated: '2026-01-01T00:00:00.000Z',
+    });
+    const adapter = memoryAdapter({ '.shipbench/tasks/my-task.md': original });
+
+    await expect(
+      addComment(adapter, DEFAULT_CONFIG, 'my-task', text),
+    ).rejects.toThrow(message);
+    await expect(
+      editComment(adapter, DEFAULT_CONFIG, 'my-task', 0, text),
+    ).rejects.toThrow(message);
+    expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(original);
+  });
+
+  it('accepts a fenced Updates marker in update text', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/my-task.md': taskFile({
+        title: 'My Task',
+        status: 'todo',
+        created: '2026-01-01T00:00:00.000Z',
+        updated: '2026-01-01T00:00:00.000Z',
+      }),
+    });
+    const text = 'The convention:\n\n```markdown\n## Task Updates\n```';
+
+    await addComment(adapter, DEFAULT_CONFIG, 'my-task', text);
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'my-task');
+
+    expect(reread!.comments).toEqual([{ timestamp: expect.any(String), text }]);
   });
 
   it('rejects mutations when the Updates section is malformed', async () => {
@@ -1037,6 +1138,99 @@ Pivoted to the adapter approach.
 - It keeps Harbor read-only.`,
         },
       ],
+    });
+  });
+
+  it('keeps Markdown headings inside an entry as that entry text', async () => {
+    const entry = `Rolled the migration back.
+
+# What broke
+The backfill deadlocked.
+
+#### Next attempt
+Chunk it by account.`;
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/rollback.md': taskFile(
+        {
+          title: 'Rollback',
+          status: 'todo',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        `Description only.
+
+## Task Updates
+
+### 2026-07-24T20:00:00Z
+${entry}`,
+      ),
+    });
+
+    const result = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.tasks[0]).toMatchObject({
+      body: 'Description only.',
+      comments: [{ timestamp: '2026-07-24T20:00:00Z', text: entry }],
+    });
+  });
+
+  it('reads a heading level other than 3 as a botched entry heading', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/wrong-level.md': taskFile(
+        {
+          title: 'Wrong level',
+          status: 'todo',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        `Description only.
+
+## Task Updates
+
+### 2026-07-24T20:00:00Z
+First entry.
+
+#### 2026-07-25T09:30:00Z
+Meant to be a second entry.`,
+      ),
+    });
+
+    const result = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.tasks[0]!.comments).toEqual([]);
+    expect(result.warnings).toContainEqual({
+      slug: 'wrong-level',
+      field: 'updates',
+      message: expect.stringMatching(/### <ISO 8601 timestamp>/),
+    });
+  });
+
+  it('rejects a date-shaped entry heading that is not a full timestamp', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/date-only.md': taskFile(
+        {
+          title: 'Date only',
+          status: 'todo',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        `Description only.
+
+## Task Updates
+
+### 2026-07-24
+Entry without a time.`,
+      ),
+    });
+
+    const result = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.tasks[0]!.comments).toEqual([]);
+    expect(result.warnings).toContainEqual({
+      slug: 'date-only',
+      field: 'updates',
+      message: expect.stringMatching(/is not an ISO 8601 timestamp/),
     });
   });
 

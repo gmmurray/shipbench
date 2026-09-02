@@ -87,6 +87,6 @@ Treat `layout.json` as machine-managed: do not hand-edit or hand-order it. You m
 
 Every file in `tasks/` is a Markdown document with a YAML frontmatter block. See `AGENTS.md` for the frontmatter schema and field rules — the same rules apply whether a human or an agent is editing.
 
-Each task may end with a reserved `## Task Updates` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append an entry with `shipbench task comment <slug> "What changed and why."`; the CLI writes its ISO 8601 heading and updates the task timestamp.
+Each task may end with a reserved `## Task Updates` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append an entry with `shipbench task comment <slug> "What changed and why."`; the CLI writes its ISO 8601 heading and updates the task timestamp. Pass `--body-file <path>` instead of the positional text when an update runs to several lines, so the prose never passes through shell quoting or encoding.
 
 Archived tasks live in `tasks/archive/` and are excluded from normal board reads. Archiving moves the file without changing its frontmatter or timestamps; unarchiving restores the same file to `tasks/`.

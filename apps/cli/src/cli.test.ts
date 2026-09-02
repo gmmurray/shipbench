@@ -1155,6 +1155,144 @@ describe('shipbench task comment', () => {
     ).rejects.toThrow(/must not be blank/i);
   });
 
+  it('reads a multi-line UTF-8 update from --body-file', async () => {
+    const h = harness();
+    await h.run('init');
+    const dir = await mkdtemp(join(tmpdir(), 'shipbench-update-'));
+    const path = join(dir, 'update.md');
+    const text = '# Rolled back\n\nAn em dash — and café, kept verbatim.';
+    await writeFile(path, text, 'utf8');
+
+    try {
+      await h.run(
+        'task',
+        'comment',
+        'welcome-to-shipbench',
+        '--body-file',
+        path,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+
+    h.stdout.length = 0;
+    await h.run('task', 'get', 'welcome-to-shipbench');
+    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+      { timestamp: expect.any(String), text },
+    ]);
+  });
+
+  it('reads the update text from stdin for --body-file -', async () => {
+    const h = harness(undefined, { readStdin: async () => 'Piped update.' });
+    await h.run('init');
+
+    await h.run('task', 'comment', 'welcome-to-shipbench', '--body-file', '-');
+
+    h.stdout.length = 0;
+    await h.run('task', 'get', 'welcome-to-shipbench');
+    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+      { timestamp: expect.any(String), text: 'Piped update.' },
+    ]);
+  });
+
+  it('replaces an entry from --body-file without changing its timestamp', async () => {
+    const h = harness();
+    await h.run('init');
+    await h.run('task', 'comment', 'welcome-to-shipbench', 'Original.');
+    h.stdout.length = 0;
+    await h.run('task', 'get', 'welcome-to-shipbench');
+    const originalTimestamp = JSON.parse(h.stdout.join('\n')).comments[0]
+      .timestamp;
+
+    const dir = await mkdtemp(join(tmpdir(), 'shipbench-update-'));
+    const path = join(dir, 'update.md');
+    await writeFile(path, '## Corrected\n\nWith a heading.', 'utf8');
+    try {
+      await h.run(
+        'task',
+        'comment',
+        'edit',
+        'welcome-to-shipbench',
+        '0',
+        '--body-file',
+        path,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+
+    h.stdout.length = 0;
+    await h.run('task', 'get', 'welcome-to-shipbench');
+    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+      {
+        timestamp: originalTimestamp,
+        text: '## Corrected\n\nWith a heading.',
+      },
+    ]);
+  });
+
+  it('refuses the update text twice over', async () => {
+    const h = harness();
+    await h.run('init');
+
+    await expect(
+      h.run(
+        'task',
+        'comment',
+        'welcome-to-shipbench',
+        'Positional.',
+        '--body',
+        'Option.',
+      ),
+    ).rejects.toThrow(/Pass the update text once/);
+  });
+
+  it('requires the update text in some form', async () => {
+    const h = harness();
+    await h.run('init');
+
+    await expect(
+      h.run('task', 'comment', 'welcome-to-shipbench'),
+    ).rejects.toThrow(/--body-file/);
+  });
+
+  it('keeps a heading in update text out of the parser', async () => {
+    const h = harness();
+    await h.run('init');
+    const text = 'Rolled back.\n\n#### What broke\nThe backfill deadlocked.';
+
+    await h.run('task', 'comment', 'welcome-to-shipbench', '--body', text);
+
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+    await h.run('task', 'get', 'welcome-to-shipbench');
+    expect(h.stderr).toEqual([]);
+    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+      { timestamp: expect.any(String), text },
+    ]);
+  });
+
+  it('refuses update text that would not read back', async () => {
+    const h = harness();
+    await h.run('init');
+    const before = h.adapter.files.get(
+      '.shipbench/tasks/welcome-to-shipbench.md',
+    );
+
+    await expect(
+      h.run(
+        'task',
+        'comment',
+        'welcome-to-shipbench',
+        '--body',
+        'Done.\n\n### 2026-07-24T20:00:00Z\nSecond thought.',
+      ),
+    ).rejects.toThrow(/reads as an entry heading/);
+    expect(
+      h.adapter.files.get('.shipbench/tasks/welcome-to-shipbench.md'),
+    ).toBe(before);
+  });
+
   it('edits and deletes Updates entries by zero-based index', async () => {
     const h = harness();
     await h.run('init');

@@ -61,7 +61,11 @@ This heuristic is guidance, not a validation rule. Core stores each entry as `{ 
 
 Append through `shipbench task comment <slug> "What changed and why."`. Edit text with `shipbench task comment edit <slug> <index> "Corrected text."`; delete an entry with `shipbench task comment delete <slug> <index>`. Indices are zero-based. Editing never changes the entry's timestamp. Git preserves earlier text and deleted entries.
 
-A description may not contain a `## Task Updates` heading of its own — the next read would file part of it as entries, so ShipBench rejects the write. Put the heading in a code fence when a description means it literally.
+Append and edit both accept `--body <text>` or `--body-file <path>` instead of the positional text, the same pair `task create` and `task edit` take. Use `--body-file` for anything multi-line: ShipBench reads the file as UTF-8, so the text never passes through shell quoting or encoding.
+
+Update text is prose. Markdown headings inside it are yours to use — only a column-0 `### <ISO 8601 timestamp>` line opens a new entry. Three things are rejected on write, because the next read would mis-file them: a `## Task Updates` heading of its own, a column-0 heading whose text is a date, and an unclosed code fence.
+
+A description may not contain a `## Task Updates` heading of its own — the next read would file part of it as entries, so ShipBench rejects the write. It also may not leave a code fence open, which would swallow the marker below it and hide every entry. Put the heading in a code fence when a description means it literally.
 
 Do not hand-edit content below the `## Task Updates` marker when the CLI is available.
 
@@ -163,7 +167,8 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Rewrite a description**: `shipbench task edit <slug> --body-file=description.md` (replaces it whole; `--body ""` clears it)
 - **Create a dependent task**: `shipbench task create "Task title" --depends-on=other-slug,another-slug`
 - **Add a time-anchored update**: `shipbench task comment <slug> "What changed and why."`
-- **Edit an update's text**: `shipbench task comment edit <slug> <index> "Corrected text."`
+- **Add a multi-line update**: `shipbench task comment <slug> --body-file update.md`
+- **Edit an update's text**: `shipbench task comment edit <slug> <index> "Corrected text."` (also takes `--body-file`)
 - **Delete an update**: `shipbench task comment delete <slug> <index>`
 - **Move a task**: `shipbench task move <slug> --to=in-progress`
 - **Submit a task for review**: `shipbench task move <slug> --to=review`

@@ -127,7 +127,9 @@ shipbench task edit build-api --body ""
 A description may not contain a `## Task Updates` heading of its own — that
 heading is what divides the description from the entries below it, so the write
 is rejected rather than filing part of the description as Updates. Put the
-heading in a code fence when a description means it literally. See
+heading in a code fence when a description means it literally. A description may
+not leave a code fence open either: the fence would run past the end of the
+description and swallow the marker, hiding every entry from the next read. See
 [Task Updates](/docs/convention-spec/#task-updates).
 
 `--json` emits the edited task in the same shape as
@@ -169,7 +171,7 @@ Placement flags cannot target `done_column`; it is always sorted by `updated` de
 ### `shipbench task comment`
 
 ```bash
-shipbench task comment <slug> <text>
+shipbench task comment <slug> (<text> | --body <text> | --body-file <path>)
 ```
 
 Appends a timestamped entry to the trailing `## Task Updates` section and updates the task timestamp. Quote text that contains spaces:
@@ -179,12 +181,30 @@ shipbench task comment build-api \
   "Switched to cursor pagination after the load test."
 ```
 
+An update longer than a sentence takes the same `--body-file` that
+[`shipbench task create`](#shipbench-task-create) does, and for the same reason —
+the file is read as UTF-8 and the prose never passes through shell quoting or a
+shell's encoding:
+
+```bash
+shipbench task comment build-api --body-file update.md
+```
+
+The text may be given once, positionally or through an option, never both.
+
+An entry's text is prose, and Markdown headings inside it are yours to use. Only
+a `### <ISO 8601 timestamp>` line at the start of a line opens a new entry, so a
+`## Rollback plan` written in an update stays part of that update. Three things
+are refused on write, because the next read would file them as structure: a
+`## Task Updates` heading of its own, a line-initial heading whose text is a
+date, and an unclosed code fence.
+
 See [Task Updates](/docs/convention-spec/#task-updates) for the time-anchored-fact heuristic.
 
 Edit only an entry's text with its zero-based index. ShipBench preserves the entry timestamp and updates the task timestamp:
 
 ```bash
-shipbench task comment edit <slug> <index> <text>
+shipbench task comment edit <slug> <index> (<text> | --body <text> | --body-file <path>)
 shipbench task comment edit build-api 0 \
   "Kept cursor pagination after the second load test."
 ```
