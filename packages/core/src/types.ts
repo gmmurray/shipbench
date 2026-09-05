@@ -103,6 +103,21 @@ export interface TaskComment {
   text: string;
 }
 
+/**
+ * A trailing Updates section that could not be parsed, kept verbatim.
+ *
+ * Present only when the section is malformed, and mutually exclusive with
+ * parsed `comments`. Readers should treat `text` as opaque Markdown to display
+ * or preserve, never as content to merge into the description — the whole point
+ * of the field is that `body` stays the description it claims to be.
+ */
+export interface UnreadableUpdates {
+  /** The section verbatim, starting at its `## Task Updates` line. */
+  text: string;
+  /** Why the parse failed, as one sentence naming what was expected. */
+  reason: string;
+}
+
 export interface Task {
   slug: string;
   frontmatter: TaskFrontmatter;
@@ -110,6 +125,11 @@ export interface Task {
   body: string;
   /** Time-anchored entries parsed from the trailing `## Task Updates` section. */
   comments: TaskComment[];
+  /**
+   * The trailing Updates section, verbatim, when it could not be parsed.
+   * `comments` is empty whenever this is set. Writes preserve it unchanged.
+   */
+  unreadableUpdates?: UnreadableUpdates;
 }
 
 export interface TaskValidationWarning {

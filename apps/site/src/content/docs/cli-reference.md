@@ -251,6 +251,24 @@ Returns one task as JSON. The payload always includes full frontmatter, the Mark
 
 If the slug is archived, the live lookup tells you to retry with `--archived`.
 
+When a task's Updates section cannot be parsed, `body` still holds only the
+description. The section is preserved verbatim under `unreadable_updates`, with
+the reason it would not parse, and a warning naming the offending line goes to
+stderr so a piped `--json` read stays clean:
+
+```json
+"comments": [],
+"unreadable_updates": {
+  "text": "## Task Updates\n\n#### 2026-07-25T09:30:00.000Z\nWrong level.",
+  "reason": "expected each entry heading to use \"### <ISO 8601 timestamp>\", saw \"#### 2026-07-25T09:30:00.000Z\"."
+}
+```
+
+The section is written back byte-identical on every write, so nothing is lost
+while it stays broken. Repair it by fixing the named line in the task file;
+`task comment` refuses the task until it parses. See
+[Task Updates](/docs/convention-spec/#task-updates).
+
 For agents, `task get` is the preferred second step after a body-free `task list --available --json` shortlist.
 
 ### `shipbench task list`

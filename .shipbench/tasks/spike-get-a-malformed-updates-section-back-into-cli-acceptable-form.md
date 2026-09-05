@@ -1,13 +1,13 @@
 ---
 title: 'Spike: get a malformed Updates section back into CLI-acceptable form'
-status: backlog
+status: done
 priority: medium
 tags:
   - core
   - cli
   - spike
 created: '2026-09-02T23:38:01.115Z'
-updated: '2026-09-02T23:38:01.115Z'
+updated: '2026-09-05T01:26:56.593Z'
 ---
 
 A task whose Updates section does not parse is readable but unfixable through
@@ -82,3 +82,35 @@ with a date but is not ISO 8601; an entry with no text; an unclosed code fence.
 - Never discard prose the user wrote. Git is the recovery trail, not the plan.
 - Whatever ships should also make the `task edit --body` data loss above
   impossible, since a repair path that leaves that in place is a half answer.
+
+## Task Updates
+
+### 2026-09-05T01:09:30.749Z
+Spike done. Findings in
+[docs/audits/malformed-updates-recovery-spike.md](../../docs/audits/malformed-updates-recovery-spike.md).
+
+Verdict: do not build a repair command. After the 0.4.0 write guards no CLI
+command can create a malformed section, so the remaining population is files a
+human or another tool wrote — and that human has the file open. The repair is a
+ten-second text edit. What is actually broken is everything around it, and all
+of it traces to one decision: on a parse failure the parser returns the entire
+raw body as `Task.body`, discarding a split it has already computed.
+
+Two things the probing turned up that were not in the task as written:
+
+`task edit --body` on a malformed task deletes the whole Updates section and
+reports success. Verified, not inferred. That was written into the spike as a
+hazard; it is now the reason recommendation A is priority high.
+
+The Board is a dead end that points the wrong way. Its description editor is
+prefilled from `task.body`, so the textarea already holds the broken section —
+the only place in the system where the raw text is visible and editable — and
+saving is rejected whether the text is unchanged or correctly repaired. The
+error tells you to delete the section you just fixed and names `task comment`,
+which refuses the task.
+
+Two follow-ups in `todo`:
+`quarantine-an-unreadable-updates-section-instead-of-folding-it-into-the-description`
+and `show-an-unreadable-updates-section-in-the-board`, the second depending on
+the first. Both are scoped against the audit, and both carry the same explicit
+non-goals: no repair command, no `--force`, no best-effort parse.

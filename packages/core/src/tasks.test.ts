@@ -16,6 +16,7 @@ import {
   reorderTask,
   taskFileSlugs,
   unarchiveTask,
+  unreadableUpdatesWarning,
   updateTask,
 } from './tasks.js';
 import type { ShipbenchConfig, StorageAdapter, Task } from './types.js';
@@ -1234,7 +1235,7 @@ Entry without a time.`,
     });
   });
 
-  it('warns about malformed Updates and preserves the raw Markdown in body', async () => {
+  it('quarantines a malformed Updates section instead of folding it into the description', async () => {
     const malformedBody = `Description stays readable.
 
 ## Task Updates
@@ -1256,8 +1257,15 @@ This timestamp is malformed.`;
     const result = await listTasks(adapter, DEFAULT_CONFIG);
 
     expect(result.tasks[0]).toMatchObject({
-      body: malformedBody,
+      body: 'Description stays readable.',
       comments: [],
+      unreadableUpdates: {
+        text: `## Task Updates
+
+### yesterday
+This timestamp is malformed.`,
+        reason: expect.stringContaining('saw "### yesterday"'),
+      },
     });
     expect(result.warnings).toContainEqual({
       slug: 'malformed',
@@ -1290,10 +1298,135 @@ Entry without a timestamp heading.`;
     });
     const reread = await listTasks(adapter, DEFAULT_CONFIG);
 
-    expect(reread.tasks[0]!.body).toBe(malformedBody);
+    expect(reread.tasks[0]!.body).toBe('Description.');
+    expect(reread.tasks[0]!.unreadableUpdates?.text).toBe(`## Task Updates
+
+Entry without a timestamp heading.`);
+    expect(
+      matter(
+        adapter.files.get('.shipbench/tasks/malformed.md')!,
+      ).content.trim(),
+    ).toBe(malformedBody);
     expect(reread.warnings).toEqual([
       expect.objectContaining({ slug: 'malformed', field: 'updates' }),
     ]);
+  });
+
+  it('preserves a malformed Updates section through a description rewrite', async () => {
+    const malformedBody = `Old description.
+
+## Task Updates
+
+### 2026-07-24T20:00:00.000Z
+First entry, worth keeping.
+
+#### 2026-07-25T09:30:00.000Z
+Second entry, written at the wrong level.`;
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/malformed.md': taskFile(
+        {
+          title: 'Malformed',
+          status: 'todo',
+          priority: 'medium',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        malformedBody,
+      ),
+    });
+
+    const { task } = await updateTask(
+      adapter,
+      DEFAULT_CONFIG,
+      'malformed',
+      {},
+      'New description.',
+    );
+
+    expect(task.body).toBe('New description.');
+    const written = matter(
+      adapter.files.get('.shipbench/tasks/malformed.md')!,
+    ).content.trim();
+    expect(written).toBe(`New description.
+
+## Task Updates
+
+### 2026-07-24T20:00:00.000Z
+First entry, worth keeping.
+
+#### 2026-07-25T09:30:00.000Z
+Second entry, written at the wrong level.`);
+  });
+
+  it('rewrites a malformed task byte-identically when only frontmatter changes', async () => {
+    const section = `## Task Updates
+
+### 2026-07-24T20:00:00.000Z
+Kept.
+
+#### 2026-07-25T09:30:00.000Z
+Wrong level.`;
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/malformed.md': taskFile(
+        {
+          title: 'Malformed',
+          status: 'todo',
+          priority: 'medium',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        `Description.\n\n${section}`,
+      ),
+    });
+
+    await moveTask(adapter, DEFAULT_CONFIG, 'malformed', 'in-progress');
+
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'malformed');
+    expect(reread?.body).toBe('Description.');
+    expect(reread?.comments).toEqual([]);
+    expect(reread?.unreadableUpdates?.text).toBe(section);
+  });
+
+  it('reports the unreadable section from a single-task read', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/malformed.md': taskFile(
+        {
+          title: 'Malformed',
+          status: 'todo',
+          created: '2026-01-01T00:00:00Z',
+          updated: '2026-01-01T00:00:00Z',
+        },
+        `Description.
+
+## Task Updates
+
+#### 2026-07-25T09:30:00.000Z
+Wrong level.`,
+      ),
+    });
+
+    const task = await getTask(adapter, DEFAULT_CONFIG, 'malformed');
+
+    expect(unreadableUpdatesWarning(task!)).toEqual({
+      slug: 'malformed',
+      field: 'updates',
+      message: expect.stringContaining('"#### 2026-07-25T09:30:00.000Z"'),
+    });
+  });
+
+  it('reports no warning for a task that parses', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/fine.md': taskFile({
+        title: 'Fine',
+        status: 'todo',
+        created: '2026-01-01T00:00:00Z',
+        updated: '2026-01-01T00:00:00Z',
+      }),
+    });
+
+    const task = await getTask(adapter, DEFAULT_CONFIG, 'fine');
+
+    expect(unreadableUpdatesWarning(task!)).toBeUndefined();
   });
 
   it('preserves unknown frontmatter fields and warns about them', async () => {

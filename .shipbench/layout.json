@@ -1,10 +1,8 @@
 {
-  "todo": [],
-  "backlog": [
-    "spike-get-a-malformed-updates-section-back-into-cli-acceptable-form"
+  "todo": [
+    "show-an-unreadable-updates-section-in-the-board"
   ],
+  "backlog": [],
   "in-progress": [],
-  "review": [
-    "let-a-task-s-description-be-written-and-revised-without-hand-editing-the-file"
-  ]
+  "review": []
 }

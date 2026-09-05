@@ -79,6 +79,7 @@ export {
   reorderTask,
   taskFileSlugs,
   unarchiveTask,
+  unreadableUpdatesWarning,
   updateTask,
 } from './tasks.js';
 export type {
@@ -98,4 +99,5 @@ export type {
   TaskFrontmatter,
   TaskReadResult,
   TaskValidationWarning,
+  UnreadableUpdates,
 } from './types.js';

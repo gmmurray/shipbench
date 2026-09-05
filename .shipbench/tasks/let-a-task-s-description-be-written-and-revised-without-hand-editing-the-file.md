@@ -1,13 +1,13 @@
 ---
 title: Let a task's description be written and revised without hand-editing the file
-status: review
+status: done
 priority: high
 tags:
   - cli
   - core
   - dx
 created: '2026-09-02T16:36:55.187Z'
-updated: '2026-09-02T22:06:15.677Z'
+updated: '2026-09-05T01:26:55.178Z'
 ---
 
 A task cannot come into existence with its description attached. `task create`

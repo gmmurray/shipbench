@@ -1347,6 +1347,64 @@ describe('shipbench task comment', () => {
 });
 
 describe('shipbench task get', () => {
+  it('names the offending line when a task Updates section is unreadable', async () => {
+    const h = harness();
+    await h.run('init');
+    const section = `## Task Updates
+
+### 2026-07-24T20:00:00.000Z
+Kept.
+
+#### 2026-07-25T09:30:00.000Z
+Wrong level.`;
+    h.adapter.files.set(
+      '.shipbench/tasks/broken.md',
+      matter.stringify(`\nDescription.\n\n${section}\n`, {
+        title: 'Broken',
+        status: 'todo',
+        created: '2026-01-01T00:00:00.000Z',
+        updated: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+    await h.run('task', 'get', 'broken');
+
+    expect(h.stderr.join('\n')).toContain(
+      'saw "#### 2026-07-25T09:30:00.000Z"',
+    );
+    const payload = JSON.parse(h.stdout.join('\n'));
+    expect(payload.body).toBe('Description.');
+    expect(payload.comments).toEqual([]);
+    expect(payload.unreadable_updates.text).toBe(section);
+  });
+
+  it('keeps an unreadable Updates section through a description rewrite', async () => {
+    const h = harness();
+    await h.run('init');
+    const section = `## Task Updates
+
+#### 2026-07-25T09:30:00.000Z
+Wrong level.`;
+    h.adapter.files.set(
+      '.shipbench/tasks/broken.md',
+      matter.stringify(`\nOld description.\n\n${section}\n`, {
+        title: 'Broken',
+        status: 'todo',
+        created: '2026-01-01T00:00:00.000Z',
+        updated: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    await h.run('task', 'edit', 'broken', '--body', 'New description.');
+
+    const written = matter(
+      h.adapter.files.get('.shipbench/tasks/broken.md')!,
+    ).content.trim();
+    expect(written).toBe(`New description.\n\n${section}`);
+  });
+
   it('returns one live task with nested frontmatter and body fidelity', async () => {
     const h = harness();
     await h.run('init');

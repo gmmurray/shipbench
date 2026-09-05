@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import {
   ArchiveBlockedError,
   addComment,
@@ -25,9 +26,9 @@ import {
   type Task,
   taskFileSlugs,
   unarchiveTask,
+  unreadableUpdatesWarning,
   updateTask,
 } from '@shipbench/core';
-import { readFile } from 'node:fs/promises';
 import { Command, InvalidArgumentError, Option } from 'commander';
 import {
   openBrowser,
@@ -695,6 +696,13 @@ export function createCli(opts: CliOptions): Command {
       return;
     }
 
+    // A single-task read is the narrowest one agents are told to prefer, so it
+    // is the one that must not stay quiet about an unreadable Updates section.
+    const updatesWarning = unreadableUpdatesWarning(found);
+    if (updatesWarning) {
+      output.warning(`${found.slug}: ${updatesWarning.message}`);
+    }
+
     data(
       JSON.stringify(
         {
@@ -703,6 +711,9 @@ export function createCli(opts: CliOptions): Command {
           frontmatter: found.frontmatter,
           body: found.body,
           comments: found.comments,
+          ...(found.unreadableUpdates
+            ? { unreadable_updates: found.unreadableUpdates }
+            : {}),
         },
         null,
         2,
@@ -952,7 +963,15 @@ export function createCli(opts: CliOptions): Command {
           ...t.frontmatter,
           depends_on: t.frontmatter.depends_on ?? [],
           ...(boardOrder ? { position: boardOrder.positions.get(t.slug) } : {}),
-          ...(raw.includeBody ? { body: t.body, comments: t.comments } : {}),
+          ...(raw.includeBody
+            ? {
+                body: t.body,
+                comments: t.comments,
+                ...(t.unreadableUpdates
+                  ? { unreadable_updates: t.unreadableUpdates }
+                  : {}),
+              }
+            : {}),
         }));
         const payload = raw.archived
           ? { archived: true, tasks, warnings: result.warnings }

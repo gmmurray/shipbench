@@ -11,6 +11,7 @@ import type {
   TaskFrontmatter,
   TaskReadResult,
   TaskValidationWarning,
+  UnreadableUpdates,
 } from './types.js';
 
 const TASKS_DIR = '.shipbench/tasks';
@@ -32,7 +33,6 @@ const ATX_HEADING = /^(#{1,6})\s+(.+?)\s*$/;
  * writing `#### Rollback plan` meant prose.
  */
 const ENTRY_HEADING_TEXT = /^\d{4}-\d{2}-\d{2}/;
-const updatesParseWarnings = new WeakMap<Task, string>();
 type Awaitable<T> = T | PromiseLike<T>;
 
 export interface GetTaskOptions {
@@ -78,7 +78,7 @@ function normalizeTimestamp(v: unknown): unknown {
 interface ParsedTaskBody {
   body: string;
   comments: TaskComment[];
-  warning?: string;
+  unreadableUpdates?: UnreadableUpdates;
 }
 
 interface MarkdownFence {
@@ -101,12 +101,10 @@ function updateFence(
   return current;
 }
 
-function malformedUpdates(body: string, detail: string): ParsedTaskBody {
-  return {
-    body: body.trim(),
-    comments: [],
-    warning: `Malformed Updates section: ${detail} Raw Markdown was preserved in the task body.`,
-  };
+/** Names the line a parse failure happened on, trimmed and length-capped. */
+function quoteLine(line: string): string {
+  const text = line.trim();
+  return text.length > 60 ? `"${text.slice(0, 57)}..."` : `"${text}"`;
 }
 
 function parseTaskBody(rawBody: string): ParsedTaskBody {
@@ -125,19 +123,36 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
   }
 
   if (updatesHeadings.length === 0) return { body, comments: [] };
-  if (updatesHeadings.length > 1) {
-    return malformedUpdates(
-      body,
-      `found more than one "${UPDATES_HEADING}" heading.`,
-    );
-  }
 
   const updatesIndex = updatesHeadings[0]!;
   const description = lines.slice(0, updatesIndex).join('\n').trim();
+
+  /**
+   * Quarantines a section that will not parse, keeping the split computed
+   * above. Folding it back into `body` is what let `updateTask` overwrite a
+   * whole Updates section on a description edit, and what put the raw section
+   * in front of readers as though it were the description. `body` stays the
+   * description it claims to be; the section stays byte-identical until a
+   * human fixes it.
+   */
+  const unreadable = (reason: string): ParsedTaskBody => ({
+    body: description,
+    comments: [],
+    unreadableUpdates: {
+      text: lines.slice(updatesIndex).join('\n').trim(),
+      reason,
+    },
+  });
+
+  if (updatesHeadings.length > 1) {
+    return unreadable(`found more than one "${UPDATES_HEADING}" heading.`);
+  }
+
   const updateLines = lines.slice(updatesIndex + 1);
   const comments: TaskComment[] = [];
   let timestamp: string | null = null;
   let textLines: string[] = [];
+  let unclosedFenceLine: string | null = null;
   fence = null;
 
   const finishComment = (): string | null => {
@@ -158,23 +173,21 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
       // heading that was reaching for a timestamp is judged as an entry heading.
       if (heading && ENTRY_HEADING_TEXT.test(heading[2]!)) {
         if (heading[1]!.length !== 3) {
-          return malformedUpdates(
-            body,
-            `expected each entry heading to use "### <ISO 8601 timestamp>".`,
+          return unreadable(
+            `expected each entry heading to use "### <ISO 8601 timestamp>", saw ${quoteLine(line)}.`,
           );
         }
 
         const previousError = finishComment();
-        if (previousError) return malformedUpdates(body, previousError);
+        if (previousError) return unreadable(previousError);
 
         const nextTimestamp = heading[2]!;
         if (
           !ISO_8601_TIMESTAMP.test(nextTimestamp) ||
           Number.isNaN(Date.parse(nextTimestamp))
         ) {
-          return malformedUpdates(
-            body,
-            `"${nextTimestamp}" is not an ISO 8601 timestamp.`,
+          return unreadable(
+            `"${nextTimestamp}" is not an ISO 8601 timestamp, in ${quoteLine(line)}.`,
           );
         }
         timestamp = nextTimestamp;
@@ -185,25 +198,28 @@ function parseTaskBody(rawBody: string): ParsedTaskBody {
 
     if (timestamp === null) {
       if (line.trim()) {
-        return malformedUpdates(
-          body,
-          `expected "### <ISO 8601 timestamp>" before entry text.`,
+        return unreadable(
+          `expected "### <ISO 8601 timestamp>" before entry text, saw ${quoteLine(line)}.`,
         );
       }
     } else {
       textLines.push(line);
     }
     fence = updateFence(line, fence);
+    if (fence) unclosedFenceLine ??= line;
+    else unclosedFenceLine = null;
   }
 
   if (fence) {
-    return malformedUpdates(body, 'an entry contains an unclosed code fence.');
+    return unreadable(
+      `an entry leaves the code fence opened by ${quoteLine(unclosedFenceLine ?? '')} unclosed.`,
+    );
   }
 
   const finalError = finishComment();
-  if (finalError) return malformedUpdates(body, finalError);
+  if (finalError) return unreadable(finalError);
   if (comments.length === 0) {
-    return malformedUpdates(body, 'the section contains no entries.');
+    return unreadable('the section contains no entries.');
   }
 
   return { body: description, comments };
@@ -317,8 +333,8 @@ function parseTaskFile(slug: string, fileContent: string): Task {
     body: parsedBody.body,
     comments: parsedBody.comments,
   };
-  if (parsedBody.warning) {
-    updatesParseWarnings.set(task, parsedBody.warning);
+  if (parsedBody.unreadableUpdates) {
+    task.unreadableUpdates = parsedBody.unreadableUpdates;
   }
   return task;
 }
@@ -335,7 +351,12 @@ function serializeTask(task: Task): string {
   const sections: string[] = [];
   if (task.body.trim()) sections.push(task.body.trim());
 
-  if ((task.comments ?? []).length > 0) {
+  // A section that would not parse is written back byte-identical. It already
+  // carries its own `## Task Updates` line, and `comments` is empty beside it,
+  // so a frontmatter or description write cannot quietly drop it.
+  if (task.unreadableUpdates) {
+    sections.push(task.unreadableUpdates.text.trim());
+  } else if ((task.comments ?? []).length > 0) {
     const entries = task.comments
       .map(comment => `### ${comment.timestamp}\n${comment.text.trim()}`)
       .join('\n\n');
@@ -413,6 +434,25 @@ async function assertValidDependsOn(
   }
 }
 
+/**
+ * The read warning for a task whose Updates section could not be parsed.
+ *
+ * Exported so the single-task reads can report it too. `validateTask` only runs
+ * over a whole directory, because `depends_on` warnings need every slug; this
+ * one needs neither config nor slugs, and a caller that reads one task is
+ * exactly the caller who should hear that its Updates section is unreadable.
+ */
+export function unreadableUpdatesWarning(
+  task: Task,
+): TaskValidationWarning | undefined {
+  if (!task.unreadableUpdates) return undefined;
+  return {
+    slug: task.slug,
+    field: 'updates',
+    message: `Malformed Updates section: ${task.unreadableUpdates.reason} The section is preserved verbatim in the file and is not part of the description.`,
+  };
+}
+
 function validateTask(
   task: Task,
   config: ShipbenchConfig,
@@ -420,14 +460,10 @@ function validateTask(
 ): TaskValidationWarning[] {
   const warnings: TaskValidationWarning[] = [];
   const validStatuses = new Set(config.columns.map(c => c.id));
-  const updatesWarning = updatesParseWarnings.get(task);
+  const updatesWarning = unreadableUpdatesWarning(task);
 
   if (updatesWarning) {
-    warnings.push({
-      slug: task.slug,
-      field: 'updates',
-      message: updatesWarning,
-    });
+    warnings.push(updatesWarning);
   }
 
   if (!validStatuses.has(task.frontmatter.status)) {
@@ -733,7 +769,7 @@ export async function addComment(
   const path = `${TASKS_DIR}/${slug}.md`;
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
-  if (updatesParseWarnings.has(task)) {
+  if (task.unreadableUpdates) {
     throw new Error(
       `Cannot add an update to "${slug}" because its Updates section is malformed. Fix the section in the task file first.`,
     );
@@ -751,7 +787,7 @@ function assertMutableComments(
   slug: string,
   action: 'edit' | 'delete',
 ): void {
-  if (updatesParseWarnings.has(task)) {
+  if (task.unreadableUpdates) {
     throw new Error(
       `Cannot ${action} an update on "${slug}" because its Updates section is malformed. Fix the section in the task file first.`,
     );
