@@ -24,11 +24,20 @@
  * `connect --harbor` are real commands today, and the reason to commit
  * layout.json is Harbor-shaped whether or not Harbor is reachable.
  *
- * Flipping this to true is the launch step. Two companion edits Markdown cannot
- * do for itself go with it — restore the Harbor bullet in the Reference list at
- * the foot of src/content/docs/overview.md, and the [Docs] link on Harbor's
- * bullet in the root README — but neither is yours to remember:
- * src/test/docs-routes.test.ts holds both directions, so flip the flag, run the
- * suite, and it names whatever prose still has to follow.
+ * Flipping this to true is the launch step, and it takes two edits Markdown
+ * cannot make for itself. Do both; the suite will not hold you to it.
+ *
+ *   1. src/content/docs/overview.md — restore the Harbor bullet at the foot of
+ *      the Reference list, beside the convention-spec and cli-reference ones.
+ *   2. The root README — on Harbor's bullet, *replace* the sentence "Not yet
+ *      deployed; its page returns once it is." with the [Docs] link to
+ *      https://shipbench.dev/docs/harbor. Restoring the link without deleting
+ *      that sentence ships a live link next to a denial that the page exists.
+ *
+ * src/test/docs-routes.test.ts catches the damaging direction — a link to a
+ * page this build omits — in every file it scans. The direction it checks back
+ * the other way is reachability, not a checklist: one link anywhere satisfies
+ * it, so doing step 2 alone turns the suite green with step 1 still undone.
+ * Hence the list.
  */
 export const HARBOR_ENABLED: boolean = false;

@@ -13,10 +13,13 @@ import { isDocVisible } from '../utils/docs';
 //   flag on, link missing  -> the page ships unreachable, and the launch step
 //                             that was meant to restore the link is forgotten.
 //
-// The first is the damaging one; the second is the one a person has to
-// remember, which is why it is worth a test rather than a comment. Together
-// they make flipping a flag a mechanical change: run the suite, and it names
-// whatever prose still has to follow.
+// The first is the damaging one, and it is caught per file: every link to a
+// page this build omits fails, wherever it is written. The second is the one a
+// person has to remember, and it is caught only as reachability — one link
+// anywhere clears a page, so if two hand-authored links were dropped together,
+// restoring either turns this suite green with the other still missing. It
+// tells you a flag flip left prose behind; the flag's own comment in
+// src/config/flags.ts lists which.
 //
 // This is the routing counterpart to internal-links.test.ts. That one holds the
 // trailing-slash *form* of every internal link; this one holds that the route
