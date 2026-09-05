@@ -1,9 +1,10 @@
 {
   "todo": [],
-  "backlog": [],
+  "backlog": [
+    "spike-get-a-malformed-updates-section-back-into-cli-acceptable-form"
+  ],
   "in-progress": [],
   "review": [
-    "let-a-task-s-description-be-written-and-revised-without-hand-editing-the-file",
-    "stop-the-updates-parser-from-rejecting-headings-in-update-text"
+    "let-a-task-s-description-be-written-and-revised-without-hand-editing-the-file"
   ]
 }

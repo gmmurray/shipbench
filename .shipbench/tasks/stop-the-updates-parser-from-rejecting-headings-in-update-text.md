@@ -1,12 +1,12 @@
 ---
 title: Stop the Updates parser from rejecting headings in update text
-status: review
+status: done
 priority: high
 tags:
   - core
   - cli
 created: '2026-09-02T23:20:07.844Z'
-updated: '2026-09-02T23:33:12.638Z'
+updated: '2026-09-02T23:36:03.119Z'
 ---
 
 An agent using ShipBench 0.3.0 in another repo reported that the Updates parser
