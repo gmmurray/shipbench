@@ -1,3 +1,5 @@
+import { HARBOR_ENABLED } from './flags';
+
 declare const __SHIPBENCH_VERSION__: string;
 
 export const SITE_CONFIG = {
@@ -15,6 +17,9 @@ export const SITE_CONFIG = {
   description:
     'Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — tasks as Markdown, versioned in Git.',
   url: 'https://shipbench.dev',
+  // Mirrored onto SITE_CONFIG so the pages read one object; flags.ts owns it
+  // and carries the rationale.
+  harborEnabled: HARBOR_ENABLED,
   harborUrl: 'https://harbor.shipbench.dev',
   githubUrl: 'https://github.com/gmmurray/shipbench',
   npmUrl: 'https://www.npmjs.com/package/shipbench',

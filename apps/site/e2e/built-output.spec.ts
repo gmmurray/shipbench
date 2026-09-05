@@ -26,6 +26,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { HARBOR_ENABLED } from '../src/config/flags';
 
 const DIST = fileURLToPath(new URL('./../dist/client/', import.meta.url));
 const CLI_VERSION = (
@@ -34,13 +35,16 @@ const CLI_VERSION = (
   ) as { version: string }
 ).version;
 
+// Gated behind SITE_CONFIG.harborEnabled: built and linked when Harbor is
+// live, absent from dist/ entirely when it is not. Read from the flag rather
+// than listed, so this file needs no edit either way.
 const DOC_PAGES = [
   'docs/why',
   'docs/overview',
   'docs/quickstart',
   'docs/cli-reference',
   'docs/convention-spec',
-  'docs/harbor',
+  ...(HARBOR_ENABLED ? ['docs/harbor'] : []),
   'docs/workflows',
   'docs/solo-trunk-workflow',
   'docs/concurrent-agents',
@@ -347,9 +351,29 @@ test.describe('landing-page flow survives the build', () => {
     expect(home).toContain('Direct Markdown');
     expect(home).toContain('Local Board');
     expect(home).toContain('ShipBench CLI');
-    expect(home).toContain('ShipBench Harbor is the optional hosted client');
     expect(home).not.toContain('One System, Multiple Clients');
     expect(home).not.toContain('Dual Control Model');
+
+    // The teaser is the only part of this flow the Harbor flag moves. Asserted
+    // both ways: flagged off it has to be gone from the markup, not merely
+    // unlinked, since a section describing a client nobody can reach is the
+    // thing the flag exists to prevent.
+    if (HARBOR_ENABLED) {
+      expect(home).toContain('ShipBench Harbor is the optional hosted client');
+    } else {
+      expect(home).not.toContain('ShipBench Harbor is the optional hosted client');
+    }
+  });
+
+  test('links to Harbor only when Harbor is live', () => {
+    for (const route of ALL_PAGES) {
+      const page = html(route);
+      const links = page.includes('https://harbor.shipbench.dev');
+
+      expect(links, `${route || '/'} links to harbor.shipbench.dev`).toBe(
+        HARBOR_ENABLED,
+      );
+    }
   });
 
   test('marks every illustrative home-page code block as non-copyable', () => {

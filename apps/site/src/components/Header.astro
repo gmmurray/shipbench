@@ -35,7 +35,7 @@ const { isDocs = false } = Astro.props;
             destinations called Overview is a coin flip for the reader. */}
         <nav class="nav-links desktop-nav" aria-label="Main navigation">
           <a href="/">Home</a>
-          <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+          {SITE_CONFIG.harborEnabled && <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>}
           <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
         </nav>
         <button class="quick-search" type="button" data-search-open aria-label="Search documentation" aria-keyshortcuts="Meta+K Control+K">
@@ -64,7 +64,7 @@ const { isDocs = false } = Astro.props;
       <>
         <div class="header-actions desktop-nav">
           <a class="nav-link" href="/docs/overview/">Docs</a>
-          <a class="nav-link" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+          {SITE_CONFIG.harborEnabled && <a class="nav-link" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>}
           <a class="nav-link" href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
           <ThemeToggle client:load />
           <a class="button primary" href="#start">Get Started</a>
@@ -90,7 +90,7 @@ const { isDocs = false } = Astro.props;
         </button>
         <a href="/">Home</a>
         <a href="/docs/overview/">Docs</a>
-        <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+        {SITE_CONFIG.harborEnabled && <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>}
         <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
         <div class="mobile-nav-theme">
           <span>Theme</span>
@@ -100,7 +100,7 @@ const { isDocs = false } = Astro.props;
     ) : (
       <nav class="mobile-nav-links">
         <a href="/docs/overview/">Docs</a>
-        <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+        {SITE_CONFIG.harborEnabled && <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>}
         <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
         <div class="mobile-nav-theme">
           <span>Theme</span>

@@ -8,6 +8,6 @@ import { SITE_CONFIG } from '../config/site';
     <a href="/docs/overview/">Docs</a>
     <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
     <a href={SITE_CONFIG.npmUrl} target="_blank" rel="noopener">npm</a>
-    <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>
+    {SITE_CONFIG.harborEnabled && <a href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">ShipBench Harbor</a>}
   </nav>
 </footer>

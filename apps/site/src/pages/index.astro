@@ -178,19 +178,25 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
       <a class="quickstart-more-link" href="/docs/quickstart/">Full quickstart guide &rarr;</a>
     </section>
 
-    <!-- Harbor Teaser Section -->
-    <section class="section-padding page-width">
-      <div class="harbor-banner">
-        <div class="harbor-info">
-          <div class="section-badge" style="color: var(--accent);">ShipBench Harbor</div>
-          <h2>Shape ideas before a repository exists. View projects after it does.</h2>
-          <p>
-            ShipBench Harbor is the optional hosted client. Capture and organize ideas, then view public GitHub-backed project boards in read-only mode. Every ShipBench task stays in its repository.
-          </p>
+    {/* Harbor Teaser Section. The whole block goes when Harbor is not live,
+        button and copy together: a section that describes a hosted client and
+        then declines to link to it is a worse answer than silence, and the page
+        ends on the quickstart either way. The .harbor-banner rules stay in
+        landing.css — this is a flag, not a removal. */}
+    {SITE_CONFIG.harborEnabled && (
+      <section class="section-padding page-width">
+        <div class="harbor-banner">
+          <div class="harbor-info">
+            <div class="section-badge" style="color: var(--accent);">ShipBench Harbor</div>
+            <h2>Shape ideas before a repository exists. View projects after it does.</h2>
+            <p>
+              ShipBench Harbor is the optional hosted client. Capture and organize ideas, then view public GitHub-backed project boards in read-only mode. Every ShipBench task stays in its repository.
+            </p>
+          </div>
+          <a class="button primary" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">Open ShipBench Harbor</a>
         </div>
-        <a class="button primary" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">Open ShipBench Harbor</a>
-      </div>
-    </section>
+      </section>
+    )}
   </main>
 
   <Footer />
