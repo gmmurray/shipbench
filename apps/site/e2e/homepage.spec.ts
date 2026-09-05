@@ -1,22 +1,48 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('landing-page interfaces and code examples', () => {
-  test('home snippets stay illustrative while docs keep copy feedback', async ({
+  // The home page draws the line between a specimen and an instruction. The two
+  // hero panes render what a task file and a CLI session look like; the
+  // quickstart block is the three commands the section's heading promises, so
+  // it copies. This asserts the clipboard payload rather than the button's
+  // presence, because the reason the block can copy at all is that
+  // `code-copy.ts` strips the numbered `.comment` captions and the `.prompt`
+  // glyphs - if that stripping regressed, a button would still be there and
+  // still report success while putting unusable text on the clipboard.
+  test('the home quickstart copies clean commands while its hero panes stay illustrative', async ({
     context,
     page,
   }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await page.goto('/');
-    await expect(page.locator('.code-copy-button')).toHaveCount(0);
     await expect(page.locator('pre[data-code-block]')).toHaveCount(3);
-    expect(
-      await page
-        .locator('pre[data-code-block]')
-        .evaluateAll(blocks =>
-          blocks.every(block => block.hasAttribute('data-copy-disabled')),
-        ),
-    ).toBe(true);
+    await expect(page.locator('pre[data-copy-disabled]')).toHaveCount(2);
+
+    const homeCopy = page.locator('.code-copy-button');
+    await expect(homeCopy).toHaveCount(1);
+    await homeCopy.click();
+    await expect(homeCopy).toHaveAttribute('data-copy-state', 'copied');
+
+    // Normalised because Chromium hands back CRLF on Windows and LF on the
+    // Linux CI runner. The claim under test is what the numbered captions and
+    // prompt glyphs leave behind, not the platform's clipboard newline.
+    const copied = (
+      await page.evaluate(() => navigator.clipboard.readText())
+    ).replace(/\r\n/g, '\n');
+
+    // The blank line between each command survives on purpose: code-copy.ts
+    // collapses only *consecutive* blanks, so the three commands arrive spaced
+    // the way they are shown rather than run together.
+    expect(copied).toBe(
+      [
+        'npx shipbench init',
+        '',
+        'npx shipbench task create "Build landing page" --priority=high',
+        '',
+        'npx shipbench board',
+      ].join('\n'),
+    );
 
     await page.goto('/docs/quickstart/');
     const copyButton = page.locator('.code-copy-button').first();

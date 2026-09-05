@@ -8,7 +8,7 @@ updated: 2026-09-02
 
 The ShipBench CLI reads and writes the `.shipbench/` project rooted at your current directory, or at the directory selected with the global `-C` option.
 
-```bash
+```bash no-copy
 shipbench --help
 shipbench --version
 shipbench -C ../another-project task list --json
@@ -19,7 +19,7 @@ The CLI uses core for validation, slug creation, timestamps, dependency checks, 
 
 ## Global option
 
-```bash
+```bash no-copy
 shipbench [-C <path>] <command>
 ```
 
@@ -40,7 +40,7 @@ shipbench -C ../new-project init
 
 ### `shipbench init`
 
-```bash
+```bash no-copy
 shipbench init [--name <name>] [--harbor <connect-url>]
 ```
 
@@ -55,7 +55,7 @@ Initialization creates `config.json`, `layout.json`, `README.md`, `AGENTS.md`, a
 
 ### `shipbench connect`
 
-```bash
+```bash no-copy
 shipbench connect --harbor <connect-url>
 ```
 
@@ -67,7 +67,7 @@ Use `shipbench init --harbor <connect-url>` when the local repository still need
 
 ### `shipbench task create`
 
-```bash
+```bash no-copy
 shipbench task create <title> [options]
 ```
 
@@ -108,7 +108,7 @@ shipbench task create "Build API" --body "Cursor pagination, no offsets."
 
 ### `shipbench task edit`
 
-```bash
+```bash no-copy
 shipbench task edit <slug> (--body <text> | --body-file <path>) [--json]
 ```
 
@@ -137,7 +137,7 @@ description and swallow the marker, hiding every entry from the next read. See
 
 ### `shipbench task move`
 
-```bash
+```bash no-copy
 shipbench task move <slug> [--to <status>] [placement]
 ```
 
@@ -170,7 +170,7 @@ Placement flags cannot target `done_column`; it is always sorted by `updated` de
 
 ### `shipbench task comment`
 
-```bash
+```bash no-copy
 shipbench task comment <slug> (<text> | --body <text> | --body-file <path>)
 ```
 
@@ -203,7 +203,7 @@ See [Task Updates](/docs/convention-spec/#task-updates) for the time-anchored-fa
 
 Edit only an entry's text with its zero-based index. ShipBench preserves the entry timestamp and updates the task timestamp:
 
-```bash
+```bash no-copy
 shipbench task comment edit <slug> <index> (<text> | --body <text> | --body-file <path>)
 shipbench task comment edit build-api 0 \
   "Kept cursor pagination after the second load test."
@@ -211,7 +211,7 @@ shipbench task comment edit build-api 0 \
 
 Delete an entry with the same index:
 
-```bash
+```bash no-copy
 shipbench task comment delete <slug> <index>
 shipbench task comment delete build-api 0
 ```
@@ -220,7 +220,7 @@ Git keeps prior text and deleted entries in file history.
 
 ### `shipbench task get`
 
-```bash
+```bash no-copy
 shipbench task get <slug> [--archived]
 ```
 
@@ -273,7 +273,7 @@ For agents, `task get` is the preferred second step after a body-free `task list
 
 ### `shipbench task list`
 
-```bash
+```bash no-copy
 shipbench task list [options]
 ```
 
@@ -341,7 +341,7 @@ Without `--include-body`, JSON remains compact:
 
 ### `shipbench task search`
 
-```bash
+```bash no-copy
 shipbench task search <query> [options]
 ```
 
@@ -383,7 +383,7 @@ JSON describes where each match occurred and includes a body snippet when applic
 
 ### `shipbench task graph`
 
-```bash
+```bash no-copy
 shipbench task graph [--archived] [--json]
 ```
 
@@ -412,13 +412,13 @@ Referenced slugs that cannot be resolved appear as nodes with `"status": "missin
 
 Archive one task:
 
-```bash
+```bash no-copy
 shipbench task archive <slug> [--force]
 ```
 
 Archive older completed tasks in bulk:
 
-```bash
+```bash no-copy
 shipbench task archive --done [--keep <count>]
 ```
 
@@ -436,7 +436,7 @@ Bulk archiving keeps `done_display.max` recent tasks by default. If that cap is 
 
 ### `shipbench task unarchive`
 
-```bash
+```bash no-copy
 shipbench task unarchive <slug>
 ```
 
@@ -444,7 +444,7 @@ Restores an archived task byte-for-byte to `tasks/`. Slugs are unique across liv
 
 ### `shipbench task delete`
 
-```bash
+```bash no-copy
 shipbench task delete <slug>
 ```
 
@@ -462,7 +462,7 @@ shipbench board terminal    # a read-only live view in this terminal
 
 #### `shipbench board web`
 
-```bash
+```bash no-copy
 shipbench board web [--port <number>] [--no-open]
 ```
 
@@ -477,7 +477,7 @@ The server binds to `127.0.0.1`. If the preferred port is occupied, it tries the
 
 #### `shipbench board terminal`
 
-```bash
+```bash no-copy
 shipbench board terminal [-s <statuses>] [--tag <tag>] [-a <assignee>] [-p <priority>]
 ```
 
@@ -508,7 +508,7 @@ With stdout redirected it prints one plain 80×24 frame and exits, so `shipbench
 
 Agents get the best balance of context and token use from a staged read:
 
-```bash
+```bash no-copy
 # 1. Find unblocked candidates without descriptions.
 shipbench task list --available --json --limit 10
 

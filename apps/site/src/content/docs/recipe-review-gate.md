@@ -61,7 +61,7 @@ the same work.
 
 When its work is committed on a task branch, an agent submits by targeting the canonical checkout, not the worktree's local board:
 
-```bash
+```bash no-copy
 shipbench -C ~/code/my-project task move <slug> --to review
 ```
 

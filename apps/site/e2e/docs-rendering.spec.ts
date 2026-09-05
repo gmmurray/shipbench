@@ -44,7 +44,10 @@ async function clickDocsLink(page: Page, path: string): Promise<void> {
 }
 
 async function overflowingCodeBlock(page: Page): Promise<Locator> {
-  const blocks = page.locator('.prose pre');
+  // Scoped to blocks that actually carry a copy control. Since the affordance
+  // became an explicit per-fence signal, the first overflowing block on a page
+  // is often a ```bash no-copy usage synopsis, which has no shell around it.
+  const blocks = page.locator('.code-block-shell > pre');
   const count = await blocks.count();
 
   for (let index = 0; index < count; index += 1) {
@@ -84,6 +87,60 @@ test('table regions and section permalinks survive client navigation in both dir
     'the return link performed a full reload instead of a ClientRouter swap',
   ).toBe(true);
   await expectEnhancedProse(page);
+});
+
+// The reason the control moved out of the code's top-right corner. Overlaid, its
+// 36px band crossed the first code line's 16px band on every block and covered
+// real command text on more than half of them; `.prose pre code` sets
+// `min-width: max-content`, so those lines scroll rather than wrap and the
+// covered text could not be read without scrolling it out from under the button.
+//
+// Asserted geometrically rather than by class name, so a future restyle is free
+// to move the control anywhere that does not land on the code.
+test('the copy control never overlaps the code it copies, at the narrowest width', async ({
+  page,
+}) => {
+  await page.setViewportSize(MOBILE);
+
+  for (const route of ['/docs/quickstart/', '/docs/cli-reference/']) {
+    await page.goto(route);
+
+    const overlaps = await page.evaluate(() => {
+      const offenders: string[] = [];
+
+      for (const shell of document.querySelectorAll('.code-block-shell')) {
+        const button = shell.querySelector('.code-copy-button');
+        const pre = shell.querySelector('pre');
+        const firstLine = pre?.querySelector('.line') ?? pre?.querySelector('code');
+        if (!button || !firstLine) continue;
+
+        const b = button.getBoundingClientRect();
+        const l = firstLine.getBoundingClientRect();
+        const intersects =
+          b.left < l.right && b.right > l.left && b.top < l.bottom && b.bottom > l.top;
+
+        if (intersects) {
+          offenders.push((firstLine.textContent ?? '').trim().slice(0, 60));
+        }
+      }
+
+      return offenders;
+    });
+
+    expect(overlaps, `${route} has copy buttons sitting on their first code line`).toEqual([]);
+
+    // The strip exists partly to give the control room for a real touch target;
+    // 44px is the minimum the site's other mobile controls are held to. See
+    // keyboard-nav.spec.ts.
+    const heights = await page
+      .locator('.code-copy-button')
+      .evaluateAll(buttons => buttons.map(b => b.getBoundingClientRect().height));
+
+    expect(heights.length, `${route} rendered no copy buttons`).toBeGreaterThan(0);
+    for (const height of heights) {
+      expect(height).toBeGreaterThanOrEqual(44);
+    }
+  }
 });
 
 test('copy button stays pinned while its code block scrolls at the narrowest width', async ({

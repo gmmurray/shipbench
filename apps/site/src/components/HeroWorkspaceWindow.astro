@@ -148,6 +148,15 @@ const cliWorkflowSnippet = [
     hidden
   >
     <div class="split-visual-body">
+      {/* Both panes stay non-copyable, and the reason is that they are
+          specimens rather than instructions. This one renders what a task file
+          looks like on disk - a file `shipbench task create` writes, never
+          something a reader pastes. The next is a transcript acting on
+          `setup-github-oauth`, a slug that exists only in this mockup; its `✔`
+          result lines are `.comment` spans and would strip cleanly, so what a
+          reader would actually get is two commands naming a task they do not
+          have. The landing page's quickstart block is the opposite case, and
+          copies. */}
       <div class="visual-pane">
         <span class="pane-tag">Direct Markdown</span>
         <div class="visual-pane-title">setup-github-oauth.md</div>

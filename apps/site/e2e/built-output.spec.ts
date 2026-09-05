@@ -38,6 +38,34 @@ const CLI_VERSION = (
 // Gated behind SITE_CONFIG.harborEnabled: built and linked when Harbor is
 // live, absent from dist/ entirely when it is not. Read from the flag rather
 // than listed, so this file needs no edit either way.
+/**
+ * The `<pre>` ... `</pre>` whose *rendered text* contains `needle`, or null.
+ *
+ * Matching runs on the text rather than the markup because Shiki wraps every
+ * token in its own `<span>`, so `shipbench task move <slug>` never appears as a
+ * contiguous string in the HTML. Entities are decoded for the same reason: a
+ * synopsis renders `<slug>` as `&#x3C;slug>`.
+ *
+ * Returning the block rather than a boolean is the point - it lets a copy
+ * marker be asserted against the block it belongs to, instead of against the
+ * whole page where any other block could satisfy it.
+ */
+function codeBlockText(block: string): string {
+  return block
+    .replace(/<[^>]+>/g, '')
+    .replace(/&#x3C;|&lt;/g, '<')
+    .replace(/&#x3E;|&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x26;|&amp;/g, '&');
+}
+
+function codeBlockContaining(page: string, needle: string): string | null {
+  for (const match of page.matchAll(/<pre[\s\S]*?<\/pre>/g)) {
+    if (codeBlockText(match[0]).includes(needle)) return match[0];
+  }
+  return null;
+}
+
 const DOC_PAGES = [
   'docs/why',
   'docs/overview',
@@ -376,15 +404,48 @@ test.describe('landing-page flow survives the build', () => {
     }
   });
 
-  test('marks every illustrative home-page code block as non-copyable', () => {
+  // Two of the three, not all three. The hero panes are specimens - a task file
+  // and a CLI session - and stay opted out; the quickstart block is the page's
+  // three real commands and copies. See the comments at both call sites.
+  test('opts the home-page specimens out of copying but not the quickstart', () => {
     const home = html('');
     const codeBlocks = home.match(/<pre[^>]+data-code-block[^>]*>/g) ?? [];
 
     expect(codeBlocks).toHaveLength(3);
-    for (const block of codeBlocks) {
-      expect(block).toContain('data-copy-disabled');
+    expect(
+      codeBlocks.filter(block => block.includes('data-copy-disabled')),
+    ).toHaveLength(2);
+
+    // `data-copy-disabled` is CodeBlock.astro's opt-out and never appears in
+    // Markdown; a fence opts out with ```bash no-copy, which the Shiki
+    // transformer emits as data-copy="false".
+    expect(html('docs/quickstart')).not.toContain('data-copy-disabled');
+  });
+
+  // The copy affordance is an explicit per-fence signal, not a guess from line
+  // count. These are the blocks the old `isMultiline()` heuristic got wrong in
+  // both directions: single-line commands a reader would actually run, which
+  // had no button, and usage synopses full of metavariables, which had one.
+  test('marks runnable commands copyable and usage synopses not', () => {
+    const runnable: Array<[string, string]> = [
+      ['docs/quickstart', 'shipbench init'],
+      ['docs/quickstart', 'shipbench board'],
+      ['docs/convention-spec', 'git rm --cached .shipbench/layout.json'],
+    ];
+
+    for (const [route, command] of runnable) {
+      const block = codeBlockContaining(html(route), command);
+      expect(block, `${route} has no code block containing "${command}"`).not.toBeNull();
+      expect(block, `"${command}" is marked no-copy`).not.toContain(
+        'data-copy="false"',
+      );
     }
 
-    expect(html('docs/quickstart')).not.toContain('data-copy-disabled');
+    const synopsis = codeBlockContaining(
+      html('docs/cli-reference'),
+      'shipbench task move <slug>',
+    );
+    expect(synopsis, 'cli-reference has no `task move` synopsis block').not.toBeNull();
+    expect(synopsis).toContain('data-copy="false"');
   });
 });

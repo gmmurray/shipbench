@@ -1,13 +1,13 @@
 ---
 title: Decide the docs copy-button affordance and its mobile overlay
-status: todo
+status: done
 priority: medium
 tags:
   - site
   - docs
   - ux
 created: '2026-09-05T16:09:35.631Z'
-updated: '2026-09-05T16:09:35.631Z'
+updated: '2026-09-05T20:13:34.753Z'
 ---
 
 The docs site's copy affordance is decided by line count, which is the wrong signal, and the button that results overlays the code it is copying. Three related pieces, worth one pass because they all land in `src/scripts/code-copy.ts`, `src/styles/code-blocks.css`, and the blocks themselves.
@@ -61,3 +61,26 @@ Options worth costing: reserved top padding on `<pre>` when a button is present;
 ## Done when
 
 The copy affordance follows an explicit runnable/illustrative signal rather than line count; the home-page block's behaviour is deliberate either way; and the mobile overlay question is resolved with a reason recorded, whether that resolution is a change or a decision to keep it.
+
+## Task Updates
+
+### 2026-09-05T20:11:09.184Z
+All three parts resolved. The decisions, and what each was decided against:
+
+**1. Explicit signal — fence metadata.** Satteri threads a fence's meta string through to `codeToHast`, which Astro exposes to Shiki transformers as `options.meta.__raw`, so no MDX migration was needed and the deferral in this task's notes stands unchallenged. `src/utils/shiki-copy-meta.mjs` reads ` ```bash no-copy ` onto the `<pre>` as `data-copy="false"`, and `isMultiline()` is gone.
+
+Copyable is the default, matching `copyable = true` in `CodeBlock.astro`, so both surfaces state one rule in their own syntax. The opt-out marks the smaller set. The rule applied: **a block opts out when its text contains a metavariable the reader must substitute** — 24 fences, all of them usage synopses. That is checkable rather than a judgement call, and it gave the 8 listed single-line commands their buttons. An unrecognised meta token fails the build naming the file and the token, so a typo cannot silently restore an affordance nobody chose.
+
+Three blocks in `cli-reference.md` bundle a synopsis with a runnable example, so the whole block had to go `no-copy` and those examples lost their button. Splitting them is editorial rather than mechanical, so it is filed as `split-the-three-mixed-synopsis-and-example-blocks-in-cli-reference` rather than folded in here.
+
+**2. The home-page snippet now copies.** The "illustrative" judgement did not survive inspection: these are the three real commands the section's heading promises. The two hero panes stay opted out and now say why — one renders a file `task create` writes, the other acts on a slug that exists only in the mockup.
+
+The clipboard payload is now asserted rather than assumed, which caught two things I had wrong: the blank lines between commands survive (only *consecutive* blanks collapse), and Chromium returns CRLF on Windows against LF on the Linux runner, so the assertion normalises.
+
+**3. The overlay is gone; the control moved into a header strip.** Measured before assuming, at 390px: the button's 36px band crossed the first code line's 16px band on **every** block, and covered actual command text on **9 of 15** — a full 56px on the most copy-worthy commands, all of them in blocks that scroll, so the covered text could not be read without scrolling it out from under the button.
+
+The strip beat reserved top padding because it uses the space it costs: it carries the language label, and it matches `.quickstart-head`, which the landing page already puts above its code in the same tokens. It stays a sibling of the `<pre>` inside the shell, so the button still holds position while the code scrolls — `docs-rendering.spec.ts` still passes unchanged on that point — and it gave the touch target room to reach the 44px minimum, up from 36px.
+
+After: worst overlap across 28 copyable blocks is −17px, i.e. a gap. A new geometric test asserts no button intersects its first code line and every button clears 44px; re-applying the old geometry at runtime makes it report 11 offenders, so it is not vacuous.
+
+**Verification.** Typecheck, lint, 118 unit tests, 100 e2e (1 pre-existing skip). Both the copy-affordance change and the Harbor flag's two states build clean.

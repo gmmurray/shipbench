@@ -6,6 +6,7 @@ import { satteri } from '@astrojs/markdown-satteri';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import { defineConfig, fontProviders } from 'astro/config';
+import copyMeta from './src/utils/shiki-copy-meta.mjs';
 import tableRegions from './src/utils/satteri-table-regions.mjs';
 
 // The CLI is the namesake ShipBench artifact. Core, CLI, and Board release in
@@ -45,6 +46,10 @@ export default defineConfig({
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark' },
       defaultColor: 'dark',
+      // Reads a fence's `no-copy` marker onto the <pre>. Satteri passes meta
+      // through to codeToHast, so this is the whole mechanism — see
+      // src/utils/shiki-copy-meta.mjs.
+      transformers: [copyMeta],
     },
   },
 

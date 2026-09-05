@@ -19,12 +19,36 @@ function codeSource(pre: HTMLPreElement): HTMLElement {
   return pre.querySelector<HTMLElement>('code') ?? pre;
 }
 
-function isMultiline(pre: HTMLPreElement): boolean {
-  const source = codeSource(pre);
-  return (
-    source.querySelectorAll('.line').length > 1 ||
-    /\r?\n/.test(source.textContent ?? '')
-  );
+/**
+ * Whether this block offers a copy button.
+ *
+ * Copyable is the default, and both opt-outs are written at the source: the
+ * `copyable` prop on CodeBlock.astro emits `data-copy-disabled`, and a
+ * ```bash no-copy fence emits `data-copy="false"` through the Shiki
+ * transformer in src/utils/shiki-copy-meta.mjs.
+ *
+ * This replaces an `isMultiline()` check that stood in for "is this runnable?"
+ * and was wrong in both directions - single-line commands a reader would
+ * actually run had no button, while an illustrative multi-line block did.
+ */
+function isCopyable(pre: HTMLPreElement): boolean {
+  return !pre.hasAttribute('data-copy-disabled') && pre.dataset.copy !== 'false';
+}
+
+/**
+ * The block's language, for the header strip's label. Markdown fences carry
+ * `data-language` from Shiki; a CodeBlock.astro block carries none and gets no
+ * label rather than a guessed one.
+ *
+ * `text` and `plaintext` are the fences that opt out of highlighting - a
+ * directory tree, a table of values. Naming them "TEXT" above the block adds a
+ * word without adding information, so they render with the strip but no label.
+ */
+const UNLABELLED_LANGUAGES = new Set(['plaintext', 'text']);
+
+function languageLabel(pre: HTMLPreElement): string | null {
+  const language = pre.dataset.language;
+  return language && !UNLABELLED_LANGUAGES.has(language) ? language : null;
 }
 
 function clipboardText(pre: HTMLPreElement): string {
@@ -145,11 +169,7 @@ function setButtonState(
 }
 
 function addCopyButton(pre: HTMLPreElement): void {
-  if (
-    pre.hasAttribute('data-copy-disabled') ||
-    pre.classList.contains('copy-enabled') ||
-    !isMultiline(pre)
-  ) {
+  if (pre.classList.contains('copy-enabled') || !isCopyable(pre)) {
     return;
   }
 
@@ -166,12 +186,41 @@ function addCopyButton(pre: HTMLPreElement): void {
     setButtonState(button, copied ? 'copied' : 'failed');
   });
 
+  // A header strip above the code, rather than a button floating over it.
+  //
+  // The button used to sit `position: absolute; top: 8px; right: 8px` inside
+  // the shell, which put its 36px band across the first code line's 16px band
+  // on every block - measured, not assumed - and covered actual command text on
+  // more than half the docs blocks. Because `.prose pre code` sets
+  // `min-width: max-content` those lines scroll rather than wrap, so the reader
+  // could not read what sat underneath without scrolling it out from under the
+  // button. Reveal-on-hover is no answer on the viewport where it hurts most.
+  //
+  // The strip still lives in the shell rather than the scrolling `<pre>`, so the
+  // button holds position while the code scrolls - the property
+  // e2e/docs-rendering.spec.ts pins. It also gives the touch target room to meet
+  // the 44px minimum the site's other mobile controls are held to, and a home
+  // for the language label, matching the `.quickstart-head` strip the landing
+  // page already puts above its code.
   const shell = document.createElement('div');
   shell.className = 'code-block-shell';
 
+  const head = document.createElement('div');
+  head.className = 'code-block-head';
+
+  const language = languageLabel(pre);
+  if (language) {
+    const label = document.createElement('span');
+    label.className = 'code-block-lang';
+    label.textContent = language;
+    head.append(label);
+  }
+
+  head.append(button);
+
   pre.classList.add('copy-enabled');
   pre.before(shell);
-  shell.append(pre, button);
+  shell.append(head, pre);
 }
 
 function setupCodeCopyButtons(): void {

@@ -168,9 +168,16 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
           <span>SHIPBENCH CLI QUICKSTART</span>
           <span>~/code/my-project</span>
         </div>
+        {/* Copyable, unlike the two specimens in the hero. These are the three
+            real commands the section's heading promises, and they are the most
+            copy-worthy strings on the page. `code-copy.ts` strips the `.comment`
+            captions and the `.prompt` glyphs, so the clipboard gets the three
+            `npx shipbench ...` commands and nothing to clean up - blank lines
+            and all, since only consecutive blanks collapse. The old
+            `copyable={false}` grouped this with the hero mockups as
+            "illustrative", which these commands never were. */}
         <CodeBlock
           class="quickstart-code"
-          copyable={false}
           label="ShipBench CLI quickstart"
           lines={quickstartSnippet}
         />

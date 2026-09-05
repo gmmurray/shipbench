@@ -53,7 +53,7 @@ The new project can remain unconnected while you prepare its repository. Once yo
 
 Harbor presents a signed command for the project. Run the appropriate form from the Git worktree root:
 
-```bash
+```bash no-copy
 # The repository does not use ShipBench yet.
 shipbench init --harbor "<signed-connect-url>"
 

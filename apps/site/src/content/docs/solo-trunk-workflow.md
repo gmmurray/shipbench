@@ -10,7 +10,7 @@ One stream of work, no branches. You move a task to `in-progress`, implement it,
 
 ## The loop
 
-```bash
+```bash no-copy
 shipbench task list --available --json
 shipbench task get <slug>
 shipbench task move <slug> --to in-progress

@@ -31,8 +31,24 @@
   color: var(--shiki-light) !important;
 }
 
+/* The copy control sits in a header strip above the code, not on top of it.
+ *
+ * It used to be absolutely positioned at the block's top-right, where its 36px
+ * band crossed the first code line's 16px band on every block and covered
+ * command text on more than half of them. `.prose pre code` sets
+ * `min-width: max-content`, so those lines scroll instead of wrapping and the
+ * covered text could not be read without scrolling it out from under the
+ * button.
+ *
+ * The strip is a sibling of the `<pre>` inside the shell, so the button still
+ * holds position while the code scrolls horizontally, and it borrows the
+ * vocabulary `.quickstart-head` already uses above the landing page's code
+ * block: surface2 ground, iron hairline, 11px mono in silver.
+ */
 .code-block-shell {
-  position: relative;
+  border: 1px solid var(--iron);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .prose .code-block-shell {
@@ -41,22 +57,53 @@
 
 .prose .code-block-shell > pre {
   margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.code-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 6px 0 14px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--iron);
+}
+
+.code-block-lang {
+  color: var(--silver);
+  font-family:
+    var(--font-intel-mono), "Intel One Mono", "IBM Plex Mono", ui-monospace,
+    monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* The label is decoration for a sighted reader; the button already names the
+   * block for everyone else. Announcing "bash" before every code block adds
+   * noise to a screen reader without adding information. */
+  user-select: none;
+}
+
+/* Pushes the button to the right edge when there is no language label, so a
+ * CodeBlock.astro block and a Markdown fence put the control in the same place. */
+.code-block-head > .code-copy-button:only-child {
+  margin-left: auto;
 }
 
 .code-copy-button {
-  position: absolute;
-  z-index: 1;
-  top: 8px;
-  right: 8px;
   display: inline-flex;
-  min-width: 56px;
-  min-height: 36px;
+  /* 44px is the touch minimum the site's other mobile controls are held to
+   * (see e2e/keyboard-nav.spec.ts). The old overlay button was 36px, which the
+   * strip has room to fix without covering anything. */
+  min-width: 64px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 4px 10px;
   color: var(--silver);
-  background: var(--surface2);
-  border: 1px solid var(--iron);
+  background: transparent;
+  border: 0;
   border-radius: 2px;
   font-family:
     var(--font-intel-mono), "Intel One Mono", "IBM Plex Mono", ui-monospace,
@@ -76,15 +123,12 @@
 .code-copy-button:hover {
   color: var(--frosted);
   background: var(--surface);
-  border-color: var(--ironlit);
 }
 
 .code-copy-button[data-copy-state="copied"] {
   color: var(--success);
-  border-color: var(--success);
 }
 
 .code-copy-button[data-copy-state="failed"] {
   color: var(--warning);
-  border-color: var(--warning);
 }
