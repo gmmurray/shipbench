@@ -24,10 +24,11 @@
  * `connect --harbor` are real commands today, and the reason to commit
  * layout.json is Harbor-shaped whether or not Harbor is reachable.
  *
- * Flipping this to true is the launch step, with one companion edit Markdown
- * cannot do for itself: restore the Harbor bullet in the Reference list at the
- * foot of src/content/docs/overview.md, and the [Docs] link on Harbor's bullet
- * in the root README. src/test/docs-routes.test.ts holds the other direction —
- * a link to a doc this build omits fails there.
+ * Flipping this to true is the launch step. Two companion edits Markdown cannot
+ * do for itself go with it — restore the Harbor bullet in the Reference list at
+ * the foot of src/content/docs/overview.md, and the [Docs] link on Harbor's
+ * bullet in the root README — but neither is yours to remember:
+ * src/test/docs-routes.test.ts holds both directions, so flip the flag, run the
+ * suite, and it names whatever prose still has to follow.
  */
 export const HARBOR_ENABLED: boolean = false;
