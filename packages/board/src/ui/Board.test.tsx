@@ -280,6 +280,137 @@ describe('Board', () => {
     expect(listArchivedTasks).toHaveBeenCalledTimes(1);
   });
 
+  const unreadableSection = [
+    '## Task Updates',
+    '',
+    '### 2026-06-01T12:30:00.000Z',
+    'Kept.',
+    '',
+    '#### 2026-06-02T09:00:00.000Z',
+    'Wrong level.',
+  ].join('\n');
+
+  const withUnreadableUpdates: Task = {
+    slug: 'setup-auth',
+    frontmatter: {
+      title: 'Setup auth',
+      status: 'todo',
+      priority: 'high',
+      created: '2026-06-01T00:00:00.000Z',
+      updated: '2026-06-01T00:00:00.000Z',
+    },
+    body: 'Use OAuth.',
+    comments: [],
+    unreadableUpdates: {
+      text: unreadableSection,
+      reason:
+        'expected each entry heading to use "### <ISO 8601 timestamp>", saw "#### 2026-06-02T09:00:00.000Z".',
+    },
+  };
+
+  it('shows an unreadable Updates section verbatim with the reason it broke', async () => {
+    const user = userEvent.setup();
+    render(
+      <Board
+        api={api({
+          listTasks: vi.fn(async () => ({
+            tasks: [withUnreadableUpdates],
+            warnings: [],
+          })),
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByText('Setup auth'));
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(
+      'saw "#### 2026-06-02T09:00:00.000Z"',
+    );
+    // Verbatim, not rendered: the `####` that broke the parse has to stay
+    // visible as text rather than becoming a heading.
+    const section = screen.getByRole('region', { name: 'Task Updates' });
+    expect(section.querySelector('pre')).toHaveTextContent(
+      '#### 2026-06-02T09:00:00.000Z',
+    );
+    expect(section.querySelector('h4')).toBeNull();
+    expect(screen.getByText('unreadable')).toBeInTheDocument();
+  });
+
+  it('hides the add-update form while the section is unreadable', async () => {
+    const user = userEvent.setup();
+    render(
+      <Board
+        api={api({
+          listTasks: vi.fn(async () => ({
+            tasks: [withUnreadableUpdates],
+            warnings: [],
+          })),
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByText('Setup auth'));
+
+    expect(
+      screen.queryByRole('button', { name: 'Add task update' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an unreadable section visible in a read-only board', async () => {
+    const user = userEvent.setup();
+    render(
+      <Board
+        api={api({
+          readOnly: true,
+          listTasks: vi.fn(async () => ({
+            tasks: [withUnreadableUpdates],
+            warnings: [],
+          })),
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByText('Setup auth'));
+
+    expect(
+      screen.getByRole('region', { name: 'Task Updates' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('edits the description of a task whose Updates section is unreadable', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: withUnreadableUpdates }));
+    render(
+      <Board
+        api={api({
+          updateTask,
+          listTasks: vi.fn(async () => ({
+            tasks: [withUnreadableUpdates],
+            warnings: [],
+          })),
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const textarea = screen.getByRole('textbox', {
+      name: 'Task description',
+    });
+    // The description is the description again — the broken section is not in
+    // the editor, so saving cannot overwrite it.
+    expect(textarea).toHaveValue('Use OAuth.');
+    await user.clear(textarea);
+    await user.type(textarea, 'Rewritten.');
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+
+    await waitFor(() => {
+      expect(updateTask).toHaveBeenCalledWith('setup-auth', {}, 'Rewritten.');
+    });
+  });
+
   it('opens detail mode from a card and closes via breadcrumb', async () => {
     const user = userEvent.setup();
     render(<Board api={api()} />);

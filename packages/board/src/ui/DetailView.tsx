@@ -1,4 +1,4 @@
-import type { TaskComment } from '@shipbench/core';
+import type { TaskComment, UnreadableUpdates } from '@shipbench/core';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import {
   type FormEvent,
@@ -197,6 +197,7 @@ export function DetailView({ slug }: { slug: string }) {
           <TaskUpdatesSection
             readOnly={readOnly}
             comments={task.comments ?? []}
+            unreadableUpdates={task.unreadableUpdates}
             onAddComment={text => addComment(task.slug, text)}
             onEditComment={(index, text) => editComment(task.slug, index, text)}
             onDeleteComment={index => deleteComment(task.slug, index)}
@@ -534,12 +535,14 @@ function TaskBodySection({
 function TaskUpdatesSection({
   readOnly,
   comments,
+  unreadableUpdates,
   onAddComment,
   onEditComment,
   onDeleteComment,
 }: {
   readOnly: boolean;
   comments: TaskComment[];
+  unreadableUpdates?: UnreadableUpdates;
   onAddComment: (text: string) => Promise<boolean>;
   onEditComment: (index: number, text: string) => Promise<boolean>;
   onDeleteComment: (index: number) => Promise<boolean>;
@@ -554,7 +557,10 @@ function TaskUpdatesSection({
   );
   const canSubmit = draft.trim().length > 0 && !isSubmitting;
 
-  if (comments.length === 0 && readOnly) return null;
+  // A section that would not parse has no entries, so the read-only shortcut
+  // would hide the one thing worth saying about this task. Harbor is read-only
+  // everywhere, which makes it the host that most needs to keep this visible.
+  if (comments.length === 0 && readOnly && !unreadableUpdates) return null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -607,11 +613,33 @@ function TaskUpdatesSection({
           Task Updates
         </h2>
         <span className="h-px flex-1 bg-sb-divider" aria-hidden="true" />
-        <span className="font-mono text-[11px] text-sb-silver">
-          {comments.length}
+        <span
+          className={`font-mono text-[11px] ${
+            unreadableUpdates ? 'text-sb-warning' : 'text-sb-silver'
+          }`}
+        >
+          {unreadableUpdates ? 'unreadable' : comments.length}
         </span>
       </div>
-      {comments.length > 0 ? (
+      {unreadableUpdates ? (
+        <div className="grid gap-3">
+          <p
+            className="font-mono text-[11px] leading-5 text-sb-warning"
+            role="alert"
+          >
+            This section could not be read: {unreadableUpdates.reason} It is
+            kept exactly as written and is not part of the description. Fix it
+            in the task file — updates cannot be added, edited, or deleted until
+            it parses.
+          </p>
+          {/* Deliberately not Markdown. The point of showing this is the
+              literal text, and rendering it would hide the very markup that
+              broke the parse. */}
+          <pre className="overflow-x-auto rounded border border-sb-iron bg-sb-surface2 px-3 py-2 font-mono text-[12px] leading-relaxed text-sb-silver">
+            {unreadableUpdates.text}
+          </pre>
+        </div>
+      ) : comments.length > 0 ? (
         <ol className="grid gap-5">
           {comments.map((comment, index) => (
             <li
@@ -721,7 +749,7 @@ function TaskUpdatesSection({
         </p>
       )}
 
-      {readOnly ? null : (
+      {readOnly || unreadableUpdates ? null : (
         <form
           className="mt-5 border-t border-sb-iron pt-5"
           onSubmit={event => void handleSubmit(event)}

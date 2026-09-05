@@ -151,6 +151,8 @@ Detail mode is driven by `selectedTaskSlug` — there is no internal route. Harb
 
 The left pane renders parsed Task Updates below the editable description as a separate chronological timeline. Each entry shows a locally formatted timestamp in mono, exposes the exact ISO 8601 value on hover, and renders its Markdown text in the normal reading face. The Board does not merge Task Updates back into the description editor. In writable mode, a compact composer appends through `BoardAPI.addComment`, and per-entry controls edit text or confirm deletion through zero-based indices. Core supplies and preserves the authoritative timestamp. Read-only hosts render no mutation controls.
 
+When core reports the section as unreadable (`Task.unreadableUpdates`), the pane shows that instead of an empty timeline: the count reads `unreadable`, the reason is announced as an alert, and the preserved text is displayed verbatim in a `pre` — not through `Markdown`, because rendering it would hide the markup that broke the parse. The composer is hidden, matching core's refusal to mutate the section until it parses, and the read-only shortcut that hides an empty section does not apply. Repair happens in the task file; the Board's job here is to make sure someone knows to open it.
+
 **Closing the detail:** ESC, or clicking the "Tasks" segment in the header breadcrumb. No outside-click — there is no "outside" since the detail fills the board area. No close X in a corner either; the breadcrumb is the discoverable back affordance.
 
 ### Markdown links

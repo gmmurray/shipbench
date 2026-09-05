@@ -1,6 +1,6 @@
 ---
 title: Show an unreadable Updates section in the Board
-status: todo
+status: done
 priority: medium
 tags:
   - board
@@ -8,7 +8,7 @@ depends_on:
   - >-
     quarantine-an-unreadable-updates-section-instead-of-folding-it-into-the-description
 created: '2026-09-05T01:09:14.391Z'
-updated: '2026-09-05T01:09:14.391Z'
+updated: '2026-09-05T02:09:29.317Z'
 ---
 
 A task whose `## Task Updates` section does not parse is invisible as a problem
@@ -43,3 +43,33 @@ it — whether the text is unchanged or correctly repaired.
 
 Editing or repairing the section from the Board. The spike concluded the repair
 belongs in the file; this task is about making sure someone knows to open it.
+
+## Task Updates
+
+### 2026-09-05T01:46:46.740Z
+Shipped. The Updates pane now reports an unreadable section instead of showing
+an empty one: the count reads `unreadable`, the reason is announced as an alert,
+and the preserved text renders verbatim in a `pre`. Deliberately not through
+`Markdown` — rendering it would hide the very markup that broke the parse, which
+is the one thing a reader needs to see.
+
+Two behavioral details worth recording:
+
+The composer is hidden while the section is unreadable. Core refuses those
+mutations, so leaving the form up would only produce a toast.
+
+The read-only shortcut that hides an empty Updates section no longer applies
+when the section is unreadable. That shortcut is why Harbor — read-only
+everywhere — showed nothing at all, and Harbor is the host that most needs this
+visible, since it cannot repair anything.
+
+One deviation from the scoped plan: the alert text comes from
+`task.unreadableUpdates.reason` rather than from the `updates` entry in
+`state.warnings`. Both carry the same sentence, but the reason travels with the
+task itself, so it survives the optimistic-merge filtering in
+`mergeReadIntoState` and does not depend on a host populating `warnings`. The
+store warning stays where it is for hosts and the CLI.
+
+Verified the wire format end to end against a running `shipbench board`:
+`/api/tasks` returns the description as `body`, an empty `comments`, the
+populated `unreadableUpdates`, and the `updates` warning.
