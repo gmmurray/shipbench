@@ -32,7 +32,7 @@ ShipBench is one portable system with several clients. The system works on its o
 
 - **The project system** — a `.shipbench/` directory of Markdown tasks with YAML frontmatter, governed by a local config. Any tool that can read a file can read the board. [Specification](https://shipbench.dev/docs/convention-spec).
 - **ShipBench CLI** — create, query, move, and validate tasks from a terminal or a coding agent, and host the local board. [Reference](https://shipbench.dev/docs/cli-reference).
-- **ShipBench Harbor** — the optional hosted client for shaping ideas before a repository exists and viewing public GitHub-backed boards read-only. Tasks never leave their repository. [Docs](https://shipbench.dev/docs/harbor).
+- **ShipBench Harbor** — the optional hosted client for shaping ideas before a repository exists and viewing public GitHub-backed boards read-only. Tasks never leave their repository. Not yet deployed; its page returns once it is.
 
 ## Repository layout
 

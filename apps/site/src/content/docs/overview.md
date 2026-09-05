@@ -30,4 +30,3 @@ New to ShipBench? Read these in order:
 
 - [ShipBench Project Files](/docs/convention-spec/) — the specification for the `.shipbench/` directory: task format, dependencies, updates, ordering, and archives.
 - [ShipBench CLI Reference](/docs/cli-reference/) — every command, flag, and JSON payload, with agent-oriented query patterns.
-- [ShipBench Harbor](/docs/harbor/) — the hosted idea workbench and read-only multi-repository board observer.
