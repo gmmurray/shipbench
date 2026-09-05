@@ -8,10 +8,15 @@ updated: 2026-09-02
 
 The ShipBench CLI reads and writes the `.shipbench/` project rooted at your current directory, or at the directory selected with the global `-C` option.
 
-```bash no-copy
+```bash
 shipbench --help
 shipbench --version
 shipbench -C ../another-project task list --json
+```
+
+Every command documents its own flags:
+
+```bash no-copy
 shipbench <command> --help
 ```
 
@@ -201,10 +206,15 @@ date, and an unclosed code fence.
 
 See [Task Updates](/docs/convention-spec/#task-updates) for the time-anchored-fact heuristic.
 
-Edit only an entry's text with its zero-based index. ShipBench preserves the entry timestamp and updates the task timestamp:
+Edit only an entry's text with its zero-based index:
 
 ```bash no-copy
 shipbench task comment edit <slug> <index> (<text> | --body <text> | --body-file <path>)
+```
+
+ShipBench preserves the entry timestamp and updates the task timestamp:
+
+```bash
 shipbench task comment edit build-api 0 \
   "Kept cursor pagination after the second load test."
 ```
@@ -213,6 +223,11 @@ Delete an entry with the same index:
 
 ```bash no-copy
 shipbench task comment delete <slug> <index>
+```
+
+Deleting shifts every entry below it up one index:
+
+```bash
 shipbench task comment delete build-api 0
 ```
 
