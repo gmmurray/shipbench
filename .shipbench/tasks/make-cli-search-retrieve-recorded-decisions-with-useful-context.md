@@ -8,7 +8,7 @@ tags:
   - search
   - agents
 created: '2026-09-06T18:32:56.702Z'
-updated: '2026-09-06T18:32:56.702Z'
+updated: '2026-09-06T19:41:24.798Z'
 ---
 
 The CLI already searches titles, tags, and descriptions. It excludes parsed Task Updates, even though ShipBench encourages recording decisions and pivots there. The owner reports that agents naturally consult related tasks and later retrieve explanations to answer "why did we do this?" Improve that retrieval path.
@@ -30,3 +30,10 @@ A result should identify the task, current status, live/archive location, matchi
 - Keep lexical retrieval independent of an account or model service. Consider semantic retrieval only if measured misses justify a later investigation.
 
 Start with [search.ts](../../packages/core/src/search.ts), [CLI search](../../apps/cli/src/cli.ts), and [the board-search ticket](make-task-descriptions-discoverable-through-board-search.md).
+
+## Task Updates
+
+### 2026-09-06T19:41:24.798Z
+Board review made this task the place where the shared search contract is decided. make-task-descriptions-discoverable-through-board-search now declares depends_on this slug, so the semantics chosen here — description and Updates coverage, matching rules, ordering, and the result context a caller needs to identify a match — are what the board implements afterward rather than deciding in parallel.
+
+That raises the cost of leaving a semantic question open here. Where this task stages a capability for later, say so explicitly in the contract so the board work knows what it is implementing against and what is still undecided.

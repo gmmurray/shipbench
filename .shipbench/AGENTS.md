@@ -135,14 +135,21 @@ Ordering is a human judgment call, so reorder only when the user explicitly asks
 
 When you finish work on a task, move it to `review` — never to `done`. The `done` column is reserved for the human owner to mark after verifying the work.
 
+If your work sits on a branch that has not merged, that move waits for the merge. Commit, report the work as ready, and leave the status alone — see [Working From a Git Worktree](#working-from-a-git-worktree) for why.
+
 ## Working From a Git Worktree
 
-The board is branch-local: task status only means anything in the canonical checkout — the main working copy on `main`, where the live board runs. When working inside a feature worktree:
+The board is branch-local: task status only means anything in the canonical checkout — the main working copy on `main`, where the live board runs. Your branch and the canonical checkout also write the same file for your task, so *when* each one writes matters as much as which writes what.
 
 - **Never change a task's `status` from the worktree.** Run `task move` from the canonical checkout's directory so the live board stays truthful. If you cannot reach the canonical checkout, say so instead of moving the task on your branch.
+- **Do not move your own task while your branch is unmerged**, from either directory. A status write left in the canonical checkout makes `git merge` refuse to integrate your branch, because both sides changed `.shipbench/tasks/<slug>.md`. Your task was moved to `in-progress` and committed before your worktree existed; the next status write happens after your branch lands. Commit your work, report it as ready for review, and stop.
 - **You may write to your own task from the worktree**: append Task Updates, refine its description, and create follow-up tasks. Those changes ride your branch and merge in with the code.
 - **Read before you edit.** Your worktree's copy of a task may be stale. Load the current version from the canonical checkout (`task get` run there) before editing a description.
 - **Touch nothing else in `.shipbench/` from a worktree**: no other agents' tasks, no `config.json`, no `layout.json`.
+
+Dispatching a task into a worktree therefore has an order. Move it to `in-progress` in the canonical checkout, commit that move, and only then run `git worktree add -b task/<slug> <path> main`. The branch inherits the claim, so its copy of the task reads correctly and the later merge has nothing to trip over.
+
+If a merge collides anyway, never restore an old copy of the task file — `git stash pop`, `git checkout --ours`, and a copy set aside all reinstate content the branch has moved past. Take what the branch has, then re-apply the status with `task move`. The full recovery paths are in [Concurrent Agents with Worktrees](../apps/site/src/content/docs/concurrent-agents.md).
 
 ## File Naming
 

@@ -6,8 +6,10 @@ tags:
   - board
   - search
   - ux
+depends_on:
+  - make-cli-search-retrieve-recorded-decisions-with-useful-context
 created: '2026-09-05T21:33:38.341Z'
-updated: '2026-09-06T18:33:32.536Z'
+updated: '2026-09-06T19:41:24.702Z'
 ---
 
 A person returning to a project may remember a phrase from its reasoning rather than a task title. The September 5 evaluation created a task with "concise" only in its description. The CLI's task search found it with a body snippet; the browser board's "Search tasks" field reported no matching live tasks.
@@ -35,3 +37,12 @@ Choose how a user understands why a task matched when the term appears only in i
 - Verify the original example in the actual browser and add focused coverage for the chosen search semantics.
 
 Read [Board design](../../docs/board/design.md) before implementation. The current filter is getVisibleTasks in [boardStore.ts](../../packages/board/src/store/boardStore.ts); compare [CLI search](../../packages/core/src/search.ts).
+
+## Task Updates
+
+### 2026-09-06T19:41:24.702Z
+Board review made the search-semantics coordination an explicit dependency: this task now depends_on make-cli-search-retrieve-recorded-decisions-with-useful-context. Both tickets asked to decide the shared search contract with only prose cross-references between them, so whichever ran first would have set the contract implicitly and the other would have inherited or contradicted it.
+
+The CLI ticket is the one that defines the contract — description and Updates coverage, matching semantics, ordering, and result context — so it goes first and this task implements the settled semantics in the board. Read the "need not wait for every CLI enhancement" line in the description under that decision: it still governs scope, not sequence. This task stays the bounded board-side correction and does not absorb CLI scope; it now waits for the contract rather than re-deciding it.
+
+The edge was added by hand-editing frontmatter because task edit cannot yet set depends_on. See complete-validated-task-metadata-editing-in-the-cli.

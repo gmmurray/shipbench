@@ -1,6 +1,6 @@
 ---
 title: 'Spike: establish ShipBench''s distinctive value and landing-page promise'
-status: backlog
+status: todo
 priority: high
 tags:
   - spike
@@ -8,7 +8,7 @@ tags:
   - positioning
   - site
 created: '2026-09-05T21:33:20.357Z'
-updated: '2026-09-06T18:33:35.159Z'
+updated: '2026-09-06T19:40:33.150Z'
 ---
 
 The September 5 product evaluation found a credible local system, but the feature inventory alone does not explain why someone should choose ShipBench. The owner feels the landing page is focused yet generic and undersells the project. Investigate the value deeply enough to make a stronger, more intriguing promise that the actual product can demonstrate.

@@ -8,7 +8,7 @@ tags:
   - agents
   - dx
 created: '2026-09-06T18:32:57.540Z'
-updated: '2026-09-06T18:32:57.540Z'
+updated: '2026-09-06T19:41:24.895Z'
 ---
 
 The CLI can set metadata at creation, but task edit currently replaces only the description. Agents adjusting priority, tags, assignee, or dependencies must use another surface or edit frontmatter themselves. Round out the CLI so normal task maintenance keeps using core's validation and preservation rules.
@@ -29,3 +29,10 @@ Define the behavior of combined edits and failed validation before exposing flag
 - CLI help, reference, generated guidance where appropriate, and focused mutation tests reflect the final interface.
 
 This is a bounded CLI-completeness task, not an agent assignment or orchestration system.
+
+## Task Updates
+
+### 2026-09-06T19:41:24.895Z
+Board review folded a filter-flag defect into this task's scope. `task list --status backlog,todo` returns zero tasks and exits successfully: --status accepts a single value, while --tag accepts comma-separated values or repeated flags, and the mismatch fails silently instead of erroring. An agent narrowing a query that way sees an empty board and no indication that the filter was the cause.
+
+Include it here because this task already has to settle replacement versus incremental semantics for array-valued fields; multi-value flag parsing is the same decision on the read side, and splitting it into its own ticket would decide it twice. Choose one rule for how a multi-valued flag is expressed across list filters and edit operations, and make a value that cannot match produce an actionable error rather than an empty result. Verify --status alongside --tag, --assignee, and --priority.

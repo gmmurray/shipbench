@@ -1,17 +1,16 @@
 {
   "todo": [
-    "make-the-documented-worktree-handoff-preserve-task-state-through-merge",
+    "spike-establish-shipbench-s-distinctive-value-and-landing-page-promise",
+    "make-cli-search-retrieve-recorded-decisions-with-useful-context",
+    "complete-validated-task-metadata-editing-in-the-cli",
+    "make-the-landing-page-demonstrate-shipbench-s-distinctive-value",
     "make-task-descriptions-discoverable-through-board-search",
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
     "make-continuity-claims-precise-without-weakening-shipbench-s-promise",
-    "make-the-landing-page-demonstrate-shipbench-s-distinctive-value",
-    "make-cli-search-retrieve-recorded-decisions-with-useful-context",
-    "complete-validated-task-metadata-editing-in-the-cli",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report"
   ],
   "backlog": [
-    "spike-establish-shipbench-s-distinctive-value-and-landing-page-promise",
     "spike-evaluate-whether-shipbench-helps-people-resume-real-projects",
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
     "spike-explore-a-local-workbench-across-shipbench-repositories",
