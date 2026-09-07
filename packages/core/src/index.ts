@@ -57,7 +57,11 @@ export {
 } from './layout.js';
 
 // Search
-export type { TaskSearchField, TaskSearchMatch } from './search.js';
+export type {
+  TaskSearchField,
+  TaskSearchMatch,
+  TaskUpdateMatch,
+} from './search.js';
 export { searchTasks } from './search.js';
 
 // Slug

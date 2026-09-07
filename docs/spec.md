@@ -381,6 +381,7 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 - `shipbench task edit <slug> (--body <text> | --body-file <path>)` — Replaces the task's description whole, leaving `created` and the Updates section untouched. An empty body clears the description.
 - `shipbench task move <slug> --to=<status>` — Moves a task to a new status (appends to the destination column's layout unless it is `done_column`).
 - `shipbench task list [--status] [--assignee] [--priority] [--archived]` — Lists tasks with optional filters; `--archived` lists the archive instead.
+- `shipbench task search <query> [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both.
 - `shipbench task delete <slug>` — Deletes a task file and prunes the slug from layout.
 - `shipbench task archive <slug> [--force]` — Moves a task to `tasks/archive/` byte-identical. Blocked (without `--force`) when live tasks depend on a non-done task.
 - `shipbench task archive --done [--keep=N]` — Bulk-archives done tasks, keeping the N most-recently-updated. `--keep` defaults to `done_display.max`.
@@ -402,6 +403,38 @@ does not invalidate the frame; the board repaints and includes the problem in it
 warning count.
 
 Auto-generated `--help` and `-v, --version` via commander. Distribution: the CLI bundles `@shipbench/core` and `gray-matter` (CJS) into a single ESM file via tsup, and is installable globally via `pnpm link --global` or npm.
+
+**Search.** `searchTasks` in `@shipbench/core` is the shared lexical retrieval
+contract. The CLI is its first consumer; the Board implements the same semantics
+against loaded live tasks (see the board-search work). It is lexical only — no
+account, no model service — and stays that way unless measured misses justify a
+separate investigation.
+
+- **Corpus.** A query splits on whitespace; every term must occur, as a
+  case-insensitive substring, somewhere in a task's title, a tag, the Markdown
+  description, or a **Task Updates entry** — including a quarantined unreadable
+  Updates section. Terms may land in different parts of the corpus and in any
+  order. Recording a decision in an Update is therefore enough to retrieve it
+  later.
+- **Result context.** Each match reports `slug`, `title`, current `status`,
+  `location` (`live` / `archive`, supplied by the caller), and `matched_fields`
+  (`title` / `tags` / `body` / `updates`). A body hit adds a bounded `snippet`.
+  An Updates hit adds `update_matches`: a readable entry carries its zero-based
+  `index`, ISO `timestamp`, and an excerpt so the source is retrievable exactly;
+  an unreadable section carries `{ unreadable: true, snippet }`.
+- **Reading a result as history.** Search never asserts that a matched decision
+  is still in force. It returns `status` and the Update `timestamp` and leaves
+  the judgment to the reader; output carries no "current" or "decided" labels.
+- **Ordering — provisional.** This increment preserves input order (the CLI
+  passes live tasks in board order, then archived) and `--limit` truncates
+  silently. Explicit relevance ranking and an omitted-match signal are a named
+  follow-up.
+- **Staged, not in this increment.** Relevance ranking; metadata and availability
+  filters on `task search` (`--status` / `--tag` / `--assignee` / `--priority` /
+  `--available`); whole-word matching and exact-phrase `"quoted"` queries;
+  semantic retrieval. Each has a dedicated task. The Board's description-search
+  correction implements the corpus and result-context contract above and need
+  not wait for these.
 
 **Harbor opt-in.** Without any `--harbor` flag, the CLI has zero knowledge of Harbor. The `--harbor` family of flags is the only surface where the CLI talks to a hosted service.
 

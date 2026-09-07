@@ -360,9 +360,9 @@ Without `--include-body`, JSON remains compact:
 shipbench task search <query> [options]
 ```
 
-Search splits the query on whitespace and treats each term as a case-insensitive substring. Every term must appear somewhere in the task's title, tags, or Markdown description; terms may appear in different fields and in any order. Parsed Task Updates are separate from the description and are not part of the search text.
+Search splits the query on whitespace and treats each term as a case-insensitive substring. Every term must appear somewhere in the task's title, tags, Markdown description, or a **Task Updates entry**; terms may appear in different fields and in any order. A quarantined unreadable Updates section is searched too, and reported as an `updates` match. So a decision recorded only in an Update is still retrievable here.
 
-Quotes only keep a multi-word query together in the shell; ShipBench does not support exact-phrase search.
+Quotes only keep a multi-word query together in the shell; ShipBench does not support exact-phrase search yet.
 
 | Flag | Purpose |
 | --- | --- |
@@ -370,7 +370,7 @@ Quotes only keep a multi-word query together in the shell; ShipBench does not su
 | `--all` | Search live and archived tasks. |
 | `--limit <n>` | Return at most `n` matches. `0` returns none. |
 | `--json` | Emit machine-readable JSON. |
-| `--include-body` | With `--json`, add each complete matching description. |
+| `--include-body` | With `--json`, add each complete matching description and its Task Updates. |
 
 `--archived` and `--all` are mutually exclusive.
 
@@ -380,7 +380,7 @@ shipbench task search "migration" --all --json
 shipbench task search "error handling" --json --include-body --limit 5
 ```
 
-JSON describes where each match occurred and includes a body snippet when applicable:
+JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, and — when an Update matched — the entry's index, timestamp, and excerpt:
 
 ```json
 {
@@ -388,13 +388,28 @@ JSON describes where each match occurred and includes a body snippet when applic
     {
       "slug": "setup-oauth",
       "title": "Setup OAuth",
-      "matched_fields": ["title", "body"],
-      "snippet": "Implement the OAuth callback and token exchange."
+      "status": "in-progress",
+      "location": "live",
+      "matched_fields": ["title", "body", "updates"],
+      "snippet": "Implement the OAuth callback and token exchange.",
+      "update_matches": [
+        {
+          "index": 2,
+          "timestamp": "2026-08-14T17:02:00.000Z",
+          "snippet": "Switched to device-code flow — the callback URL was the blocker."
+        }
+      ]
     }
   ],
   "warnings": []
 }
 ```
+
+An unreadable Updates section reports `{ "unreadable": true, "snippet": "…" }` in `update_matches` instead of an index and timestamp.
+
+A match is a **record, not a verdict.** Search reports the task's `status` and the Update `timestamp` and never labels a matched decision "current" — check the task itself before treating recorded reasoning as still in force.
+
+Results come back in board order (live tasks first, then archived), and `--limit` truncates that list silently. Relevance ranking, an omitted-match count, metadata filters (`--status`, `--tag`, `--available`, …), whole-word matching, and exact-phrase queries are planned as follow-ups.
 
 ### `shipbench task graph`
 

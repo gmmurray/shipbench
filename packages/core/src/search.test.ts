@@ -1,23 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { searchTasks } from './search.js';
-import type { Task } from './types.js';
+import type { Task, TaskComment, UnreadableUpdates } from './types.js';
 
 function task(
   slug: string,
   title: string,
-  options: { tags?: string[]; body?: string } = {},
+  options: {
+    tags?: string[];
+    body?: string;
+    status?: string;
+    comments?: TaskComment[];
+    unreadableUpdates?: UnreadableUpdates;
+  } = {},
 ): Task {
   return {
     slug,
     frontmatter: {
       title,
-      status: 'todo',
+      status: options.status ?? 'todo',
       tags: options.tags,
       created: '2026-07-24T00:00:00.000Z',
       updated: '2026-07-24T00:00:00.000Z',
     },
     body: options.body ?? '',
-    comments: [],
+    comments: options.comments ?? [],
+    ...(options.unreadableUpdates
+      ? { unreadableUpdates: options.unreadableUpdates }
+      : {}),
   };
 }
 
@@ -28,6 +37,7 @@ describe('searchTasks', () => {
       task('tag-match', 'Configure login', { tags: ['GitHub-OAuth'] }),
       task('body-match', 'Document login', {
         body: 'Explain the OAUTH authorization flow.',
+        status: 'in-progress',
       }),
     ];
 
@@ -35,16 +45,19 @@ describe('searchTasks', () => {
       {
         slug: 'title-match',
         title: 'Configure OAuth callback',
+        status: 'todo',
         matched_fields: ['title'],
       },
       {
         slug: 'tag-match',
         title: 'Configure login',
+        status: 'todo',
         matched_fields: ['tags'],
       },
       {
         slug: 'body-match',
         title: 'Document login',
+        status: 'in-progress',
         matched_fields: ['body'],
         snippet: 'Explain the OAUTH authorization flow.',
       },
@@ -57,12 +70,20 @@ describe('searchTasks', () => {
         task('everywhere', 'Search tasks', {
           tags: ['search'],
           body: 'Add a search command.',
+          comments: [
+            { timestamp: '2026-07-24T12:00:00.000Z', text: 'Search decision.' },
+          ],
         }),
       ],
       'search',
     );
 
-    expect(matches[0]?.matched_fields).toEqual(['title', 'tags', 'body']);
+    expect(matches[0]?.matched_fields).toEqual([
+      'title',
+      'tags',
+      'body',
+      'updates',
+    ]);
   });
 
   it('ANDs whitespace-delimited terms across fields in any order', () => {
@@ -78,6 +99,7 @@ describe('searchTasks', () => {
       {
         slug: 'split-match',
         title: 'Report command errors',
+        status: 'todo',
         matched_fields: ['title', 'tags', 'body'],
         snippet: 'Improve the output handling.',
       },
@@ -131,6 +153,81 @@ describe('searchTasks', () => {
     expect(match?.snippet).toEqual(
       searchTasks(tasks, 'alpha omega')[0]?.snippet,
     );
+  });
+
+  it('finds rationale that appears only in a Task Updates entry', () => {
+    const tasks = [
+      task('recorded-decision', 'Pick a storage adapter', {
+        body: 'Choose between filesystem and API adapters.',
+        status: 'done',
+        comments: [
+          {
+            timestamp: '2026-08-01T09:00:00.000Z',
+            text: 'Went with the filesystem adapter first.',
+          },
+          {
+            timestamp: '2026-08-02T09:00:00.000Z',
+            text: 'Reversed course: the GitHub adapter ships first because Harbor needs it.',
+          },
+        ],
+      }),
+    ];
+
+    const [match] = searchTasks(tasks, 'harbor');
+
+    expect(match?.slug).toBe('recorded-decision');
+    expect(match?.status).toBe('done');
+    expect(match?.matched_fields).toEqual(['updates']);
+    expect(match?.update_matches).toHaveLength(1);
+    expect(match?.update_matches?.[0]).toMatchObject({
+      index: 1,
+      timestamp: '2026-08-02T09:00:00.000Z',
+    });
+    expect(match?.update_matches?.[0]?.snippet).toContain('Harbor needs it.');
+  });
+
+  it('matches a quarantined unreadable Updates section as an updates source', () => {
+    const tasks = [
+      task('broken-updates', 'Task with a broken log', {
+        body: 'The description is intact.',
+        unreadableUpdates: {
+          text: '## Task Updates\n\nWe chose the flat layout to keep diffs readable.',
+          reason: 'the section contains no entries.',
+        },
+      }),
+    ];
+
+    const [match] = searchTasks(tasks, 'diffs readable');
+
+    expect(match?.matched_fields).toEqual(['updates']);
+    expect(match?.update_matches).toHaveLength(1);
+    expect(match?.update_matches?.[0]).toMatchObject({ unreadable: true });
+    expect(match?.update_matches?.[0]?.snippet).toContain(
+      'flat layout to keep diffs readable.',
+    );
+  });
+
+  it('reports both a body match and an update match on the same task', () => {
+    const tasks = [
+      task('both', 'Rework the config resolver', {
+        body: 'Deep-merge partial configs over defaults.',
+        comments: [
+          {
+            timestamp: '2026-08-10T09:00:00.000Z',
+            text: 'Kept the deep-merge after the partial-config regression.',
+          },
+        ],
+      }),
+    ];
+
+    const [match] = searchTasks(tasks, 'merge');
+
+    expect(match?.matched_fields).toEqual(['body', 'updates']);
+    expect(match?.snippet).toContain('Deep-merge');
+    expect(match?.update_matches?.[0]).toMatchObject({
+      index: 0,
+      timestamp: '2026-08-10T09:00:00.000Z',
+    });
   });
 
   it('returns no matches for a miss or a blank query', () => {

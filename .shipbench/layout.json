@@ -1,20 +1,23 @@
 {
   "todo": [
-    "make-cli-search-retrieve-recorded-decisions-with-useful-context",
     "complete-validated-task-metadata-editing-in-the-cli",
     "make-the-landing-page-demonstrate-shipbench-s-distinctive-value",
     "make-task-descriptions-discoverable-through-board-search",
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
     "make-continuity-claims-precise-without-weakening-shipbench-s-promise",
     "add-focused-dependency-queries-for-a-single-task",
-    "expose-a-consistent-cli-project-validation-report"
+    "expose-a-consistent-cli-project-validation-report",
+    "add-relevance-ranking-and-omitted-match-signalling-to-task-search",
+    "add-metadata-and-availability-filters-to-task-search",
+    "add-whole-word-and-exact-phrase-matching-to-task-search"
   ],
   "backlog": [
     "spike-evaluate-whether-shipbench-helps-people-resume-real-projects",
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
-    "spike-explore-outcomes-and-deliverables-above-individual-tasks"
+    "spike-explore-outcomes-and-deliverables-above-individual-tasks",
+    "strengthen-shipbench-messaging-across-docs-and-public-pages-then-assess-next-steps"
   ],
   "in-progress": [],
   "review": []

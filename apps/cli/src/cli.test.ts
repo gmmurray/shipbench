@@ -1976,20 +1976,56 @@ describe('shipbench task search', () => {
       {
         slug: 'needle-in-title',
         title: 'Needle in title',
+        status: 'todo',
+        location: 'live',
         matched_fields: ['title'],
       },
       {
         slug: 'tagged-match',
         title: 'Tagged match',
+        status: 'todo',
+        location: 'live',
         matched_fields: ['tags'],
       },
       {
         slug: 'body-match',
         title: 'Body match',
+        status: 'todo',
+        location: 'live',
         matched_fields: ['body'],
         snippet: 'First paragraph. The NEEDLE is in this Markdown body.',
       },
     ]);
+  });
+
+  it('finds rationale that lives only in a Task Update, with its index and timestamp', async () => {
+    const h = await searchHarness();
+    await h.run(
+      'task',
+      'comment',
+      'needle-in-title',
+      'Chose the polling approach because webhooks need a public callback.',
+    );
+    h.stdout.length = 0;
+
+    await h.run('task', 'search', 'polling webhooks', '--json');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(payload.matches).toHaveLength(1);
+    const [match] = payload.matches;
+    expect(match.slug).toBe('needle-in-title');
+    expect(match.matched_fields).toEqual(['updates']);
+    expect(match.update_matches).toHaveLength(1);
+    expect(match.update_matches[0].index).toBe(0);
+    expect(typeof match.update_matches[0].timestamp).toBe('string');
+    expect(match.update_matches[0].snippet).toContain('polling approach');
+
+    h.stdout.length = 0;
+    await h.run('task', 'search', 'polling webhooks');
+    expect(h.stdout.join('\n')).toMatch(
+      /Needle in title \(needle-in-title\) \[live · todo\] \[updates\]/,
+    );
+    expect(h.stdout.join('\n')).toMatch(/↳ update 0 \(.+\): .*polling approach/);
   });
 
   it('supports --include-body, --limit, and JSON empty results', async () => {
@@ -2001,6 +2037,7 @@ describe('shipbench task search', () => {
       'body',
       'First paragraph.\n\nThe NEEDLE is in this Markdown body.',
     );
+    expect(payload.matches[2]).toHaveProperty('comments', []);
 
     h.stdout.length = 0;
     await h.run('task', 'search', 'NEEDLE', '--json', '--limit=2');
@@ -2082,7 +2119,7 @@ describe('shipbench task search', () => {
       exitCode: 0,
     });
     expect(taskHelp.stdout.join('\n')).toMatch(
-      /search \[options\] <query>\s+Search task titles, tags, and Markdown bodies/,
+      /search \[options\] <query>\s+Search task titles, tags, Markdown[\s\S]+?descriptions, and[\s\S]+?Task Updates/,
     );
 
     const searchHelp = harness();

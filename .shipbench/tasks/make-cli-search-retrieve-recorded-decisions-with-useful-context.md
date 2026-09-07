@@ -1,6 +1,6 @@
 ---
 title: Make CLI search retrieve recorded decisions with useful context
-status: todo
+status: done
 priority: high
 tags:
   - cli
@@ -8,7 +8,7 @@ tags:
   - search
   - agents
 created: '2026-09-06T18:32:56.702Z'
-updated: '2026-09-06T19:41:24.798Z'
+updated: '2026-09-07T19:43:42.830Z'
 ---
 
 The CLI already searches titles, tags, and descriptions. It excludes parsed Task Updates, even though ShipBench encourages recording decisions and pivots there. The owner reports that agents naturally consult related tasks and later retrieve explanations to answer "why did we do this?" Improve that retrieval path.
@@ -37,3 +37,18 @@ Start with [search.ts](../../packages/core/src/search.ts), [CLI search](../../ap
 Board review made this task the place where the shared search contract is decided. make-task-descriptions-discoverable-through-board-search now declares depends_on this slug, so the semantics chosen here — description and Updates coverage, matching rules, ordering, and the result context a caller needs to identify a match — are what the board implements afterward rather than deciding in parallel.
 
 That raises the cost of leaving a semantic question open here. Where this task stages a capability for later, say so explicitly in the contract so the board work knows what it is implementing against and what is still undecided.
+
+### 2026-09-07T19:41:58.188Z
+Shipped the corpus + result-context half of the contract; deferred the rest by explicit decision.
+
+In this increment: `searchTasks` now searches Task Updates entries and a quarantined unreadable section; each match carries `status`, `location` (CLI-supplied), `matched_fields` (may include `updates`), and `update_matches` (readable entry -> index + timestamp + excerpt; unreadable -> `{ unreadable: true, snippet }`). CLI JSON and text output updated; `--include-body` also attaches `comments`. `@shipbench/core` + `shipbench` minor.
+
+Deferred to dedicated follow-up tasks (owner chose the minimal increment):
+- add-relevance-ranking-and-omitted-match-signalling-to-task-search
+- add-metadata-and-availability-filters-to-task-search
+- add-whole-word-and-exact-phrase-matching-to-task-search
+So the ticket's acceptance points on metadata/availability narrowing, noise control, and result ordering are recorded-as-staged, not met here. Ordering stays board-order-then-archived; `--limit` still truncates silently.
+
+Contract now lives in docs/spec.md ("Search" under the CLI section) + cli-reference.md. Left a coordination Update on make-task-descriptions-discoverable-through-board-search pointing at it.
+
+Evaluation (docs/audits/cli-search-rationale-retrieval.md): a capable agent answered 3 rationale questions under filesystem-only / old-CLI / new-CLI. New CLI surfaces all three rationales inline in one `task search` with entry index+timestamp; old CLI's search is structurally blind to Updates. Only measured gap: `task search` still indexes only task files, so an audit doc holding Q3's fullest argument stays out of reach. Conclusion: ship; consider widening the lexical corpus to docs/ and .changeset/ later; no semantic-retrieval investigation warranted.

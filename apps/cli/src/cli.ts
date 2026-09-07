@@ -995,7 +995,9 @@ export function createCli(opts: CliOptions): Command {
 
   task
     .command('search <query>')
-    .description('Search task titles, tags, and Markdown bodies')
+    .description(
+      'Search task titles, tags, Markdown descriptions, and Task Updates',
+    )
     .option('--archived', 'Search archived tasks instead of live tasks')
     .addOption(
       new Option('--all', 'Search both live and archived tasks').conflicts(
@@ -1008,7 +1010,10 @@ export function createCli(opts: CliOptions): Command {
       parseNonNegativeInteger,
     )
     .option('--json', 'Emit machine-readable JSON instead of text')
-    .option('--include-body', 'Include Markdown bodies in JSON output')
+    .option(
+      '--include-body',
+      'Include full descriptions and Task Updates in JSON output',
+    )
     .action(async (query: string, raw) => {
       if (!query.trim()) {
         throw new InvalidArgumentError('Search query must not be blank.');
@@ -1025,6 +1030,11 @@ export function createCli(opts: CliOptions): Command {
         ...(liveResult?.tasks ?? []),
         ...(archivedResult?.tasks ?? []),
       ];
+      const archivedSlugs = new Set(
+        (archivedResult?.tasks ?? []).map(candidate => candidate.slug),
+      );
+      const locationOf = (slug: string): 'live' | 'archive' =>
+        archivedSlugs.has(slug) ? 'archive' : 'live';
       const allMatches = searchTasks(candidates, query);
       const matches = allMatches.slice(0, raw.limit);
       const warnings = [
@@ -1036,12 +1046,26 @@ export function createCli(opts: CliOptions): Command {
         const tasksBySlug = new Map(
           candidates.map(candidate => [candidate.slug, candidate]),
         );
-        const payloadMatches = matches.map(match => ({
-          ...match,
-          ...(raw.includeBody
-            ? { body: tasksBySlug.get(match.slug)?.body ?? '' }
-            : {}),
-        }));
+        const payloadMatches = matches.map(match => {
+          const source = tasksBySlug.get(match.slug);
+          return {
+            slug: match.slug,
+            title: match.title,
+            status: match.status,
+            location: locationOf(match.slug),
+            matched_fields: match.matched_fields,
+            ...(match.snippet !== undefined ? { snippet: match.snippet } : {}),
+            ...(match.update_matches
+              ? { update_matches: match.update_matches }
+              : {}),
+            ...(raw.includeBody
+              ? {
+                  body: source?.body ?? '',
+                  comments: source?.comments ?? [],
+                }
+              : {}),
+          };
+        });
         data(JSON.stringify({ matches: payloadMatches, warnings }, null, 2));
         return;
       }
@@ -1054,9 +1078,16 @@ export function createCli(opts: CliOptions): Command {
         }
         for (const match of matches) {
           data(
-            `${match.title} (${match.slug}) [${match.matched_fields.join(', ')}]`,
+            `${match.title} (${match.slug}) [${locationOf(match.slug)} · ${match.status}] [${match.matched_fields.join(', ')}]`,
           );
           if (match.snippet) data(`  ${match.snippet}`);
+          for (const updateMatch of match.update_matches ?? []) {
+            data(
+              'unreadable' in updateMatch
+                ? `  ↳ update (unreadable): ${updateMatch.snippet}`
+                : `  ↳ update ${updateMatch.index} (${updateMatch.timestamp}): ${updateMatch.snippet}`,
+            );
+          }
         }
       }
       if (warnings.length > 0) {
