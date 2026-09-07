@@ -230,6 +230,67 @@ describe('searchTasks', () => {
     });
   });
 
+  it('ranks a stronger field above a weaker one regardless of input order', () => {
+    const tasks = [
+      task('body-only', 'Unrelated heading', { body: 'Mentions oauth once.' }),
+      task('tagged', 'Unrelated heading', { tags: ['oauth'] }),
+      task('titled', 'Configure oauth'),
+    ];
+
+    expect(searchTasks(tasks, 'oauth').map(match => match.slug)).toEqual([
+      'titled',
+      'tagged',
+      'body-only',
+    ]);
+  });
+
+  it('rewards covering more of the query in the same field', () => {
+    const tasks = [
+      task('one-term', 'Handle oauth', { body: 'token exchange' }),
+      task('both-terms', 'Handle oauth token', { body: 'unrelated' }),
+    ];
+
+    expect(
+      searchTasks(tasks, 'oauth token').map(match => match.slug),
+    ).toEqual(['both-terms', 'one-term']);
+  });
+
+  it('breaks a score tie toward the more recently updated task', () => {
+    const older: Task = {
+      ...task('older', 'Configure oauth'),
+      frontmatter: {
+        ...task('older', 'Configure oauth').frontmatter,
+        updated: '2026-07-01T00:00:00.000Z',
+      },
+    };
+    const newer: Task = {
+      ...task('newer', 'Configure oauth'),
+      frontmatter: {
+        ...task('newer', 'Configure oauth').frontmatter,
+        updated: '2026-08-01T00:00:00.000Z',
+      },
+    };
+
+    expect(
+      searchTasks([older, newer], 'oauth').map(match => match.slug),
+    ).toEqual(['newer', 'older']);
+    expect(
+      searchTasks([newer, older], 'oauth').map(match => match.slug),
+    ).toEqual(['newer', 'older']);
+  });
+
+  it('falls back to input order when score and recency tie', () => {
+    const tasks = [
+      task('first', 'Configure oauth'),
+      task('second', 'Configure oauth'),
+    ];
+
+    expect(searchTasks(tasks, 'oauth').map(match => match.slug)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
   it('returns no matches for a miss or a blank query', () => {
     const tasks = [task('unrelated', 'Unrelated task', { tags: ['docs'] })];
 

@@ -13,4 +13,4 @@
 
 The CLI adds `location` (`"live"` / `"archive"`) to every JSON match and prints `[live · in-progress]` and `↳ update N (timestamp): …` lines in text mode. `--include-body` now also attaches `comments` so an Update hit resolves in one call. Search output never labels a match "current" or "decided".
 
-Deliberately staged to follow-up tasks, not in this change: relevance ranking and an omitted-match signal for `--limit`; metadata and availability filters on `task search`; whole-word and exact-phrase matching; semantic retrieval. Ordering stays board-order-then-archived and `--limit` still truncates silently.
+Deliberately staged to follow-up tasks, not in this change: metadata and availability filters on `task search`; whole-word and exact-phrase matching; semantic retrieval.

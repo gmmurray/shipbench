@@ -2043,11 +2043,21 @@ describe('shipbench task search', () => {
     await h.run('task', 'search', 'NEEDLE', '--json', '--limit=2');
     payload = JSON.parse(h.stdout.join('\n'));
     expect(payload.matches).toHaveLength(2);
+    expect(payload.total_matches).toBe(3);
 
     h.stdout.length = 0;
     await h.run('task', 'search', 'absent', '--json');
     payload = JSON.parse(h.stdout.join('\n'));
     expect(payload.matches).toEqual([]);
+    expect(payload.total_matches).toBe(0);
+  });
+
+  it('signals omitted matches in text output when --limit truncates', async () => {
+    const h = await searchHarness();
+
+    await h.run('task', 'search', 'NEEDLE', '--limit=2');
+
+    expect(h.stdout.at(-1)).toBe('… 1 of 3 matches not shown (raise --limit)');
   });
 
   it('describes empty text results', async () => {
@@ -2068,7 +2078,7 @@ describe('shipbench task search', () => {
 
     await h.run('task', 'search', 'needle', '--archived', '--limit=0');
 
-    expect(h.stdout).toEqual([]);
+    expect(h.stdout).toEqual(['… 1 of 1 match not shown (raise --limit)']);
   });
 
   it('searches live tasks by default, archived tasks with --archived, and both with --all', async () => {
@@ -2097,8 +2107,10 @@ describe('shipbench task search', () => {
     await h.run('task', 'search', 'scope marker', '--all', '--json');
     payload = JSON.parse(h.stdout.join('\n'));
     expect(
-      payload.matches.map((match: { slug: string }) => match.slug),
-    ).toEqual(['live-scope-marker', 'archived-scope-marker']);
+      payload.matches
+        .map((match: { slug: string }) => match.slug)
+        .sort(),
+    ).toEqual(['archived-scope-marker', 'live-scope-marker']);
   });
 
   it('rejects invalid option combinations and negative limits', async () => {

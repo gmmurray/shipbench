@@ -380,7 +380,7 @@ shipbench task search "migration" --all --json
 shipbench task search "error handling" --json --include-body --limit 5
 ```
 
-JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, and — when an Update matched — the entry's index, timestamp, and excerpt:
+JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, and — when an Update matched — the entry's index, timestamp, and excerpt. `total_matches` is the count before `--limit` is applied:
 
 ```json
 {
@@ -401,6 +401,7 @@ JSON reports where each match occurred, the task's current `status` and `locatio
       ]
     }
   ],
+  "total_matches": 1,
   "warnings": []
 }
 ```
@@ -409,7 +410,9 @@ An unreadable Updates section reports `{ "unreadable": true, "snippet": "…" }`
 
 A match is a **record, not a verdict.** Search reports the task's `status` and the Update `timestamp` and never labels a matched decision "current" — check the task itself before treating recorded reasoning as still in force.
 
-Results come back in board order (live tasks first, then archived), and `--limit` truncates that list silently. Relevance ranking, an omitted-match count, metadata filters (`--status`, `--tag`, `--available`, …), whole-word matching, and exact-phrase queries are planned as follow-ups.
+Results are ranked by relevance. A match scores on which fields the query terms landed in — title outweighs tags, tags outweigh the description, the description outweighs Task Updates — scaled by how much of the query each field covers; a more recent `updated` breaks a tie. `--limit` then keeps the top `n`. When it drops any match, JSON still reports the full count in `total_matches` and text output ends with a `… N of M matches not shown (raise --limit)` line.
+
+Metadata filters (`--status`, `--tag`, `--available`, …), whole-word matching, and exact-phrase queries are planned as follow-ups.
 
 ### `shipbench task graph`
 

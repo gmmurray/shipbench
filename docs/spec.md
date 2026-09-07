@@ -425,12 +425,20 @@ separate investigation.
 - **Reading a result as history.** Search never asserts that a matched decision
   is still in force. It returns `status` and the Update `timestamp` and leaves
   the judgment to the reader; output carries no "current" or "decided" labels.
-- **Ordering — provisional.** This increment preserves input order (the CLI
-  passes live tasks in board order, then archived) and `--limit` truncates
-  silently. Explicit relevance ranking and an omitted-match signal are a named
-  follow-up.
-- **Staged, not in this increment.** Relevance ranking; metadata and availability
-  filters on `task search` (`--status` / `--tag` / `--assignee` / `--priority` /
+- **Ordering — relevance.** `searchTasks` ranks its results; it no longer
+  preserves input order. Each matched field contributes a weight (title, then
+  tags, then body, then Updates) scaled by how many query terms that field
+  covers, so a task carrying more of the query in a stronger field ranks higher.
+  Ties break toward the more recently `updated` task, then fall back to the
+  caller's input order. Ranking lives in `searchTasks` itself, so the Board
+  inherits the same order when its description-search work adopts the shared
+  function.
+- **Omitted matches.** `--limit` still truncates, but no longer silently. JSON
+  carries `total_matches` (the count before the limit); text output ends with a
+  `… N of M matches not shown (raise --limit)` line whenever the limit drops any
+  match, including `--limit 0`.
+- **Staged, not in this increment.** Metadata and availability filters on
+  `task search` (`--status` / `--tag` / `--assignee` / `--priority` /
   `--available`); whole-word matching and exact-phrase `"quoted"` queries;
   semantic retrieval. Each has a dedicated task. The Board's description-search
   correction implements the corpus and result-context contract above and need

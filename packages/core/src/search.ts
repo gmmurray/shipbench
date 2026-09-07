@@ -30,6 +30,24 @@ export interface TaskSearchMatch {
 const SNIPPET_CONTEXT_BEFORE = 40;
 const SNIPPET_CONTEXT_AFTER = 80;
 
+/**
+ * Relevance weight per corpus field. A term in the title says far more about
+ * what a task is than the same term buried in an Update, so ranking leans hard
+ * on where a term landed. Each field contributes `weight × (matched terms /
+ * total terms)`, so covering more of the query in a strong field beats a
+ * scattered match. Kept here (not in the caller) so every consumer of
+ * `searchTasks` — the CLI and the Board — orders results identically.
+ *
+ * `title` outweighs the sum of the rest: a task whose title carries the query
+ * always ranks above one that merely mentions it in several weaker fields.
+ */
+const FIELD_WEIGHT: Record<TaskSearchField, number> = {
+  title: 12,
+  tags: 6,
+  body: 3,
+  updates: 2,
+};
+
 function normalizeText(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -74,8 +92,12 @@ function snippetAround(
  * case-insensitive term occurs as a substring of the search corpus: the title,
  * a tag, the Markdown description, or a Task Updates entry (including a
  * quarantined unreadable section). Terms may occur in different parts of the
- * corpus. Input order is preserved so callers can sort before search and limit
- * the returned matches afterward.
+ * corpus.
+ *
+ * Results come back ranked by relevance: a weighted blend of which fields
+ * matched (`FIELD_WEIGHT`) and how much of the query each field covered. Ties
+ * break toward the more recently updated task, then fall back to input order, so
+ * the ranking stays deterministic and a caller can `slice` for `--limit` after.
  */
 export function searchTasks(
   tasks: readonly Task[],
@@ -85,7 +107,8 @@ export function searchTasks(
   if (!normalizedQuery) return [];
   const normalizedTerms = normalizedQuery.split(/\s+/);
 
-  const matches: TaskSearchMatch[] = [];
+  const scored: { match: TaskSearchMatch; score: number; updated: number }[] =
+    [];
   for (const task of tasks) {
     const normalizedTitle = task.frontmatter.title.toLowerCase();
     const normalizedTags = (task.frontmatter.tags ?? []).map(tag =>
@@ -123,17 +146,24 @@ export function searchTasks(
     );
     if (!everyTermMatches) continue;
 
+    // Per-field term coverage: how many distinct query terms this field
+    // contains. Feeds both `matched_fields` and the relevance score.
+    const titleTerms = normalizedTerms.filter(term =>
+      normalizedTitle.includes(term),
+    ).length;
+    const tagTerms = normalizedTerms.filter(term =>
+      normalizedTags.some(tag => tag.includes(term)),
+    ).length;
+    const bodyTerms = normalizedTerms.filter(term =>
+      lowercaseBody.includes(term),
+    ).length;
+    const updateTerms = normalizedTerms.filter(term =>
+      normalizedUpdateSources.some(source => source.lowercase.includes(term)),
+    ).length;
+
     const matchedFields: TaskSearchField[] = [];
-    if (normalizedTerms.some(term => normalizedTitle.includes(term))) {
-      matchedFields.push('title');
-    }
-    if (
-      normalizedTerms.some(term =>
-        normalizedTags.some(tag => tag.includes(term)),
-      )
-    ) {
-      matchedFields.push('tags');
-    }
+    if (titleTerms > 0) matchedFields.push('title');
+    if (tagTerms > 0) matchedFields.push('tags');
 
     const snippet = snippetAround(normalizedBody, normalizedTerms);
     if (snippet !== undefined) matchedFields.push('body');
@@ -157,15 +187,33 @@ export function searchTasks(
     }
     if (updateMatches.length > 0) matchedFields.push('updates');
 
-    matches.push({
-      slug: task.slug,
-      title: task.frontmatter.title,
-      status: task.frontmatter.status,
-      matched_fields: matchedFields,
-      ...(snippet !== undefined ? { snippet } : {}),
-      ...(updateMatches.length > 0 ? { update_matches: updateMatches } : {}),
+    const termCount = normalizedTerms.length;
+    const score =
+      (FIELD_WEIGHT.title * titleTerms +
+        FIELD_WEIGHT.tags * tagTerms +
+        FIELD_WEIGHT.body * bodyTerms +
+        FIELD_WEIGHT.updates * updateTerms) /
+      termCount;
+
+    scored.push({
+      match: {
+        slug: task.slug,
+        title: task.frontmatter.title,
+        status: task.frontmatter.status,
+        matched_fields: matchedFields,
+        ...(snippet !== undefined ? { snippet } : {}),
+        ...(updateMatches.length > 0 ? { update_matches: updateMatches } : {}),
+      },
+      score,
+      updated: Date.parse(task.frontmatter.updated) || 0,
     });
   }
 
-  return matches;
+  return scored
+    .map((entry, index) => ({ ...entry, index }))
+    .sort(
+      (a, b) =>
+        b.score - a.score || b.updated - a.updated || a.index - b.index,
+    )
+    .map(entry => entry.match);
 }

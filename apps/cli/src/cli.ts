@@ -1066,7 +1066,17 @@ export function createCli(opts: CliOptions): Command {
               : {}),
           };
         });
-        data(JSON.stringify({ matches: payloadMatches, warnings }, null, 2));
+        data(
+          JSON.stringify(
+            {
+              matches: payloadMatches,
+              total_matches: allMatches.length,
+              warnings,
+            },
+            null,
+            2,
+          ),
+        );
         return;
       }
 
@@ -1088,6 +1098,12 @@ export function createCli(opts: CliOptions): Command {
                 : `  ↳ update ${updateMatch.index} (${updateMatch.timestamp}): ${updateMatch.snippet}`,
             );
           }
+        }
+        const omitted = allMatches.length - matches.length;
+        if (omitted > 0) {
+          data(
+            `… ${omitted} of ${allMatches.length} ${allMatches.length === 1 ? 'match' : 'matches'} not shown (raise --limit)`,
+          );
         }
       }
       if (warnings.length > 0) {
