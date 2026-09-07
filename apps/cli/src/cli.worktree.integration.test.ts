@@ -8,15 +8,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createProcessCli } from './processCli.js';
 
 /**
- * The concurrent-agent workflow documented in `apps/site/src/content/docs`
- * has exactly one shared file between the canonical checkout and a task
- * branch: `.shipbench/tasks/<slug>.md`. Both sides legitimately write it —
- * the canonical checkout owns `status`, the branch carries Updates and
+ * In the concurrent-agent workflow documented in `apps/site/src/content/docs`,
+ * a task's whole record lives in one file the canonical checkout and a task
+ * branch both write: `.shipbench/tasks/<slug>.md`. Both write it legitimately
+ * — the canonical checkout owns `status`, the branch carries Updates and
  * description edits — so the docs have to say *when* each side may write, or
- * the merge that integrates the work refuses to run.
+ * the merge that integrates the work refuses to run. `layout.json` is the
+ * other file both reach, when a task is created or changes column.
  *
  * These tests pin that timing. They walk the documented sequence with real
- * Git worktrees and real merges, and they pin the two recovery paths for a
+ * Git worktrees and real merges, and they pin the three recovery paths for a
  * board that is already in the broken state, because a doc that only
  * describes the happy path leaves the reader to invent the way out.
  */

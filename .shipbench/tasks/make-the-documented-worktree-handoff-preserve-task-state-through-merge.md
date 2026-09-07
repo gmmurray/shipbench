@@ -8,7 +8,7 @@ tags:
   - git
   - cli
 created: '2026-09-05T21:33:37.486Z'
-updated: '2026-09-06T20:11:09.086Z'
+updated: '2026-09-07T18:14:24.557Z'
 ---
 
 The September 5 evaluation reproduced a failure in the documented concurrent-agent workflow using the local v0.4.0 CLI in a disposable Git repository. The guide allows an uncommitted status change in the canonical checkout and an Update committed on the task branch, then shows merging that branch. Git refuses that merge because it would overwrite the local task-file edit.
@@ -58,3 +58,16 @@ Consequence for the review gate, stated in the recipe: with worktrees, `review` 
 No CLI change. The ordering was sufficient on its own, so nothing here demonstrated a need for new behavior. `shipbench init` does not scaffold worktree guidance, so no scaffold text stated the affected rule; the change lands in the concurrent-agents page, the worktree-rules recipe, the review-gate recipe, and this repo's own `.shipbench/AGENTS.md`.
 
 Verified in `apps/cli/src/cli.worktree.integration.test.ts` — seven tests over real temporary repositories, worktrees, and merges: the documented sequence, the truthful worktree board, unrelated in-flight work surviving the merge, the original failure as a regression guard, and the three recovery paths (aborted merge, conflicted task file, conflicted `layout.json`).
+
+### 2026-09-07T18:14:24.557Z
+Follow-up review: three documentation fixes. The mechanism, the tests, and the dogfood `.shipbench/AGENTS.md` were correct and unchanged.
+
+**The two pasteable blocks contradicted each other.** A concurrent-agent reader pastes both the worktree rules and the review gate into one `AGENTS.md`, and only the first had the "not while your branch is unmerged" rule — so an agent finishing in a worktree read an unconditional "move it to `review`" in the other. The qualifying clause now lives inside the review-gate block rather than only in the prose beside it, phrased so it is a no-op for a solo-trunk reader who has no branches. The trailing paragraph repeated the move instruction, which would have reintroduced the same conflict, so it now states the ceiling instead of restating the move.
+
+**"The only shared file" was wrong two sections above the section that disproves it.** The recovery path for a `layout.json` conflict describes exactly the setup the claim denies. Scoped the claim to a task's own record and named `layout.json` as the other file both sides reach, with a pointer to the recovery. The paragraph's argument — splitting writes by *what* is not enough, because both halves land in one file — is unchanged.
+
+**Recovery snippets could not be pasted and run.** Bare `git merge` and `git commit` mid-merge open an editor; the integration test needed `--no-edit` to run them unattended, which was the tell. Added `--no-edit` to every merge and mid-merge commit on both pages, including the two happy-path integrate snippets that had the same defect. Left the recovery's `shipbench task move` calls bare rather than adding `-C`: a half-finished merge exists only in the canonical checkout, so the surrounding Git commands cannot run anywhere else, and a redundant `-C` would imply otherwise. Said that in a sentence instead.
+
+Also corrected the same "exactly one shared file" overstatement in the test file's header comment, and its count of the recovery paths — comment only, no test behavior changed.
+
+Verified: `pnpm --filter @shipbench/site test` (122), `pnpm --filter @shipbench/site build`, `pnpm typecheck`, `pnpm lint`, and the seven worktree integration tests.

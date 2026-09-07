@@ -3,7 +3,7 @@ title: Concurrent Agents with Worktrees
 description: Run several agents at once by giving each task its own Git worktree and branch, while one canonical checkout keeps task status authoritative.
 group: Workflows
 order: 2
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 Two agents writing in one checkout can collide in source files, task files, dependency installs, and test output. Git worktrees give each concurrent task its own directory and branch while sharing the repository's object database.
@@ -40,7 +40,7 @@ One directory owns status; task branches carry everything else. [Recipe: multi-a
 
 ## One writer at a time per task file
 
-Splitting the writes by *what* is not enough on its own, because both halves land in the same file. `.shipbench/tasks/<slug>.md` is the only thing the canonical checkout and a task branch both edit: the canonical checkout writes `status`, the branch writes Updates and the description, and every one of those writes also stamps the `updated:` line directly under `status:`.
+Splitting the writes by *what* is not enough on its own, because both halves land in the same file. A task's entire record is `.shipbench/tasks/<slug>.md`: the canonical checkout writes `status` there, the branch writes Updates and the description there, and every one of those writes also stamps the `updated:` line directly under `status:`. (`layout.json` is the other file both sides reach, though only when a task is created or changes column; [the recovery section](#recovering-a-collided-merge) covers it.)
 
 Git merges that content without complaint. What it refuses is *starting* a merge that would overwrite an uncommitted local edit — so a status write left sitting in the canonical checkout while that task's branch is unmerged aborts the merge that would have integrated the work:
 
@@ -124,7 +124,7 @@ Review each branch in its worktree, then merge it into `main` using your preferr
 
 ```bash
 git switch main
-git merge task/build-api
+git merge --no-edit task/build-api
 
 # Verify the integrated result, then close the task.
 shipbench -C ~/code/my-project task move build-api --to done
@@ -149,13 +149,15 @@ git branch -d task/build-api
 
 Both failures above have one cause — a status write in the canonical checkout for a task whose branch has not landed — and one recovery: take what the branch has, then write the status again with the CLI.
 
+Every command below runs in the canonical checkout, so none of them needs `-C`. A half-finished merge lives there and nowhere else, which is why these are the one set of `shipbench` commands on this page that do not name their target.
+
 Do not replay the old file to get the status back. A task file is a snapshot of its description, its Updates, and the `updated` timestamp covering them, so restoring its bytes — `git stash pop`, `git checkout --ours`, a copy you set aside — reinstates content the branch has since moved past. `shipbench task move` writes the one field you meant to change onto whatever the merge produced.
 
 **The merge aborted.** The status write is uncommitted. Restore the single file it touched, merge, and move the task again:
 
 ```bash
 git restore .shipbench/tasks/build-api.md
-git merge task/build-api
+git merge --no-edit task/build-api
 shipbench task move build-api --to review
 ```
 
@@ -166,7 +168,7 @@ Naming the file keeps the recovery off everything else. A second task claimed an
 ```bash
 git checkout --theirs .shipbench/tasks/build-api.md
 git add .shipbench/tasks/build-api.md
-git commit
+git commit --no-edit
 shipbench task move build-api --to review
 ```
 
@@ -177,7 +179,7 @@ shipbench task move build-api --to review
 ```bash
 git checkout --ours .shipbench/layout.json
 git add .shipbench/layout.json
-git commit
+git commit --no-edit
 ```
 
 `layout.json` is a partial index, so the branch's new task still appears on the board — ordered deterministically rather than where the branch put it, and healed by the next board write. If these conflicts are routine for you, [gitignore layout.json](/docs/recipe-gitignore-layout/) takes the file out of merges entirely.

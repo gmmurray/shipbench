@@ -3,7 +3,7 @@ title: 'Recipe: Human Review Gate'
 description: Add a review column and the ownership line that makes it mean something, so agents can submit finished work without marking it complete.
 group: Workflows
 order: 4
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 ## What it does
@@ -48,22 +48,23 @@ This project uses a `review` column between `in-progress` and `done`.
 
 - Move a task to `in-progress` when you start work on it.
 - Move a task to `review` when the work is committed and you have verified it
-  yourself: `shipbench task move <slug> --to review`.
+  yourself: `shipbench task move <slug> --to review`. If that work sits on a
+  branch that has not merged, leave the task where it is and say it is ready
+  instead — whoever merges the branch moves it.
 - Never move a task to `done`. Only the human owner moves `review` to `done`,
   after reviewing the change.
 
 Agents move verified work to review. Only the human owner moves review to done.
 
-If you believe a task is complete, move it to `review` and say so in your
-summary. Do not move it any further, and do not open a new task to represent
-the same work.
+If you believe a task is complete, say so in your summary and move it no
+further than `review`. Do not open a new task to represent the same work.
 ```
 
 When the work sits on a task branch, that move waits for the merge. The branch and the canonical checkout edit the same task file, so writing `review` while the branch is unmerged is exactly what makes `git merge` refuse to integrate it — see [one writer at a time per task file](/docs/concurrent-agents/#one-writer-at-a-time-per-task-file). Review the branch, merge it, then submit:
 
 ```bash
 git switch main
-git merge task/build-api
+git merge --no-edit task/build-api
 
 shipbench task move build-api --to review
 git add .shipbench

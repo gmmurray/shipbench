@@ -1,6 +1,6 @@
 ---
 title: 'Spike: establish ShipBench''s distinctive value and landing-page promise'
-status: todo
+status: done
 priority: high
 tags:
   - spike
@@ -8,7 +8,7 @@ tags:
   - positioning
   - site
 created: '2026-09-05T21:33:20.357Z'
-updated: '2026-09-06T19:40:33.150Z'
+updated: '2026-09-07T18:12:11.712Z'
 ---
 
 The September 5 product evaluation found a credible local system, but the feature inventory alone does not explain why someone should choose ShipBench. The owner feels the landing page is focused yet generic and undersells the project. Investigate the value deeply enough to make a stronger, more intriguing promise that the actual product can demonstrate.
@@ -51,3 +51,6 @@ Research leads from the evaluation: [Backlog.md](https://github.com/MrLesk/Backl
 
 ### 2026-09-06T18:33:35.159Z
 The owner highlighted an existing agentic workflow: agents consult related tasks, record explanations during work, and later retrieve those explanations to answer why a decision was made. Expanded this spike and the related landing-page, walkthrough, research, search, and claims tickets to investigate and demonstrate that self-documenting value. Added CLI retrieval and maintenance tasks plus future spikes for a local workbench, Git history and review, and outcomes. Treat this as observed dogfood evidence and a central positioning direction; broader adoption remains to be investigated.
+
+### 2026-09-07T17:54:42.887Z
+Completed the positioning investigation in docs/positioning-brief.md. Selected direction A: Give your next agent the reasons behind the work. The brief compares current alternatives, separates owner observation from tested behavior and adoption hypotheses, provides three narrative directions, and defines the landing-page proof and follow-up observations. An isolated built-CLI rehearsal verified consulting a prior task, recording a sourced decision, and retrieving it in a later process; it also confirmed that Update-only text is excluded from CLI search. Current source boundaries and all local brief links were checked. No public page changes were made; the dependent implementation should use the selected direction and the documented retrieval constraints.
