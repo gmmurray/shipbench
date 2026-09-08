@@ -381,7 +381,7 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 - `shipbench task edit <slug> (--body <text> | --body-file <path>)` — Replaces the task's description whole, leaving `created` and the Updates section untouched. An empty body clears the description.
 - `shipbench task move <slug> --to=<status>` — Moves a task to a new status (appends to the destination column's layout unless it is `done_column`).
 - `shipbench task list [--status] [--assignee] [--priority] [--archived]` — Lists tasks with optional filters; `--archived` lists the archive instead.
-- `shipbench task search <query> [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both.
+- `shipbench task search <query> [--status] [--assignee] [--priority] [--tag=a,b] [--available | --blocked] [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both. The metadata and availability flags share `task list`'s predicate and semantics.
 - `shipbench task delete <slug>` — Deletes a task file and prunes the slug from layout.
 - `shipbench task archive <slug> [--force]` — Moves a task to `tasks/archive/` byte-identical. Blocked (without `--force`) when live tasks depend on a non-done task.
 - `shipbench task archive --done [--keep=N]` — Bulk-archives done tasks, keeping the N most-recently-updated. `--keep` defaults to `done_display.max`.
@@ -437,12 +437,18 @@ separate investigation.
   carries `total_matches` (the count before the limit); text output ends with a
   `… N of M matches not shown (raise --limit)` line whenever the limit drops any
   match, including `--limit 0`.
-- **Staged, not in this increment.** Metadata and availability filters on
-  `task search` (`--status` / `--tag` / `--assignee` / `--priority` /
-  `--available`); whole-word matching and exact-phrase `"quoted"` queries;
-  semantic retrieval. Each has a dedicated task. The Board's description-search
-  correction implements the corpus and result-context contract above and need
-  not wait for these.
+- **Narrowing the corpus.** `task search` takes `task list`'s own filters —
+  `--status`, `--assignee`, `--priority`, `--tag` (comma or repeated, AND
+  semantics), and `--available` / `--blocked` — applied to the candidate set
+  before `searchTasks` runs, reusing the `listAvailableTasks` /
+  `listBlockedTasks` helpers verbatim. `--available` excludes `--blocked`;
+  availability is a live-column concept and cannot combine with `--archived` /
+  `--all`. Filtering only narrows which tasks are searched; it never changes the
+  relevance ordering above.
+- **Staged, not in this increment.** Whole-word matching and exact-phrase
+  `"quoted"` queries; semantic retrieval. Each has a dedicated task. The Board's
+  description-search correction implements the corpus and result-context
+  contract above and need not wait for these.
 
 **Harbor opt-in.** Without any `--harbor` flag, the CLI has zero knowledge of Harbor. The `--harbor` family of flags is the only surface where the CLI talks to a hosted service.
 

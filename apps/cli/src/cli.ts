@@ -998,6 +998,26 @@ export function createCli(opts: CliOptions): Command {
     .description(
       'Search task titles, tags, Markdown descriptions, and Task Updates',
     )
+    .option('-s, --status <status>', 'Filter by status')
+    .option('-a, --assignee <assignee>', 'Filter by assignee')
+    .option('-p, --priority <priority>', 'Filter by priority')
+    .option(
+      '--tag <tag>',
+      'Filter by tag (comma-separated or repeatable with AND semantics)',
+      accumulateCommaList,
+    )
+    .addOption(
+      new Option(
+        '--available',
+        'Restrict to tasks whose dependencies are satisfied (ranked like `task list`, live tasks only)',
+      ).conflicts('blocked'),
+    )
+    .addOption(
+      new Option(
+        '--blocked',
+        'Restrict to tasks with unsatisfied dependencies (live tasks only)',
+      ).conflicts('available'),
+    )
     .option('--archived', 'Search archived tasks instead of live tasks')
     .addOption(
       new Option('--all', 'Search both live and archived tasks').conflicts(
@@ -1018,20 +1038,66 @@ export function createCli(opts: CliOptions): Command {
       if (!query.trim()) {
         throw new InvalidArgumentError('Search query must not be blank.');
       }
+      if ((raw.available || raw.blocked) && (raw.archived || raw.all)) {
+        throw new InvalidArgumentError(
+          '--available and --blocked cannot be used with --archived or --all.',
+        );
+      }
 
       const config = await loadCliConfig();
-      const liveResult =
-        raw.archived && !raw.all ? undefined : await listTasks(adapter, config);
-      const archivedResult =
-        raw.archived || raw.all
-          ? await listArchivedTasks(adapter, config)
-          : undefined;
-      const candidates = [
+      const searchArchive = Boolean(raw.archived || raw.all);
+      const searchLive = !raw.archived || Boolean(raw.all);
+      // Availability resolves an archived dependency as satisfied, so the
+      // archive is read for the dependency index even when the search itself
+      // stays on live tasks. Mirrors `task list --available` without `--archived`.
+      const readArchive =
+        searchArchive || Boolean(raw.available || raw.blocked);
+
+      const liveResult = searchLive
+        ? await listTasks(adapter, config)
+        : undefined;
+      const archivedResult = readArchive
+        ? await listArchivedTasks(adapter, config)
+        : undefined;
+      let candidates = [
         ...(liveResult?.tasks ?? []),
-        ...(archivedResult?.tasks ?? []),
+        ...(searchArchive ? (archivedResult?.tasks ?? []) : []),
       ];
+
+      if (raw.available || raw.blocked) {
+        const select = raw.available ? listAvailableTasks : listBlockedTasks;
+        const eligible = new Set(
+          select(candidates, config, {
+            status: raw.status,
+            archivedTasks: archivedResult?.tasks,
+            archivedSlugs: archivedResult
+              ? taskFileSlugs(archivedResult)
+              : undefined,
+          }).map(task => task.slug),
+        );
+        candidates = candidates.filter(task => eligible.has(task.slug));
+      }
+
+      const requestedTags = (raw.tag ?? []) as string[];
+      candidates = candidates.filter(
+        task =>
+          (raw.available ||
+            raw.blocked ||
+            !raw.status ||
+            task.frontmatter.status === raw.status) &&
+          (!raw.assignee || task.frontmatter.assignee === raw.assignee) &&
+          (!raw.priority || task.frontmatter.priority === raw.priority) &&
+          requestedTags.every(requestedTag =>
+            (task.frontmatter.tags ?? []).some(
+              tag => tag.toLowerCase() === requestedTag.toLowerCase(),
+            ),
+          ),
+      );
+
       const archivedSlugs = new Set(
-        (archivedResult?.tasks ?? []).map(candidate => candidate.slug),
+        (searchArchive ? (archivedResult?.tasks ?? []) : []).map(
+          candidate => candidate.slug,
+        ),
       );
       const locationOf = (slug: string): 'live' | 'archive' =>
         archivedSlugs.has(slug) ? 'archive' : 'live';
@@ -1039,7 +1105,7 @@ export function createCli(opts: CliOptions): Command {
       const matches = allMatches.slice(0, raw.limit);
       const warnings = [
         ...(liveResult?.warnings ?? []),
-        ...(archivedResult?.warnings ?? []),
+        ...(searchArchive ? (archivedResult?.warnings ?? []) : []),
       ];
 
       if (raw.json) {

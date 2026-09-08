@@ -7,7 +7,6 @@
     "make-continuity-claims-precise-without-weakening-shipbench-s-promise",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
-    "add-metadata-and-availability-filters-to-task-search",
     "add-whole-word-and-exact-phrase-matching-to-task-search"
   ],
   "backlog": [

@@ -94,7 +94,7 @@ shipbench task list --available --tag docs --json
 shipbench task list --available --tag docs,site --assignee agent --json
 ```
 
-`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, `--priority`, and `--limit` can narrow the same query.
+`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, `--priority`, and `--limit` can narrow the same query. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
 After selecting a slug, run `shipbench task get <slug>` to load its full frontmatter, description, and Updates.
 
@@ -102,6 +102,7 @@ Use the other discovery commands when needed:
 
 - **Diagnose blocked work**: `shipbench task list --blocked --json`
 - **Search titles, tags, and descriptions**: `shipbench task search "<query>" --json`
+- **Search only ready work that mentions a term**: `shipbench task search "<query>" --available --tag docs --json`
 - **Load complete matching descriptions**: `shipbench task search "<query>" --json --include-body`
 - **Search live and archived tasks**: `shipbench task search "<query>" --all --json`
 - **Inspect the dependency DAG**: `shipbench task graph --json` (add `--archived` to resolve archived nodes)

@@ -2142,7 +2142,127 @@ describe('shipbench task search', () => {
       exitCode: 0,
     });
     expect(searchHelp.stdout.join('\n')).toMatch(
-      /--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
+      /--status <status>[\s\S]*--tag <tag>[\s\S]*--available[\s\S]*--blocked[\s\S]*--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
+    );
+  });
+});
+
+describe('shipbench task search metadata and availability filters', () => {
+  async function filterHarness(): Promise<Harness> {
+    const h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+
+    await h.run('task', 'create', 'Done needle prerequisite', '--status=done');
+    await h.run(
+      'task',
+      'create',
+      'Live needle prerequisite',
+      '--status=in-progress',
+    );
+    await h.run(
+      'task',
+      'create',
+      'Ready needle work',
+      '--priority=high',
+      '--assignee=claude',
+      '--tags=search,backend',
+      '--depends-on=done-needle-prerequisite',
+    );
+    await h.run(
+      'task',
+      'create',
+      'Blocked needle work',
+      '--priority=low',
+      '--assignee=human',
+      '--tags=search',
+      '--depends-on=live-needle-prerequisite',
+    );
+    await h.run('task', 'create', 'Standalone needle work', '--tags=docs');
+    await h.run('task', 'create', 'In progress needle', '--status=in-progress');
+    setTaskBody(h, 'in-progress-needle', 'The needle is already being pulled.');
+    h.stdout.length = 0;
+    return h;
+  }
+
+  it('filters search results by status, assignee, priority, and tag', async () => {
+    const h = await filterHarness();
+
+    await h.run('task', 'search', 'needle', '--tag=search', '--json');
+    let payload = JSON.parse(h.stdout.join('\n'));
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug).sort(),
+    ).toEqual(['blocked-needle-work', 'ready-needle-work']);
+
+    h.stdout.length = 0;
+    await h.run(
+      'task',
+      'search',
+      'needle',
+      '--assignee=claude',
+      '--priority=high',
+      '--json',
+    );
+    payload = JSON.parse(h.stdout.join('\n'));
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug),
+    ).toEqual(['ready-needle-work']);
+
+    h.stdout.length = 0;
+    await h.run('task', 'search', 'needle', '--status=in-progress', '--json');
+    payload = JSON.parse(h.stdout.join('\n'));
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug).sort(),
+    ).toEqual(['in-progress-needle', 'live-needle-prerequisite']);
+  });
+
+  it('narrows to dependency-ready work with --available', async () => {
+    const h = await filterHarness();
+
+    await h.run('task', 'search', 'needle', '--available', '--json');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug).sort(),
+    ).toEqual(['ready-needle-work', 'standalone-needle-work']);
+  });
+
+  it('narrows to blocked work with --blocked', async () => {
+    const h = await filterHarness();
+
+    await h.run('task', 'search', 'needle', '--blocked', '--json');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug),
+    ).toEqual(['blocked-needle-work']);
+  });
+
+  it('counts an archived dependency as satisfied for --available', async () => {
+    const h = await filterHarness();
+    await h.run('task', 'archive', 'done-needle-prerequisite');
+    h.stdout.length = 0;
+
+    await h.run('task', 'search', 'needle', '--available', '--json');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(
+      payload.matches.map((match: { slug: string }) => match.slug),
+    ).toContain('ready-needle-work');
+  });
+
+  it('rejects an availability filter combined with --archived or --all', async () => {
+    const h = harness();
+
+    await expect(
+      h.run('task', 'search', 'needle', '--available', '--archived'),
+    ).rejects.toThrow(
+      '--available and --blocked cannot be used with --archived or --all.',
+    );
+    await expect(
+      h.run('task', 'search', 'needle', '--blocked', '--all'),
+    ).rejects.toThrow(
+      '--available and --blocked cannot be used with --archived or --all.',
     );
   });
 });

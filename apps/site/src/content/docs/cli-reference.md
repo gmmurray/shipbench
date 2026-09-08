@@ -366,17 +366,26 @@ Quotes only keep a multi-word query together in the shell; ShipBench does not su
 
 | Flag | Purpose |
 | --- | --- |
+| `-s, --status <status>` | Restrict the search to tasks in this column. |
+| `-a, --assignee <assignee>` | Restrict to tasks with this exact assignee. |
+| `-p, --priority <priority>` | Restrict to tasks with this exact priority. |
+| `--tag <tag>` | Restrict by tag; comma-separated or repeatable, AND semantics, case-insensitive. |
+| `--available` | Restrict to actionable-column tasks whose dependencies are satisfied. |
+| `--blocked` | Restrict to actionable-column tasks with at least one unsatisfied dependency. |
 | `--archived` | Search only archived tasks. |
 | `--all` | Search live and archived tasks. |
 | `--limit <n>` | Return at most `n` matches. `0` returns none. |
 | `--json` | Emit machine-readable JSON. |
 | `--include-body` | With `--json`, add each complete matching description and its Task Updates. |
 
-`--archived` and `--all` are mutually exclusive.
+These are `shipbench task list`'s own filters, applied to the candidate set before the search runs — they narrow which tasks are searched and never change the relevance order. `--tag`, `--assignee`, and `--priority` combine with AND semantics, and `--available` / `--blocked` use `config.default_column` unless `--status` overrides it, exactly as they do for `task list`.
+
+`--archived` and `--all` are mutually exclusive. `--available` and `--blocked` are mutually exclusive, and neither can be combined with `--archived` or `--all` — availability is a live-column concept.
 
 ```bash
 shipbench task search "oauth" --json
 shipbench task search "migration" --all --json
+shipbench task search "webhook" --available --tag backend --json
 shipbench task search "error handling" --json --include-body --limit 5
 ```
 
