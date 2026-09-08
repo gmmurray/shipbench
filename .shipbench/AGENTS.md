@@ -96,6 +96,8 @@ shipbench task list --available --tag docs,site --assignee agent --json
 
 `--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, `--priority`, and `--limit` can narrow the same query. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
+`task search` matches each term as a case-insensitive substring by default. Add `--whole-word` to match on word boundaries, and wrap a run in literal double quotes (`task search '"exact phrase"'`) to require it to match contiguously.
+
 After selecting a slug, run `shipbench task get <slug>` to load its full frontmatter, description, and Updates.
 
 Use the other discovery commands when needed:

@@ -2142,8 +2142,43 @@ describe('shipbench task search', () => {
       exitCode: 0,
     });
     expect(searchHelp.stdout.join('\n')).toMatch(
-      /--status <status>[\s\S]*--tag <tag>[\s\S]*--available[\s\S]*--blocked[\s\S]*--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
+      /--status <status>[\s\S]*--tag <tag>[\s\S]*--available[\s\S]*--blocked[\s\S]*--whole-word[\s\S]*--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
     );
+  });
+
+  it('restricts matches to word boundaries with --whole-word', async () => {
+    const h = await searchHarness();
+    await h.run('task', 'create', 'Precision work');
+    setTaskBody(h, 'precision-work', 'A specific, explicit decision recorded here.');
+    h.stdout.length = 0;
+
+    await h.run('task', 'search', 'ci', '--json');
+    const substringSlugs = JSON.parse(h.stdout.join('\n')).matches.map(
+      (match: { slug: string }) => match.slug,
+    );
+    expect(substringSlugs).toContain('precision-work');
+
+    h.stdout.length = 0;
+    await h.run('task', 'search', 'ci', '--whole-word', '--json');
+    const wholeWordSlugs = JSON.parse(h.stdout.join('\n')).matches.map(
+      (match: { slug: string }) => match.slug,
+    );
+    expect(wholeWordSlugs).not.toContain('precision-work');
+  });
+
+  it('treats a quoted run in the query as one contiguous phrase', async () => {
+    const h = await searchHarness();
+    await h.run('task', 'create', 'Contiguous run');
+    setTaskBody(h, 'contiguous-run', 'Implement the token exchange handshake.');
+    await h.run('task', 'create', 'Scattered run');
+    setTaskBody(h, 'scattered-run', 'The token is stored; the exchange log is not.');
+    h.stdout.length = 0;
+
+    await h.run('task', 'search', '"token exchange"', '--json');
+    const slugs = JSON.parse(h.stdout.join('\n')).matches.map(
+      (match: { slug: string }) => match.slug,
+    );
+    expect(slugs).toEqual(['contiguous-run']);
   });
 });
 

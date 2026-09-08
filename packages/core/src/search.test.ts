@@ -297,4 +297,91 @@ describe('searchTasks', () => {
     expect(searchTasks(tasks, 'oauth')).toEqual([]);
     expect(searchTasks(tasks, '   ')).toEqual([]);
   });
+
+  describe('whole-word matching', () => {
+    const tasks = [
+      task('explicit', 'Make output explicit'),
+      task('decision', 'Record the decision'),
+      task('ci-word', 'Wire up CI', { body: 'The CI pipeline runs on push.' }),
+    ];
+
+    it('matches a term only on word boundaries when enabled', () => {
+      expect(
+        searchTasks(tasks, 'ci', { wholeWord: true }).map(match => match.slug),
+      ).toEqual(['ci-word']);
+    });
+
+    it('still matches substrings by default', () => {
+      expect(
+        searchTasks(tasks, 'ci')
+          .map(match => match.slug)
+          .sort(),
+      ).toEqual(['ci-word', 'decision', 'explicit']);
+    });
+
+    it('anchors a boundary at each end, not between digits and letters', () => {
+      const versioned = [task('v2', 'Ship v2', { body: 'The v2 rollout.' })];
+      expect(
+        searchTasks(versioned, 'v2', { wholeWord: true }).map(m => m.slug),
+      ).toEqual(['v2']);
+      expect(
+        searchTasks(versioned, 'v', { wholeWord: true }),
+      ).toEqual([]);
+    });
+  });
+
+  describe('exact-phrase queries', () => {
+    const tasks = [
+      task('contiguous', 'Handle token exchange', {
+        body: 'Implement the OAuth token exchange step.',
+      }),
+      task('scattered', 'Exchange rates', {
+        body: 'Store the auth token separately from the exchange log.',
+      }),
+    ];
+
+    it('requires a quoted run to match contiguously', () => {
+      expect(
+        searchTasks(tasks, '"token exchange"').map(match => match.slug),
+      ).toEqual(['contiguous']);
+    });
+
+    it('still ANDs unquoted terms across the corpus', () => {
+      expect(
+        searchTasks(tasks, 'token exchange').map(match => match.slug).sort(),
+      ).toEqual(['contiguous', 'scattered']);
+    });
+
+    it('matches a phrase that spans normalized whitespace', () => {
+      const wrapped = [
+        task('wrapped', 'Notes', { body: 'the token\n   exchange happens here' }),
+      ];
+      expect(
+        searchTasks(wrapped, '"token exchange"').map(match => match.slug),
+      ).toEqual(['wrapped']);
+    });
+
+    it('combines a phrase with a loose term', () => {
+      expect(
+        searchTasks(tasks, '"token exchange" oauth').map(match => match.slug),
+      ).toEqual(['contiguous']);
+    });
+
+    it('ignores an empty or dangling quote', () => {
+      expect(searchTasks(tasks, '""')).toEqual([]);
+      expect(
+        searchTasks(tasks, 'exchange "token').map(match => match.slug).sort(),
+      ).toEqual(['contiguous', 'scattered']);
+    });
+
+    it('treats phrase punctuation literally', () => {
+      const dotted = [
+        task('dotted', 'Docs', { body: 'edit the docs/why.md file' }),
+        task('spaced', 'Docs', { body: 'why a md file' }),
+      ];
+      expect(
+        searchTasks(dotted, '"why.md"').map(match => match.slug),
+      ).toEqual(['dotted']);
+    });
+  });
 });

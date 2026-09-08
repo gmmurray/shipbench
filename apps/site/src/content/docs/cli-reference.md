@@ -362,7 +362,10 @@ shipbench task search <query> [options]
 
 Search splits the query on whitespace and treats each term as a case-insensitive substring. Every term must appear somewhere in the task's title, tags, Markdown description, or a **Task Updates entry**; terms may appear in different fields and in any order. A quarantined unreadable Updates section is searched too, and reported as an `updates` match. So a decision recorded only in an Update is still retrievable here.
 
-Quotes only keep a multi-word query together in the shell; ShipBench does not support exact-phrase search yet.
+Two opt-in controls tighten how a term matches, without changing the corpus or the ranking:
+
+- **Exact phrase.** A double-quoted run in the query — `"token exchange"` — is one term that must appear contiguously. Its internal whitespace matches any whitespace run, so a phrase still hits when it wraps across a line. Pass the quote characters *literally*: the shell strips its own quotes, so write `shipbench task search '"token exchange"'` (or escape them). An empty or unbalanced quote is ignored.
+- **`--whole-word`.** Match every term — loose or quoted — on word boundaries, so `ci` stops matching `decision`, `explicit`, and `specific`.
 
 | Flag | Purpose |
 | --- | --- |
@@ -372,6 +375,7 @@ Quotes only keep a multi-word query together in the shell; ShipBench does not su
 | `--tag <tag>` | Restrict by tag; comma-separated or repeatable, AND semantics, case-insensitive. |
 | `--available` | Restrict to actionable-column tasks whose dependencies are satisfied. |
 | `--blocked` | Restrict to actionable-column tasks with at least one unsatisfied dependency. |
+| `--whole-word` | Match each term on word boundaries instead of as a substring. |
 | `--archived` | Search only archived tasks. |
 | `--all` | Search live and archived tasks. |
 | `--limit <n>` | Return at most `n` matches. `0` returns none. |
@@ -387,6 +391,8 @@ shipbench task search "oauth" --json
 shipbench task search "migration" --all --json
 shipbench task search "webhook" --available --tag backend --json
 shipbench task search "error handling" --json --include-body --limit 5
+shipbench task search "ci" --whole-word --json
+shipbench task search '"token exchange"' --json
 ```
 
 JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, and — when an Update matched — the entry's index, timestamp, and excerpt. `total_matches` is the count before `--limit` is applied:
@@ -421,7 +427,7 @@ A match is a **record, not a verdict.** Search reports the task's `status` and t
 
 Results are ranked by relevance. A match scores on which fields the query terms landed in — title outweighs tags, tags outweigh the description, the description outweighs Task Updates — scaled by how much of the query each field covers; a more recent `updated` breaks a tie. `--limit` then keeps the top `n`. When it drops any match, JSON still reports the full count in `total_matches` and text output ends with a `… N of M matches not shown (raise --limit)` line.
 
-Metadata filters (`--status`, `--tag`, `--available`, …), whole-word matching, and exact-phrase queries are planned as follow-ups.
+Semantic retrieval — matching on meaning rather than lexical overlap — is a planned follow-up.
 
 ### `shipbench task graph`
 

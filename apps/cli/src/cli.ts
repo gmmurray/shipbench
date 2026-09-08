@@ -1018,6 +1018,10 @@ export function createCli(opts: CliOptions): Command {
         'Restrict to tasks with unsatisfied dependencies (live tasks only)',
       ).conflicts('available'),
     )
+    .option(
+      '--whole-word',
+      'Match each term on word boundaries instead of as a substring',
+    )
     .option('--archived', 'Search archived tasks instead of live tasks')
     .addOption(
       new Option('--all', 'Search both live and archived tasks').conflicts(
@@ -1101,7 +1105,9 @@ export function createCli(opts: CliOptions): Command {
       );
       const locationOf = (slug: string): 'live' | 'archive' =>
         archivedSlugs.has(slug) ? 'archive' : 'live';
-      const allMatches = searchTasks(candidates, query);
+      const allMatches = searchTasks(candidates, query, {
+        wholeWord: Boolean(raw.wholeWord),
+      });
       const matches = allMatches.slice(0, raw.limit);
       const warnings = [
         ...(liveResult?.warnings ?? []),

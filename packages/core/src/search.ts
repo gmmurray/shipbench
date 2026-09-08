@@ -27,6 +27,21 @@ export interface TaskSearchMatch {
   update_matches?: TaskUpdateMatch[];
 }
 
+/**
+ * Opt-in precision controls for {@link searchTasks}. Both default off, so the
+ * baseline stays "every whitespace-delimited term as a case-insensitive
+ * substring". The CLI and the Board pass the same options through, so a query
+ * behaves identically wherever it is run.
+ */
+export interface TaskSearchOptions {
+  /**
+   * Match each term on word boundaries instead of as a substring, so `ci` stops
+   * matching `decision`. Applies to quoted phrases too — the boundary sits at
+   * each end of the phrase, not between its words.
+   */
+  wholeWord?: boolean;
+}
+
 const SNIPPET_CONTEXT_BEFORE = 40;
 const SNIPPET_CONTEXT_AFTER = 80;
 
@@ -48,32 +63,75 @@ const FIELD_WEIGHT: Record<TaskSearchField, number> = {
   updates: 2,
 };
 
+/**
+ * One parsed query term. `text` is the lowercased, whitespace-collapsed source
+ * (used only for stable tie-breaking); `pattern` is the matcher. The pattern is
+ * non-global, so `test` and `exec` both start from index 0 and it is safe to
+ * reuse across every task and field without resetting `lastIndex`.
+ */
+interface SearchTerm {
+  text: string;
+  pattern: RegExp;
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildTermPattern(text: string, wholeWord: boolean): RegExp {
+  // Internal whitespace is already collapsed to single spaces; let it match any
+  // whitespace run in the haystack so a phrase spanning a line break still hits.
+  const core = escapeRegExp(text).replace(/ /g, '\\s+');
+  const lead = wholeWord && /^\w/.test(text) ? '(?<!\\w)' : '';
+  const trail = wholeWord && /\w$/.test(text) ? '(?!\\w)' : '';
+  return new RegExp(`${lead}${core}${trail}`);
+}
+
+/**
+ * Splits a raw query into terms. Whitespace separates terms, except inside a
+ * double-quoted run, which becomes a single phrase term matched contiguously.
+ * Everything is lowercased; empty quotes and a dangling quote are dropped. The
+ * grammar lives here so the CLI and the Board parse a query the same way.
+ */
+function parseQueryTerms(query: string, wholeWord: boolean): SearchTerm[] {
+  const terms: SearchTerm[] = [];
+  for (const token of query.matchAll(/"([^"]*)"|([^\s"]+)/g)) {
+    const raw = (token[1] ?? token[2] ?? '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ');
+    if (!raw) continue;
+    terms.push({ text: raw, pattern: buildTermPattern(raw, wholeWord) });
+  }
+  return terms;
+}
+
 function normalizeText(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
 /**
  * Returns a bounded, whitespace-normalized excerpt of `normalizedText` centered
- * on the earliest matching term (longest term wins a tie), or `undefined` when
+ * on the earliest matching term (longest match wins a tie), or `undefined` when
  * no term occurs. Used for both the body snippet and per-Update snippets.
  */
 function snippetAround(
   normalizedText: string,
-  normalizedTerms: readonly string[],
+  terms: readonly SearchTerm[],
 ): string | undefined {
   const lowercase = normalizedText.toLowerCase();
   let matchIndex = -1;
   let matchLength = 0;
-  for (const term of normalizedTerms) {
-    const termIndex = lowercase.indexOf(term);
+  for (const term of terms) {
+    const found = term.pattern.exec(lowercase);
     if (
-      termIndex !== -1 &&
+      found !== null &&
       (matchIndex === -1 ||
-        termIndex < matchIndex ||
-        (termIndex === matchIndex && term.length > matchLength))
+        found.index < matchIndex ||
+        (found.index === matchIndex && found[0].length > matchLength))
     ) {
-      matchIndex = termIndex;
-      matchLength = term.length;
+      matchIndex = found.index;
+      matchLength = found[0].length;
     }
   }
   if (matchIndex === -1) return undefined;
@@ -88,11 +146,15 @@ function snippetAround(
 }
 
 /**
- * Splits the query on whitespace and finds tasks in which every
- * case-insensitive term occurs as a substring of the search corpus: the title,
- * a tag, the Markdown description, or a Task Updates entry (including a
- * quarantined unreadable section). Terms may occur in different parts of the
+ * Finds tasks in which every query term occurs somewhere in the search corpus:
+ * the title, a tag, the Markdown description, or a Task Updates entry (including
+ * a quarantined unreadable section). Terms may occur in different parts of the
  * corpus.
+ *
+ * A term is a whitespace-delimited run matched as a case-insensitive substring.
+ * Two opt-in controls tighten that (see {@link TaskSearchOptions}): a
+ * double-quoted run in `query` is one contiguous phrase term, and
+ * `options.wholeWord` matches every term on word boundaries.
  *
  * Results come back ranked by relevance: a weighted blend of which fields
  * matched (`FIELD_WEIGHT`) and how much of the query each field covered. Ties
@@ -102,10 +164,10 @@ function snippetAround(
 export function searchTasks(
   tasks: readonly Task[],
   query: string,
+  options: TaskSearchOptions = {},
 ): TaskSearchMatch[] {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) return [];
-  const normalizedTerms = normalizedQuery.split(/\s+/);
+  const terms = parseQueryTerms(query, options.wholeWord ?? false);
+  if (terms.length === 0) return [];
 
   const scored: { match: TaskSearchMatch; score: number; updated: number }[] =
     [];
@@ -137,44 +199,45 @@ export function searchTasks(
       return { ...source, normalized, lowercase: normalized.toLowerCase() };
     });
 
-    const everyTermMatches = normalizedTerms.every(
-      term =>
-        normalizedTitle.includes(term) ||
-        normalizedTags.some(tag => tag.includes(term)) ||
-        lowercaseBody.includes(term) ||
-        normalizedUpdateSources.some(source => source.lowercase.includes(term)),
-    );
-    if (!everyTermMatches) continue;
+    const matchesTerm = (term: SearchTerm): boolean =>
+      term.pattern.test(normalizedTitle) ||
+      normalizedTags.some(tag => term.pattern.test(tag)) ||
+      term.pattern.test(lowercaseBody) ||
+      normalizedUpdateSources.some(source =>
+        term.pattern.test(source.lowercase),
+      );
+
+    if (!terms.every(matchesTerm)) continue;
 
     // Per-field term coverage: how many distinct query terms this field
     // contains. Feeds both `matched_fields` and the relevance score.
-    const titleTerms = normalizedTerms.filter(term =>
-      normalizedTitle.includes(term),
+    const titleTerms = terms.filter(term =>
+      term.pattern.test(normalizedTitle),
     ).length;
-    const tagTerms = normalizedTerms.filter(term =>
-      normalizedTags.some(tag => tag.includes(term)),
+    const tagTerms = terms.filter(term =>
+      normalizedTags.some(tag => term.pattern.test(tag)),
     ).length;
-    const bodyTerms = normalizedTerms.filter(term =>
-      lowercaseBody.includes(term),
+    const bodyTerms = terms.filter(term =>
+      term.pattern.test(lowercaseBody),
     ).length;
-    const updateTerms = normalizedTerms.filter(term =>
-      normalizedUpdateSources.some(source => source.lowercase.includes(term)),
+    const updateTerms = terms.filter(term =>
+      normalizedUpdateSources.some(source => term.pattern.test(source.lowercase)),
     ).length;
 
     const matchedFields: TaskSearchField[] = [];
     if (titleTerms > 0) matchedFields.push('title');
     if (tagTerms > 0) matchedFields.push('tags');
 
-    const snippet = snippetAround(normalizedBody, normalizedTerms);
+    const snippet = snippetAround(normalizedBody, terms);
     if (snippet !== undefined) matchedFields.push('body');
 
     const updateMatches: TaskUpdateMatch[] = [];
     for (const source of normalizedUpdateSources) {
-      if (!normalizedTerms.some(term => source.lowercase.includes(term))) {
+      if (!terms.some(term => term.pattern.test(source.lowercase))) {
         continue;
       }
       const entrySnippet =
-        snippetAround(source.normalized, normalizedTerms) ?? source.normalized;
+        snippetAround(source.normalized, terms) ?? source.normalized;
       if (source.kind === 'unreadable') {
         updateMatches.push({ unreadable: true, snippet: entrySnippet });
       } else {
@@ -187,7 +250,7 @@ export function searchTasks(
     }
     if (updateMatches.length > 0) matchedFields.push('updates');
 
-    const termCount = normalizedTerms.length;
+    const termCount = terms.length;
     const score =
       (FIELD_WEIGHT.title * titleTerms +
         FIELD_WEIGHT.tags * tagTerms +

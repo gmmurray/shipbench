@@ -60,6 +60,7 @@ export {
 export type {
   TaskSearchField,
   TaskSearchMatch,
+  TaskSearchOptions,
   TaskUpdateMatch,
 } from './search.js';
 export { searchTasks } from './search.js';

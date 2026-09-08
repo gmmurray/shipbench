@@ -381,7 +381,7 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 - `shipbench task edit <slug> (--body <text> | --body-file <path>)` — Replaces the task's description whole, leaving `created` and the Updates section untouched. An empty body clears the description.
 - `shipbench task move <slug> --to=<status>` — Moves a task to a new status (appends to the destination column's layout unless it is `done_column`).
 - `shipbench task list [--status] [--assignee] [--priority] [--archived]` — Lists tasks with optional filters; `--archived` lists the archive instead.
-- `shipbench task search <query> [--status] [--assignee] [--priority] [--tag=a,b] [--available | --blocked] [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both. The metadata and availability flags share `task list`'s predicate and semantics.
+- `shipbench task search <query> [--status] [--assignee] [--priority] [--tag=a,b] [--available | --blocked] [--whole-word] [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both. The metadata and availability flags share `task list`'s predicate and semantics.
 - `shipbench task delete <slug>` — Deletes a task file and prunes the slug from layout.
 - `shipbench task archive <slug> [--force]` — Moves a task to `tasks/archive/` byte-identical. Blocked (without `--force`) when live tasks depend on a non-done task.
 - `shipbench task archive --done [--keep=N]` — Bulk-archives done tasks, keeping the N most-recently-updated. `--keep` defaults to `done_display.max`.
@@ -416,6 +416,15 @@ separate investigation.
   Updates section. Terms may land in different parts of the corpus and in any
   order. Recording a decision in an Update is therefore enough to retrieve it
   later.
+- **Precision controls (opt-in).** Both narrow the term-matching rule and leave
+  the corpus, ordering, and result context untouched. A double-quoted run in the
+  query — `"token exchange"` — is one term that must match contiguously, with
+  internal whitespace matching any whitespace run so a phrase survives a line
+  break; an empty or unbalanced quote is dropped. `--whole-word` matches every
+  term (loose or quoted) on word boundaries, so `ci` stops matching `decision`.
+  The grammar lives in `searchTasks`, so the Board inherits it verbatim. The CLI
+  passes literal quote characters through in the `<query>` argument, so a phrase
+  has to be protected from the shell (`task search '"token exchange"'`).
 - **Result context.** Each match reports `slug`, `title`, current `status`,
   `location` (`live` / `archive`, supplied by the caller), and `matched_fields`
   (`title` / `tags` / `body` / `updates`). A body hit adds a bounded `snippet`.
@@ -445,10 +454,9 @@ separate investigation.
   availability is a live-column concept and cannot combine with `--archived` /
   `--all`. Filtering only narrows which tasks are searched; it never changes the
   relevance ordering above.
-- **Staged, not in this increment.** Whole-word matching and exact-phrase
-  `"quoted"` queries; semantic retrieval. Each has a dedicated task. The Board's
-  description-search correction implements the corpus and result-context
-  contract above and need not wait for these.
+- **Staged, not in this increment.** Semantic retrieval — a dedicated task. The
+  Board's description-search correction implements the corpus, precision, and
+  result-context contract above and need not wait for it.
 
 **Harbor opt-in.** Without any `--harbor` flag, the CLI has zero knowledge of Harbor. The `--harbor` family of flags is the only surface where the CLI talks to a hosted service.
 

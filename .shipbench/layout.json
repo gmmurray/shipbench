@@ -6,8 +6,7 @@
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
     "make-continuity-claims-precise-without-weakening-shipbench-s-promise",
     "add-focused-dependency-queries-for-a-single-task",
-    "expose-a-consistent-cli-project-validation-report",
-    "add-whole-word-and-exact-phrase-matching-to-task-search"
+    "expose-a-consistent-cli-project-validation-report"
   ],
   "backlog": [
     "spike-evaluate-whether-shipbench-helps-people-resume-real-projects",

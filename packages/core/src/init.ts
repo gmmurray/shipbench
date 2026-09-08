@@ -381,6 +381,8 @@ shipbench task list --available --tag backend,auth --assignee agent --json
 
 \`--tag\` accepts comma-separated values or repeated flags and uses AND semantics. \`--status\`, \`--assignee\`, \`--priority\`, and \`--limit\` can narrow the same query. Use \`--status\` when the project's actionable column differs from its configured default. \`shipbench task search\` takes the same filters — including \`--available\` / \`--blocked\` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
+\`task search\` matches each term as a case-insensitive substring by default. Add \`--whole-word\` to match on word boundaries, and wrap a run in literal double quotes (\`task search '"exact phrase"'\`) to require it to match contiguously.
+
 After selecting a slug, load that task's full frontmatter, description, and Updates:
 
 \`\`\`bash
