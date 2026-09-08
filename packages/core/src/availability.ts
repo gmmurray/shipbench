@@ -5,8 +5,11 @@ import {
 import type { ShipbenchConfig, Task } from './types.js';
 
 export interface TaskAvailabilityOptions {
-  /** Column whose tasks are candidates. Defaults to `config.default_column`. */
-  status?: string;
+  /**
+   * Column(s) whose tasks are candidates. A single id or a list; a list matches
+   * any of the named columns. Defaults to `config.default_column`.
+   */
+  status?: string | readonly string[];
   /** Already-read tasks from `.shipbench/tasks/archive/`. */
   archivedTasks?: readonly Task[];
   /** Archive file slugs, including files whose contents did not parse. */
@@ -63,7 +66,10 @@ function listTasksByAvailability(
   mode: 'available' | 'blocked',
   options: TaskAvailabilityOptions = {},
 ): Task[] {
-  const status = options.status ?? config.default_column;
+  const statusOption = options.status ?? config.default_column;
+  const statuses = new Set(
+    typeof statusOption === 'string' ? [statusOption] : statusOption,
+  );
   const dependencyIndex = createTaskDependencyIndex(
     tasks,
     options.archivedTasks,
@@ -72,7 +78,7 @@ function listTasksByAvailability(
 
   return tasks
     .filter(task => {
-      if (task.frontmatter.status !== status) return false;
+      if (!statuses.has(task.frontmatter.status)) return false;
       const available = taskDependenciesAreSatisfied(
         task,
         dependencyIndex,

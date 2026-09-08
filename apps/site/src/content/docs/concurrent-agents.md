@@ -27,7 +27,7 @@ shipbench -C ~/code/my-project task move <slug> --to <status>
 The rule is narrow on purpose. From inside its worktree, an agent may still write to the board files that belong to its own task:
 
 - append Updates with `shipbench task comment`;
-- refine its own task's description with `shipbench task edit`;
+- refine its own task's description or metadata (tags, priority, dependencies) with `shipbench task edit` — but not its `status`, which stays with `task move`;
 - create follow-up tasks it discovers along the way.
 
 Those changes ride the task branch and merge in with the code. What an agent must not do from a worktree:

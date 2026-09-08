@@ -24,6 +24,7 @@ import {
   type StorageAdapter,
   searchTasks,
   type Task,
+  type TaskFrontmatter,
   taskFileSlugs,
   unarchiveTask,
   unreadableUpdatesWarning,
@@ -93,6 +94,124 @@ function commaList(value: string): string[] {
 /** Supports both `--depends-on a,b` and a repeated `--depends-on a --depends-on b`. */
 function accumulateCommaList(value: string, previous?: string[]): string[] {
   return [...(previous ?? []), ...commaList(value)];
+}
+
+/** Case-insensitive dedupe that keeps the first spelling of each value. */
+function dedupePreservingCase(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
+/**
+ * The multi-value filter rule, shared by `task list` and `task search`:
+ * `--status` and `--priority` take a comma-separated or repeated list and match
+ * any of the named values. A value that is not a configured column or priority
+ * cannot match anything, so it is an error with the valid set spelled out
+ * rather than a silently empty result. `--assignee` is freeform and has no
+ * canonical set to check against, so it is not validated here.
+ */
+function assertKnownFilterValues(
+  command: Command,
+  label: 'status' | 'priority',
+  values: string[] | undefined,
+  valid: readonly string[],
+): void {
+  if (!values || values.length === 0) return;
+  const validSet = new Set(valid);
+  const unknown = values.filter(value => !validSet.has(value));
+  if (unknown.length > 0) {
+    command.error(
+      `Unknown ${label} ${unknown
+        .map(value => `"${value}"`)
+        .join(', ')}. Valid: ${valid.join(', ')}`,
+    );
+  }
+}
+
+interface RawTaskFilters {
+  status?: string[];
+  assignee?: string[];
+  priority?: string[];
+  tag?: string[];
+}
+
+interface ResolvedTaskFilters {
+  statuses: string[];
+  assignees: string[];
+  priorities: string[];
+  tags: string[];
+}
+
+/** Parses and validates the shared `task list` / `task search` filter flags. */
+function resolveTaskFilters(
+  command: Command,
+  raw: RawTaskFilters,
+  config: ShipbenchConfig,
+): ResolvedTaskFilters {
+  const statuses = raw.status ?? [];
+  const priorities = raw.priority ?? [];
+  assertKnownFilterValues(
+    command,
+    'status',
+    statuses,
+    config.columns.map(column => column.id),
+  );
+  assertKnownFilterValues(
+    command,
+    'priority',
+    priorities,
+    config.priority.values,
+  );
+  return {
+    statuses,
+    priorities,
+    assignees: raw.assignee ?? [],
+    tags: raw.tag ?? [],
+  };
+}
+
+/**
+ * `--status`, `--priority`, and `--assignee` each match a task whose value is
+ * any of the ones listed; `--tag` narrows with AND. `ignoreStatus` is set when
+ * `--available` / `--blocked` has already used the status list to pick the
+ * candidate column.
+ */
+function taskMatchesFilters(
+  task: Task,
+  filters: ResolvedTaskFilters,
+  options: { ignoreStatus?: boolean } = {},
+): boolean {
+  const { frontmatter } = task;
+  if (
+    !options.ignoreStatus &&
+    filters.statuses.length > 0 &&
+    !filters.statuses.includes(frontmatter.status)
+  ) {
+    return false;
+  }
+  if (
+    filters.priorities.length > 0 &&
+    (frontmatter.priority === undefined ||
+      !filters.priorities.includes(frontmatter.priority))
+  ) {
+    return false;
+  }
+  if (
+    filters.assignees.length > 0 &&
+    (frontmatter.assignee === undefined ||
+      !filters.assignees.includes(frontmatter.assignee))
+  ) {
+    return false;
+  }
+  const taskTags = (frontmatter.tags ?? []).map(tag => tag.toLowerCase());
+  return filters.tags.every(wanted => taskTags.includes(wanted.toLowerCase()));
 }
 
 function parsePort(value: string): number {
@@ -549,22 +668,118 @@ export function createCli(opts: CliOptions): Command {
       chrome(`Created task: ${created.slug}`);
     });
 
+  const commaListOption = (flags: string, description: string): Option =>
+    new Option(flags, description).argParser(accumulateCommaList);
+
   const editCommand = task
     .command('edit <slug>')
-    .description("Replace a task's Markdown description")
+    .description("Revise a task's description or its validated metadata")
+    .option(
+      '--title <text>',
+      'Set the title (the slug and filename do not change)',
+    )
+    .option('-p, --priority <value>', 'Set the priority')
+    .addOption(
+      new Option('-a, --assignee <label>', 'Set the assignee label').conflicts([
+        'clearAssignee',
+      ]),
+    )
+    .addOption(
+      new Option('--clear-assignee', 'Remove the assignee').conflicts([
+        'assignee',
+      ]),
+    )
+    .addOption(
+      commaListOption(
+        '-t, --tags <tags>',
+        'Replace every tag (comma-separated or repeatable)',
+      ).conflicts(['addTag', 'removeTag', 'clearTags']),
+    )
+    .addOption(
+      commaListOption(
+        '--add-tag <tags>',
+        'Add tags, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['tags', 'clearTags']),
+    )
+    .addOption(
+      commaListOption(
+        '--remove-tag <tags>',
+        'Remove tags, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['tags', 'clearTags']),
+    )
+    .addOption(
+      new Option('--clear-tags', 'Remove every tag').conflicts([
+        'tags',
+        'addTag',
+        'removeTag',
+      ]),
+    )
+    .addOption(
+      commaListOption(
+        '-d, --depends-on <slugs>',
+        'Replace every dependency (comma-separated or repeatable)',
+      ).conflicts(['addDependsOn', 'removeDependsOn', 'clearDependsOn']),
+    )
+    .addOption(
+      commaListOption(
+        '--add-depends-on <slugs>',
+        'Add dependencies, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['dependsOn', 'clearDependsOn']),
+    )
+    .addOption(
+      commaListOption(
+        '--remove-depends-on <slugs>',
+        'Remove dependencies, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['dependsOn', 'clearDependsOn']),
+    )
+    .addOption(
+      new Option('--clear-depends-on', 'Remove every dependency').conflicts([
+        'dependsOn',
+        'addDependsOn',
+        'removeDependsOn',
+      ]),
+    )
     .addOption(bodyOption())
     .addOption(bodyFileOption())
     .option('--json', 'Output the edited task as JSON')
     .addHelpText(
       'after',
-      '\nThe description is replaced whole and an empty value clears it. The Task\nUpdates section is never touched — use `shipbench task comment` for those.\n',
+      '\nPass at least one change. Every change is applied in a single validated\nwrite: if any value is rejected the task is left exactly as it was. Status\nand board placement stay with `shipbench task move`; the Task Updates section\nstays with `shipbench task comment`. A title edit never renames the file.\n',
     );
 
   editCommand.action(async (slug: string, raw) => {
     const body = await resolveBody(raw);
-    if (body === undefined) {
+
+    const clearAssignee = Boolean(raw.clearAssignee);
+    const clearTags = Boolean(raw.clearTags);
+    const clearDependsOn = Boolean(raw.clearDependsOn);
+    const addTag = raw.addTag as string[] | undefined;
+    const removeTag = raw.removeTag as string[] | undefined;
+    const replaceTags = raw.tags as string[] | undefined;
+    const addDependsOn = raw.addDependsOn as string[] | undefined;
+    const removeDependsOn = raw.removeDependsOn as string[] | undefined;
+    const replaceDependsOn = raw.dependsOn as string[] | undefined;
+
+    const requestedAnything =
+      body !== undefined ||
+      raw.title !== undefined ||
+      raw.priority !== undefined ||
+      raw.assignee !== undefined ||
+      clearAssignee ||
+      replaceTags !== undefined ||
+      addTag !== undefined ||
+      removeTag !== undefined ||
+      clearTags ||
+      replaceDependsOn !== undefined ||
+      addDependsOn !== undefined ||
+      removeDependsOn !== undefined ||
+      clearDependsOn;
+
+    if (!requestedAnything) {
       editCommand.error(
-        'Provide --body <text> or --body-file <path> (use "-" to read stdin).',
+        'Provide at least one change: --body/--body-file, --title, --priority, ' +
+          '--assignee/--clear-assignee, --tags/--add-tag/--remove-tag/--clear-tags, ' +
+          'or --depends-on/--add-depends-on/--remove-depends-on/--clear-depends-on.',
       );
       return;
     }
@@ -581,7 +796,116 @@ export function createCli(opts: CliOptions): Command {
       return;
     }
 
-    const { task: edited } = await updateTask(adapter, config, slug, {}, body);
+    const before = existing.frontmatter;
+    const fields: Partial<TaskFrontmatter> = {};
+    const changes: string[] = [];
+    const list = (values: readonly string[]): string =>
+      values.length > 0 ? `[${values.join(', ')}]` : '(none)';
+
+    if (raw.title !== undefined && raw.title !== before.title) {
+      fields.title = raw.title;
+      changes.push(`title "${before.title}" → "${raw.title}"`);
+    }
+
+    if (raw.priority !== undefined && raw.priority !== before.priority) {
+      fields.priority = raw.priority;
+      changes.push(
+        `priority ${before.priority ?? '(unset)'} → ${raw.priority}`,
+      );
+    }
+
+    if (raw.assignee !== undefined) {
+      if (raw.assignee !== (before.assignee ?? undefined)) {
+        fields.assignee = raw.assignee;
+        changes.push(
+          `assignee ${before.assignee ?? '(unset)'} → ${raw.assignee}`,
+        );
+      }
+    } else if (clearAssignee && before.assignee !== undefined) {
+      fields.assignee = undefined;
+      changes.push(`assignee ${before.assignee} → (unset)`);
+    }
+
+    const currentTags = before.tags ?? [];
+    let nextTags: string[] | undefined;
+    if (replaceTags !== undefined) {
+      nextTags = dedupePreservingCase(replaceTags);
+    } else if (clearTags) {
+      nextTags = [];
+    } else if (addTag !== undefined || removeTag !== undefined) {
+      const removed = new Set((removeTag ?? []).map(tag => tag.toLowerCase()));
+      nextTags = dedupePreservingCase([
+        ...currentTags.filter(tag => !removed.has(tag.toLowerCase())),
+        ...(addTag ?? []),
+      ]);
+    }
+    if (
+      nextTags !== undefined &&
+      (nextTags.length !== currentTags.length ||
+        nextTags.some((tag, index) => tag !== currentTags[index]))
+    ) {
+      fields.tags = nextTags.length > 0 ? nextTags : undefined;
+      changes.push(`tags ${list(currentTags)} → ${list(nextTags)}`);
+    }
+
+    const currentDeps = before.depends_on ?? [];
+    let nextDeps: string[] | undefined;
+    if (replaceDependsOn !== undefined) {
+      nextDeps = dedupePreservingCase(replaceDependsOn);
+    } else if (clearDependsOn) {
+      nextDeps = [];
+    } else if (addDependsOn !== undefined || removeDependsOn !== undefined) {
+      const removed = new Set(removeDependsOn ?? []);
+      nextDeps = dedupePreservingCase([
+        ...currentDeps.filter(dep => !removed.has(dep)),
+        ...(addDependsOn ?? []),
+      ]);
+    }
+    if (
+      nextDeps !== undefined &&
+      (nextDeps.length !== currentDeps.length ||
+        nextDeps.some((dep, index) => dep !== currentDeps[index]))
+    ) {
+      // Core keys dependency handling off `'depends_on' in fields`, so an empty
+      // array is the explicit "clear" signal it normalizes away on write.
+      fields.depends_on = nextDeps;
+      changes.push(`depends_on ${list(currentDeps)} → ${list(nextDeps)}`);
+    }
+
+    if (body !== undefined) {
+      changes.push(body.trim() ? 'description' : 'description cleared');
+    }
+
+    if (changes.length === 0) {
+      // Nothing to write — every requested value already matches. Report the
+      // task unchanged rather than bumping `updated` for a no-op.
+      if (raw.json) {
+        data(
+          JSON.stringify(
+            {
+              slug: existing.slug,
+              status: existing.frontmatter.status,
+              frontmatter: existing.frontmatter,
+              body: existing.body,
+              comments: existing.comments,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      chrome(`No changes for ${slug}: every field already holds that value.`);
+      return;
+    }
+
+    const { task: edited } = await updateTask(
+      adapter,
+      config,
+      slug,
+      fields,
+      body,
+    );
 
     if (raw.json) {
       data(
@@ -599,11 +923,10 @@ export function createCli(opts: CliOptions): Command {
       );
       return;
     }
-    chrome(
-      body.trim()
-        ? `Updated description on ${edited.slug}`
-        : `Cleared description on ${edited.slug}`,
-    );
+    chrome(`Updated ${edited.slug}: ${changes.join('; ')}`);
+    if (fields.title !== undefined) {
+      chrome(`Slug and filename unchanged: ${edited.slug}`);
+    }
   });
 
   const BODY_FILE_HELP =
@@ -869,12 +1192,28 @@ export function createCli(opts: CliOptions): Command {
       chrome('Wrote .shipbench/layout.json');
     });
 
-  task
+  const listCommand = task
     .command('list')
-    .description('List live tasks in board order, optionally filtered')
-    .option('-s, --status <status>', 'Filter by status')
-    .option('-a, --assignee <assignee>', 'Filter by assignee')
-    .option('-p, --priority <priority>', 'Filter by priority')
+    .description('List live tasks in board order, optionally filtered');
+  listCommand
+    .addOption(
+      new Option(
+        '-s, --status <statuses>',
+        'Filter by status (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
+    )
+    .addOption(
+      new Option(
+        '-a, --assignee <assignees>',
+        'Filter by assignee (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
+    )
+    .addOption(
+      new Option(
+        '-p, --priority <priorities>',
+        'Filter by priority (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
+    )
     .option(
       '--tag <tag>',
       'Filter by tag (comma-separated or repeatable with AND semantics)',
@@ -911,6 +1250,9 @@ export function createCli(opts: CliOptions): Command {
       }
 
       const config = await loadCliConfig();
+      const filters = resolveTaskFilters(listCommand, raw, config);
+      const availabilityStatus =
+        filters.statuses.length > 0 ? filters.statuses : undefined;
       const archivedPromise = raw.archived
         ? undefined
         : listArchivedTasks(adapter, config);
@@ -928,32 +1270,22 @@ export function createCli(opts: CliOptions): Command {
       if (raw.available || raw.blocked) {
         candidates = raw.available
           ? listAvailableTasks(candidates, config, {
-              status: raw.status,
+              status: availabilityStatus,
               archivedTasks: archived?.tasks,
               archivedSlugs: archived ? taskFileSlugs(archived) : undefined,
             })
           : listBlockedTasks(candidates, config, {
-              status: raw.status,
+              status: availabilityStatus,
               archivedTasks: archived?.tasks,
               archivedSlugs: archived ? taskFileSlugs(archived) : undefined,
             });
       }
 
-      const requestedTags = (raw.tag ?? []) as string[];
       const filtered = candidates
-        .filter(
-          t =>
-            (raw.available ||
-              raw.blocked ||
-              !raw.status ||
-              t.frontmatter.status === raw.status) &&
-            (!raw.assignee || t.frontmatter.assignee === raw.assignee) &&
-            (!raw.priority || t.frontmatter.priority === raw.priority) &&
-            requestedTags.every(requestedTag =>
-              (t.frontmatter.tags ?? []).some(
-                tag => tag.toLowerCase() === requestedTag.toLowerCase(),
-              ),
-            ),
+        .filter(t =>
+          taskMatchesFilters(t, filters, {
+            ignoreStatus: Boolean(raw.available || raw.blocked),
+          }),
         )
         .slice(0, raw.limit);
 
@@ -993,14 +1325,30 @@ export function createCli(opts: CliOptions): Command {
       }
     });
 
-  task
+  const searchCommand = task
     .command('search <query>')
     .description(
       'Search task titles, tags, Markdown descriptions, and Task Updates',
+    );
+  searchCommand
+    .addOption(
+      new Option(
+        '-s, --status <statuses>',
+        'Filter by status (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
     )
-    .option('-s, --status <status>', 'Filter by status')
-    .option('-a, --assignee <assignee>', 'Filter by assignee')
-    .option('-p, --priority <priority>', 'Filter by priority')
+    .addOption(
+      new Option(
+        '-a, --assignee <assignees>',
+        'Filter by assignee (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
+    )
+    .addOption(
+      new Option(
+        '-p, --priority <priorities>',
+        'Filter by priority (comma-separated or repeatable; matches any)',
+      ).argParser(accumulateCommaList),
+    )
     .option(
       '--tag <tag>',
       'Filter by tag (comma-separated or repeatable with AND semantics)',
@@ -1049,6 +1397,9 @@ export function createCli(opts: CliOptions): Command {
       }
 
       const config = await loadCliConfig();
+      const filters = resolveTaskFilters(searchCommand, raw, config);
+      const availabilityStatus =
+        filters.statuses.length > 0 ? filters.statuses : undefined;
       const searchArchive = Boolean(raw.archived || raw.all);
       const searchLive = !raw.archived || Boolean(raw.all);
       // Availability resolves an archived dependency as satisfied, so the
@@ -1072,7 +1423,7 @@ export function createCli(opts: CliOptions): Command {
         const select = raw.available ? listAvailableTasks : listBlockedTasks;
         const eligible = new Set(
           select(candidates, config, {
-            status: raw.status,
+            status: availabilityStatus,
             archivedTasks: archivedResult?.tasks,
             archivedSlugs: archivedResult
               ? taskFileSlugs(archivedResult)
@@ -1082,20 +1433,10 @@ export function createCli(opts: CliOptions): Command {
         candidates = candidates.filter(task => eligible.has(task.slug));
       }
 
-      const requestedTags = (raw.tag ?? []) as string[];
-      candidates = candidates.filter(
-        task =>
-          (raw.available ||
-            raw.blocked ||
-            !raw.status ||
-            task.frontmatter.status === raw.status) &&
-          (!raw.assignee || task.frontmatter.assignee === raw.assignee) &&
-          (!raw.priority || task.frontmatter.priority === raw.priority) &&
-          requestedTags.every(requestedTag =>
-            (task.frontmatter.tags ?? []).some(
-              tag => tag.toLowerCase() === requestedTag.toLowerCase(),
-            ),
-          ),
+      candidates = candidates.filter(task =>
+        taskMatchesFilters(task, filters, {
+          ignoreStatus: Boolean(raw.available || raw.blocked),
+        }),
       );
 
       const archivedSlugs = new Set(

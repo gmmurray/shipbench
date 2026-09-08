@@ -707,6 +707,16 @@ export async function updateTask(
   if (fields.status) assertValidStatus(fields.status, config);
   if (fields.priority) assertValidPriority(fields.priority, config);
 
+  // `title` is required and stays in sync with nothing — the slug and filename
+  // are fixed at creation, so a title edit never renames the file. Reject a
+  // value that could not have been a title in the first place, mirroring
+  // `createTask`, rather than writing a task with an empty or missing title.
+  if ('title' in fields && !slugify(fields.title ?? '')) {
+    throw new Error(
+      'Task title must contain at least one slug-able character.',
+    );
+  }
+
   // Distinguish "caller omitted depends_on" (leave as-is) from "caller passed
   // an empty list" (clear the field).
   const dependsOnProvided = 'depends_on' in fields;

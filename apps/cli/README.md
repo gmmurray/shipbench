@@ -39,11 +39,12 @@ it byte-for-byte unchanged.
 | --- | --- |
 | `shipbench init` | Create `.shipbench/` when absent. `--name <name>` sets the project name (defaults to the directory basename). |
 | `shipbench task create <title>` | Create a task. `--status`, `--priority`, `--assignee`, `--tags=a,b,c`, `--depends-on=slug`, and `--json` to print the created task — the only way to learn a collision-suffixed slug programmatically. |
-| `shipbench task list` | List live tasks in board order. Filters: `--status`, `--priority`, `--assignee`, `--tag`, `--available`, `--blocked`, `--archived`. `--json` for machine output. |
+| `shipbench task list` | List live tasks in board order. Filters: `--status`, `--priority`, `--assignee` (comma-separated or repeatable, match any; unconfigured status/priority errors), `--tag` (AND), `--available`, `--blocked`, `--archived`. `--json` for machine output. |
 | `shipbench task get <slug>` | Retrieve one task as JSON. |
+| `shipbench task edit <slug>` | Revise the description (`--body` / `--body-file`) and/or validated metadata: `--title` (keeps the slug), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`. One validated write; a rejected value changes nothing. Status stays with `task move`. |
 | `shipbench task move <slug>` | `--to=<status>` picks the column; `--top`, `--bottom`, `--before=<slug>`, `--after=<slug>`, `--position=<n>` pick the spot within it. |
 | `shipbench task comment <slug> <text>` | Append a timestamped entry to the task's `## Task Updates` section. `edit` and `delete` subcommands take a zero-based index. |
-| `shipbench task search <query>` | Case-insensitive search over titles, tags, bodies, and Task Updates. Each term is a substring by default; `--whole-word` matches on word boundaries and a literal `"quoted"` run matches contiguously. Narrow with `task list`'s filters — `--status`, `--assignee`, `--priority`, `--tag`, `--available`/`--blocked` — plus `--archived`, `--all`, `--limit`. |
+| `shipbench task search <query>` | Case-insensitive search over titles, tags, bodies, and Task Updates. Each term is a substring by default; `--whole-word` matches on word boundaries and a literal `"quoted"` run matches contiguously. Narrow with `task list`'s filters — `--status`, `--assignee`, `--priority` (comma-separated or repeatable, match any), `--tag` (AND), `--available`/`--blocked` — plus `--archived`, `--all`, `--limit`. |
 | `shipbench task graph` | Dependency graph as JSON when piped or with `--json`; an ASCII summary in an interactive terminal. |
 | `shipbench task archive <slug>` | Move a task to `tasks/archive/`, byte-identical and restorable. `--done [--keep=N]` bulk-archives completed tasks. |
 | `shipbench task unarchive <slug>` | Restore an archived task exactly as it was. |

@@ -379,7 +379,7 @@ shipbench task list --available --tag backend --json
 shipbench task list --available --tag backend,auth --assignee agent --json
 \`\`\`
 
-\`--tag\` accepts comma-separated values or repeated flags and uses AND semantics. \`--status\`, \`--assignee\`, \`--priority\`, and \`--limit\` can narrow the same query. Use \`--status\` when the project's actionable column differs from its configured default. \`shipbench task search\` takes the same filters — including \`--available\` / \`--blocked\` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
+\`--tag\` accepts comma-separated values or repeated flags and uses AND semantics. \`--status\`, \`--assignee\`, and \`--priority\` take the same comma-separated or repeated form but match a task whose value is any of the ones listed; \`--limit\` caps the count. A \`--status\` or \`--priority\` value that is not configured is an error naming the valid set, not a silently empty result. Use \`--status\` when the project's actionable column differs from its configured default. \`shipbench task search\` takes the same filters — including \`--available\` / \`--blocked\` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
 \`task search\` matches each term as a case-insensitive substring by default. Add \`--whole-word\` to match on word boundaries, and wrap a run in literal double quotes (\`task search '"exact phrase"'\`) to require it to match contiguously.
 
@@ -444,6 +444,7 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Create a task**: \`shipbench task create "Task title" --status=todo\`
 - **Create a task with a description**: \`shipbench task create "Task title" --body-file=description.md\` (or \`--body "One-line description."\`)
 - **Rewrite a description**: \`shipbench task edit <slug> --body-file=description.md\` (replaces it whole; \`--body ""\` clears it)
+- **Revise task metadata**: \`shipbench task edit <slug> --priority=high --assignee=agent --add-tag=urgent --remove-tag=stale\` (also \`--title\`, \`--tags\`, \`--clear-tags\`, \`--clear-assignee\`, \`--depends-on\`, \`--add-depends-on\`, \`--remove-depends-on\`, \`--clear-depends-on\`). Every flag is applied in one validated write, so a rejected value leaves the task untouched. A title edit keeps the existing slug and filename. Status and board placement stay with \`task move\`.
 - **Create a dependent task**: \`shipbench task create "Task title" --depends-on=other-slug,another-slug\`
 - **Add a time-anchored update**: \`shipbench task comment <slug> "What changed and why."\`
 - **Add a multi-line update**: \`shipbench task comment <slug> --body-file update.md\`
@@ -462,11 +463,11 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 
 ### Direct File Operations
 
-Use direct edits only when the CLI is unavailable or when changing task description/frontmatter fields the CLI does not support yet.
+Use direct edits only when the CLI is unavailable.
 
 - **Create a task**: Add a new \`.md\` file in \`tasks/\` following the format above.
 - **Move a task**: Change the \`status\` field and update the \`updated\` timestamp.
-- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. The CLI reaches descriptions — use \`task edit\` rather than rewriting a file by hand.
+- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. \`shipbench task edit\` reaches the description and the validated metadata fields (title, priority, assignee, tags, depends_on) — use it rather than rewriting a file by hand.
 - **Add an Update without the CLI**: Append a \`### <ISO 8601 timestamp>\` heading and text below the trailing \`## Task Updates\` marker.
 - **Edit an Update without the CLI**: Change only its text; preserve the \`###\` timestamp heading and update the frontmatter \`updated\` value.
 - **Delete an Update without the CLI**: Remove its heading and text, remove an empty \`## Task Updates\` section, and update the frontmatter \`updated\` value.

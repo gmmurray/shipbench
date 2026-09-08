@@ -1,6 +1,5 @@
 {
   "todo": [
-    "complete-validated-task-metadata-editing-in-the-cli",
     "make-the-landing-page-demonstrate-shipbench-s-distinctive-value",
     "make-task-descriptions-discoverable-through-board-search",
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
@@ -14,7 +13,8 @@
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
-    "strengthen-shipbench-messaging-across-docs-and-public-pages-then-assess-next-steps"
+    "strengthen-shipbench-messaging-across-docs-and-public-pages-then-assess-next-steps",
+    "spike-investigate-task-templates-in-the-shipbench-convention"
   ],
   "in-progress": [],
   "review": []

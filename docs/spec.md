@@ -378,9 +378,9 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 - `shipbench init --harbor=<connect-url>` — Safely initializes when needed, then connects the repo's normalized GitHub origin to a Harbor project through a signed one-time URL. It uses the same non-interactive connection path as `shipbench connect`.
 - `shipbench connect --harbor=<connect-url>` — Connects an existing ShipBench project to Harbor without changing project files. Harbor presents this explicit form for repositories that already use ShipBench.
 - `shipbench task create <title> [--status] [--assignee] [--priority] [--tags=a,b,c] [--body <text> | --body-file <path>]` — Creates a new slug-based task file, with its description attached when a body is supplied.
-- `shipbench task edit <slug> (--body <text> | --body-file <path>)` — Replaces the task's description whole, leaving `created` and the Updates section untouched. An empty body clears the description.
+- `shipbench task edit <slug> [description] [metadata]` — Revises the description (`--body` / `--body-file`, replaced whole; empty clears it) and/or the validated metadata: `--title` (never renames the file), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`. Every change is one `updateTask` call, so core validation runs before any write and a rejected value leaves the task untouched. `created` and the Updates section stay untouched; `status` and placement stay with `task move`.
 - `shipbench task move <slug> --to=<status>` — Moves a task to a new status (appends to the destination column's layout unless it is `done_column`).
-- `shipbench task list [--status] [--assignee] [--priority] [--archived]` — Lists tasks with optional filters; `--archived` lists the archive instead.
+- `shipbench task list [--status] [--assignee] [--priority] [--tag] [--available | --blocked] [--archived]` — Lists tasks with optional filters; `--archived` lists the archive instead. `--status`, `--assignee`, and `--priority` accept a comma-separated or repeated list and match any listed value; an unconfigured `--status` or `--priority` value is an error, not an empty result.
 - `shipbench task search <query> [--status] [--assignee] [--priority] [--tag=a,b] [--available | --blocked] [--whole-word] [--archived | --all] [--limit <n>] [--json] [--include-body]` — Full-text search over the corpus defined under **Search** below. `--archived` searches the archive instead of live tasks, `--all` searches both. The metadata and availability flags share `task list`'s predicate and semantics.
 - `shipbench task delete <slug>` — Deletes a task file and prunes the slug from layout.
 - `shipbench task archive <slug> [--force]` — Moves a task to `tasks/archive/` byte-identical. Blocked (without `--force`) when live tasks depend on a non-done task.
@@ -447,10 +447,12 @@ separate investigation.
   `… N of M matches not shown (raise --limit)` line whenever the limit drops any
   match, including `--limit 0`.
 - **Narrowing the corpus.** `task search` takes `task list`'s own filters —
-  `--status`, `--assignee`, `--priority`, `--tag` (comma or repeated, AND
-  semantics), and `--available` / `--blocked` — applied to the candidate set
-  before `searchTasks` runs, reusing the `listAvailableTasks` /
-  `listBlockedTasks` helpers verbatim. `--available` excludes `--blocked`;
+  `--status`, `--assignee`, `--priority` (comma or repeated, matching any listed
+  value), `--tag` (comma or repeated, AND semantics), and `--available` /
+  `--blocked` — applied to the candidate set before `searchTasks` runs, reusing
+  the `listAvailableTasks` / `listBlockedTasks` helpers verbatim. An unconfigured
+  `--status` or `--priority` value is an error rather than an empty result.
+  `--available` excludes `--blocked`;
   availability is a live-column concept and cannot combine with `--archived` /
   `--all`. Filtering only narrows which tasks are searched; it never changes the
   relevance ordering above.

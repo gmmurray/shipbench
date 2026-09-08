@@ -142,6 +142,22 @@ describe('task availability filtering', () => {
     ).toEqual(['active-blocked']);
   });
 
+  it('accepts a list of candidate columns', () => {
+    const tasks = [
+      task('todo-ready'),
+      task('active-ready', { status: 'in-progress' }),
+      task('done-ready', { status: 'done' }),
+    ];
+
+    expect(
+      listAvailableTasks(tasks, DEFAULT_CONFIG, {
+        status: ['todo', 'in-progress'],
+      })
+        .map(candidate => candidate.slug)
+        .sort(),
+    ).toEqual(['active-ready', 'todo-ready']);
+  });
+
   it('sorts priority descending, then creation time ascending, without mutating input', () => {
     const tasks = [
       task('low-oldest', {

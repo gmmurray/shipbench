@@ -775,7 +775,7 @@ describe('shipbench task edit', () => {
       Date.parse('2026-01-01T00:00:00.000Z'),
     );
     expect(h.stdout).toEqual([]);
-    expect(h.stderr.at(-1)).toBe('Updated description on build-api');
+    expect(h.stderr.at(-1)).toBe('Updated build-api: description');
   });
 
   it('leaves the Updates section untouched', async () => {
@@ -796,7 +796,7 @@ describe('shipbench task edit', () => {
       h.adapter.files.get('.shipbench/tasks/build-api.md')!,
     );
     expect(parsed.content.trim()).toBe('');
-    expect(h.stderr.at(-1)).toBe('Cleared description on build-api');
+    expect(h.stderr.at(-1)).toBe('Updated build-api: description cleared');
   });
 
   it('reads a UTF-8 description from --body-file', async () => {
@@ -839,12 +839,12 @@ describe('shipbench task edit', () => {
     });
   });
 
-  it('requires --body or --body-file', async () => {
+  it('requires at least one change', async () => {
     await expect(h.run('task', 'edit', 'build-api')).rejects.toMatchObject({
       code: 'commander.error',
       exitCode: 1,
     });
-    expect(h.stderr.join('\n')).toContain('Provide --body <text>');
+    expect(h.stderr.join('\n')).toContain('Provide at least one change');
   });
 
   it('rejects an unknown task', async () => {
@@ -881,6 +881,159 @@ describe('shipbench task edit', () => {
       h.adapter.files.get('.shipbench/tasks/build-api.md')!,
     );
     expect(parsed.content.trim()).toBe('Original text.');
+  });
+});
+
+describe('shipbench task edit (metadata)', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    await h.run(
+      'task',
+      'create',
+      'Build api',
+      '--priority=low',
+      '--tags=backend,api',
+      '--assignee=greg',
+      '--body',
+      'Original text.',
+    );
+    await h.run('task', 'create', 'Ship auth');
+    setTaskCreated(h, 'build-api', '2026-01-01T00:00:00.000Z');
+    setTaskUpdated(h, 'build-api', '2026-01-01T00:00:00.000Z');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+  });
+
+  const frontmatter = (slug = 'build-api') =>
+    matter(h.adapter.files.get(`.shipbench/tasks/${slug}.md`)!).data;
+
+  it('sets priority and assignee through core validation', async () => {
+    await h.run(
+      'task',
+      'edit',
+      'build-api',
+      '--priority=high',
+      '--assignee=claude',
+    );
+    const data = frontmatter();
+    expect(data.priority).toBe('high');
+    expect(data.assignee).toBe('claude');
+    expect(data.created).toBe('2026-01-01T00:00:00.000Z');
+    expect(Date.parse(data.updated)).toBeGreaterThan(
+      Date.parse('2026-01-01T00:00:00.000Z'),
+    );
+  });
+
+  it('rejects an invalid priority without writing any change', async () => {
+    await expect(
+      h.run(
+        'task',
+        'edit',
+        'build-api',
+        '--assignee=claude',
+        '--priority=nope',
+      ),
+    ).rejects.toThrow(/Invalid priority/);
+    const data = frontmatter();
+    expect(data.priority).toBe('low');
+    expect(data.assignee).toBe('greg');
+  });
+
+  it('replaces tags with --tags and clears them with --clear-tags', async () => {
+    await h.run('task', 'edit', 'build-api', '--tags=ui,ux');
+    expect(frontmatter().tags).toEqual(['ui', 'ux']);
+    await h.run('task', 'edit', 'build-api', '--clear-tags');
+    expect(frontmatter().tags).toBeUndefined();
+  });
+
+  it('adds and removes tags incrementally', async () => {
+    await h.run(
+      'task',
+      'edit',
+      'build-api',
+      '--add-tag=urgent,api',
+      '--remove-tag=backend',
+    );
+    // backend removed, api de-duplicated, urgent appended.
+    expect(frontmatter().tags).toEqual(['api', 'urgent']);
+  });
+
+  it('clears the assignee with --clear-assignee', async () => {
+    await h.run('task', 'edit', 'build-api', '--clear-assignee');
+    expect(frontmatter().assignee).toBeUndefined();
+  });
+
+  it('rejects --assignee together with --clear-assignee', async () => {
+    await expect(
+      h.run('task', 'edit', 'build-api', '--assignee=x', '--clear-assignee'),
+    ).rejects.toMatchObject({ code: 'commander.conflictingOption' });
+  });
+
+  it('replaces and validates dependencies, keeping the slug on a title edit', async () => {
+    await h.run('task', 'edit', 'build-api', '--depends-on=ship-auth');
+    expect(frontmatter().depends_on).toEqual(['ship-auth']);
+
+    await expect(
+      h.run('task', 'edit', 'build-api', '--depends-on=ghost'),
+    ).rejects.toThrow(/Unknown dependency/);
+    expect(frontmatter().depends_on).toEqual(['ship-auth']);
+
+    await h.run('task', 'edit', 'build-api', '--clear-depends-on');
+    expect(frontmatter().depends_on).toBeUndefined();
+  });
+
+  it('changes the title without renaming the file', async () => {
+    await h.run('task', 'edit', 'build-api', '--title=Build the REST API');
+    expect(h.adapter.files.has('.shipbench/tasks/build-api.md')).toBe(true);
+    expect(frontmatter().title).toBe('Build the REST API');
+    expect(h.stderr.join('\n')).toContain('Slug and filename unchanged');
+  });
+
+  it('rejects an empty title', async () => {
+    await expect(
+      h.run('task', 'edit', 'build-api', '--title=   '),
+    ).rejects.toThrow(/slug-able/);
+  });
+
+  it('preserves the description, Updates, and unknown fields on a metadata edit', async () => {
+    await h.run('task', 'comment', 'build-api', 'Scope changed after review.');
+    const path = '.shipbench/tasks/build-api.md';
+    const withExtra = h.adapter.files
+      .get(path)!
+      .replace('priority: low', 'priority: low\nx_custom: keep-me');
+    h.adapter.files.set(path, withExtra);
+    h.stderr.length = 0;
+
+    await h.run('task', 'edit', 'build-api', '--priority=medium');
+
+    const written = h.adapter.files.get(path)!;
+    expect(written).toContain('Original text.');
+    expect(written).toContain('## Task Updates');
+    expect(written).toContain('Scope changed after review.');
+    expect(written).toContain('x_custom: keep-me');
+  });
+
+  it('applies description and metadata in one confirmation line', async () => {
+    await h.run(
+      'task',
+      'edit',
+      'build-api',
+      '--priority=high',
+      '--body',
+      'Rewritten.',
+    );
+    expect(h.stderr.at(-1)).toBe(
+      'Updated build-api: priority low → high; description',
+    );
+  });
+
+  it('reports when every requested value already matches', async () => {
+    await h.run('task', 'edit', 'build-api', '--priority=low');
+    expect(h.stderr.at(-1)).toContain('No changes for build-api');
+    expect(frontmatter().updated).toBe('2026-01-01T00:00:00.000Z');
   });
 });
 
@@ -1596,6 +1749,41 @@ updated: 2026-01-01T00:00:00.000Z
     expect(taskLines[0]).toContain('Three');
   });
 
+  it('matches any of a comma-separated --status list', async () => {
+    await h.run('task', 'list', '--status=todo,in-progress');
+    const titles = h.stdout.filter(l => l.startsWith('[')).join('\n');
+    expect(titles).toContain('One');
+    expect(titles).toContain('Two');
+    expect(titles).not.toContain('Three');
+  });
+
+  it('errors on an unknown --status value instead of returning nothing', async () => {
+    await expect(
+      h.run('task', 'list', '--status=todo,bogus'),
+    ).rejects.toMatchObject({ code: 'commander.error' });
+    expect(h.stderr.join('\n')).toMatch(
+      /Unknown status "bogus"\. Valid: todo, in-progress, done/,
+    );
+  });
+
+  it('errors on an unknown --priority value', async () => {
+    await expect(
+      h.run('task', 'list', '--priority=urgent'),
+    ).rejects.toMatchObject({ code: 'commander.error' });
+    expect(h.stderr.join('\n')).toMatch(/Unknown priority "urgent"/);
+  });
+
+  it('matches any of a repeated --assignee list', async () => {
+    await h.run('task', 'create', 'Mine', '--assignee=greg');
+    await h.run('task', 'create', 'Theirs', '--assignee=claude');
+    h.stdout.length = 0;
+
+    await h.run('task', 'list', '--assignee=greg', '--assignee=claude');
+    const titles = h.stdout.filter(l => l.startsWith('[')).join('\n');
+    expect(titles).toContain('Mine');
+    expect(titles).toContain('Theirs');
+  });
+
   it('filters by exact tag membership, case-insensitively', async () => {
     await h.run('task', 'create', 'Frontend', '--tags=UI,web');
     await h.run('task', 'create', 'Backend', '--tags=api');
@@ -2025,7 +2213,9 @@ describe('shipbench task search', () => {
     expect(h.stdout.join('\n')).toMatch(
       /Needle in title \(needle-in-title\) \[live · todo\] \[updates\]/,
     );
-    expect(h.stdout.join('\n')).toMatch(/↳ update 0 \(.+\): .*polling approach/);
+    expect(h.stdout.join('\n')).toMatch(
+      /↳ update 0 \(.+\): .*polling approach/,
+    );
   });
 
   it('supports --include-body, --limit, and JSON empty results', async () => {
@@ -2107,9 +2297,7 @@ describe('shipbench task search', () => {
     await h.run('task', 'search', 'scope marker', '--all', '--json');
     payload = JSON.parse(h.stdout.join('\n'));
     expect(
-      payload.matches
-        .map((match: { slug: string }) => match.slug)
-        .sort(),
+      payload.matches.map((match: { slug: string }) => match.slug).sort(),
     ).toEqual(['archived-scope-marker', 'live-scope-marker']);
   });
 
@@ -2142,14 +2330,18 @@ describe('shipbench task search', () => {
       exitCode: 0,
     });
     expect(searchHelp.stdout.join('\n')).toMatch(
-      /--status <status>[\s\S]*--tag <tag>[\s\S]*--available[\s\S]*--blocked[\s\S]*--whole-word[\s\S]*--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
+      /--status <statuses>[\s\S]*--tag <tag>[\s\S]*--available[\s\S]*--blocked[\s\S]*--whole-word[\s\S]*--archived[\s\S]*--all[\s\S]*--limit <n>[\s\S]*--json[\s\S]*--include-body/,
     );
   });
 
   it('restricts matches to word boundaries with --whole-word', async () => {
     const h = await searchHarness();
     await h.run('task', 'create', 'Precision work');
-    setTaskBody(h, 'precision-work', 'A specific, explicit decision recorded here.');
+    setTaskBody(
+      h,
+      'precision-work',
+      'A specific, explicit decision recorded here.',
+    );
     h.stdout.length = 0;
 
     await h.run('task', 'search', 'ci', '--json');
@@ -2171,7 +2363,11 @@ describe('shipbench task search', () => {
     await h.run('task', 'create', 'Contiguous run');
     setTaskBody(h, 'contiguous-run', 'Implement the token exchange handshake.');
     await h.run('task', 'create', 'Scattered run');
-    setTaskBody(h, 'scattered-run', 'The token is stored; the exchange log is not.');
+    setTaskBody(
+      h,
+      'scattered-run',
+      'The token is stored; the exchange log is not.',
+    );
     h.stdout.length = 0;
 
     await h.run('task', 'search', '"token exchange"', '--json');
@@ -2249,6 +2445,28 @@ describe('shipbench task search metadata and availability filters', () => {
     expect(
       payload.matches.map((match: { slug: string }) => match.slug).sort(),
     ).toEqual(['in-progress-needle', 'live-needle-prerequisite']);
+  });
+
+  it('accepts a multi-value --status and errors on an unknown one', async () => {
+    const h = await filterHarness();
+
+    await h.run(
+      'task',
+      'search',
+      'needle',
+      '--status=todo,in-progress',
+      '--json',
+    );
+    const payload = JSON.parse(h.stdout.join('\n'));
+    const statuses = new Set(
+      payload.matches.map((match: { status: string }) => match.status),
+    );
+    expect([...statuses].sort()).toEqual(['in-progress', 'todo']);
+
+    await expect(
+      h.run('task', 'search', 'needle', '--status=todo,bogus'),
+    ).rejects.toMatchObject({ code: 'commander.error' });
+    expect(h.stderr.join('\n')).toMatch(/Unknown status "bogus"/);
   });
 
   it('narrows to dependency-ready work with --available', async () => {

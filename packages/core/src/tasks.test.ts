@@ -297,6 +297,23 @@ describe('updateTask', () => {
     ).rejects.toThrow(/invalid priority/i);
   });
 
+  it('updates the title in place without renaming the file', async () => {
+    const { task } = await updateTask(adapter, DEFAULT_CONFIG, 'my-task', {
+      title: 'My Renamed Task',
+    });
+    expect(task.slug).toBe('my-task');
+    expect(task.frontmatter.title).toBe('My Renamed Task');
+    expect(adapter.files.has('.shipbench/tasks/my-task.md')).toBe(true);
+  });
+
+  it('rejects a title with no slug-able character, leaving the file unchanged', async () => {
+    const before = adapter.files.get('.shipbench/tasks/my-task.md');
+    await expect(
+      updateTask(adapter, DEFAULT_CONFIG, 'my-task', { title: '   ' }),
+    ).rejects.toThrow(/slug-able/i);
+    expect(adapter.files.get('.shipbench/tasks/my-task.md')).toBe(before);
+  });
+
   it('updates the body when provided', async () => {
     const { task } = await updateTask(
       adapter,

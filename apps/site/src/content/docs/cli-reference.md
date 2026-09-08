@@ -114,19 +114,40 @@ shipbench task create "Build API" --body "Cursor pagination, no offsets."
 ### `shipbench task edit`
 
 ```bash no-copy
-shipbench task edit <slug> (--body <text> | --body-file <path>) [--json]
+shipbench task edit <slug> [description] [metadata] [--json]
 ```
 
-Replaces a task's Markdown description and updates its `updated` timestamp.
-`created` is never touched, and the trailing `## Task Updates` section is left
-exactly as it was — use [`shipbench task comment`](#shipbench-task-comment) for
-those.
+Revises a task's Markdown description, its validated metadata, or both, and
+updates its `updated` timestamp. `created` is never touched, and the trailing
+`## Task Updates` section is left exactly as it was — use
+[`shipbench task comment`](#shipbench-task-comment) for those. `status` and board
+placement stay with [`shipbench task move`](#shipbench-task-move).
 
-The description is replaced whole; there is no append. An empty value clears it:
+Pass at least one change. Everything is applied in a single write that runs
+core's validation first, so a rejected value (an unconfigured priority, a
+`depends_on` slug with no task file) leaves the task exactly as it was — never
+half-edited.
+
+| Flag                    | Effect                                                              |
+| ----------------------- | ------------------------------------------------------------------ |
+| `--body` / `--body-file` | Replace the description whole; `--body ""` clears it.              |
+| `--title <text>`        | Set the title. The slug and filename never change.                 |
+| `-p, --priority <value>` | Set the priority (must be a configured value).                    |
+| `-a, --assignee <label>` | Set the assignee. `--clear-assignee` removes it.                  |
+| `-t, --tags <list>`     | Replace every tag. `--clear-tags` empties the field.               |
+| `--add-tag <list>` / `--remove-tag <list>` | Add or drop tags, keeping the rest.            |
+| `-d, --depends-on <list>` | Replace every dependency. `--clear-depends-on` empties the field. |
+| `--add-depends-on <list>` / `--remove-depends-on <list>` | Add or drop dependencies, keeping the rest. |
+
+`<list>` flags accept comma-separated values or repeated flags. The `--tags` /
+`--add-tag` / `--remove-tag` / `--clear-tags` group is mutually exclusive, as is
+the `--depends-on` group; `--assignee` and `--clear-assignee` conflict.
 
 ```bash
 shipbench task edit build-api --body-file revised-plan.md
 shipbench task edit build-api --body ""
+shipbench task edit build-api --priority high --add-tag urgent --remove-tag someday
+shipbench task edit build-api --title "Build the public API" --depends-on ship-auth
 ```
 
 A description may not contain a `## Task Updates` heading of its own — that
@@ -296,9 +317,9 @@ Lists live tasks in board order. Configured columns follow `config.columns`; tas
 
 | Flag | Purpose |
 | --- | --- |
-| `-s, --status <status>` | Filter by exact status. |
-| `-a, --assignee <assignee>` | Filter by exact assignee. |
-| `-p, --priority <priority>` | Filter by exact priority. |
+| `-s, --status <statuses>` | Filter by status; comma-separated or repeatable, matching any listed value. An unconfigured value is an error, not an empty result. |
+| `-a, --assignee <assignees>` | Filter by assignee; comma-separated or repeatable, matching any listed value. |
+| `-p, --priority <priorities>` | Filter by priority; comma-separated or repeatable, matching any listed value. An unconfigured value is an error. |
 | `--tag <tag>` | Filter by tag; comma-separated or repeatable. Multiple values use AND semantics. Matching is case-insensitive. |
 | `--available` | Return tasks in the actionable column whose dependencies are satisfied. |
 | `--blocked` | Return tasks in the actionable column with at least one unsatisfied dependency. |
@@ -307,17 +328,19 @@ Lists live tasks in board order. Configured columns follow `config.columns`; tas
 | `--json` | Emit machine-readable JSON. |
 | `--include-body` | With `--json`, add each description and parsed Updates. |
 
-Ordinary filters combine with AND semantics:
+Filters combine with AND across flags. Within `--status`, `--assignee`, and
+`--priority` a list matches any of its values; `--tag` narrows with AND:
 
 ```bash
 shipbench task list --status todo --priority high --tag backend --json
+shipbench task list --status todo,in-progress --json
 shipbench task list --tag backend --tag auth --json
 shipbench task list --tag backend,auth --json
 ```
 
 #### Available and blocked work
 
-`--available` and `--blocked` use `config.default_column` unless you pass `--status`. A dependency is satisfied when the referenced task is in `done_column` or in the archive.
+`--available` and `--blocked` use `config.default_column` unless you pass `--status`, which may name more than one column. A dependency is satisfied when the referenced task is in `done_column` or in the archive.
 
 ```bash
 shipbench task list --available --json
@@ -369,9 +392,9 @@ Two opt-in controls tighten how a term matches, without changing the corpus or t
 
 | Flag | Purpose |
 | --- | --- |
-| `-s, --status <status>` | Restrict the search to tasks in this column. |
-| `-a, --assignee <assignee>` | Restrict to tasks with this exact assignee. |
-| `-p, --priority <priority>` | Restrict to tasks with this exact priority. |
+| `-s, --status <statuses>` | Restrict to tasks in any of these columns; comma-separated or repeatable. An unconfigured value is an error. |
+| `-a, --assignee <assignees>` | Restrict to tasks with any of these assignees; comma-separated or repeatable. |
+| `-p, --priority <priorities>` | Restrict to tasks with any of these priorities; comma-separated or repeatable. An unconfigured value is an error. |
 | `--tag <tag>` | Restrict by tag; comma-separated or repeatable, AND semantics, case-insensitive. |
 | `--available` | Restrict to actionable-column tasks whose dependencies are satisfied. |
 | `--blocked` | Restrict to actionable-column tasks with at least one unsatisfied dependency. |
@@ -382,7 +405,7 @@ Two opt-in controls tighten how a term matches, without changing the corpus or t
 | `--json` | Emit machine-readable JSON. |
 | `--include-body` | With `--json`, add each complete matching description and its Task Updates. |
 
-These are `shipbench task list`'s own filters, applied to the candidate set before the search runs — they narrow which tasks are searched and never change the relevance order. `--tag`, `--assignee`, and `--priority` combine with AND semantics, and `--available` / `--blocked` use `config.default_column` unless `--status` overrides it, exactly as they do for `task list`.
+These are `shipbench task list`'s own filters, applied to the candidate set before the search runs — they narrow which tasks are searched and never change the relevance order. They combine with AND across flags, a list within `--status` / `--assignee` / `--priority` matches any of its values, `--tag` narrows with AND, and `--available` / `--blocked` use `config.default_column` unless `--status` overrides it, exactly as they do for `task list`.
 
 `--archived` and `--all` are mutually exclusive. `--available` and `--blocked` are mutually exclusive, and neither can be combined with `--archived` or `--all` — availability is a live-column concept.
 
@@ -535,7 +558,7 @@ It is **read-only and takes no keyboard input** — Ctrl-C exits, nothing else i
 
 | Flag | Purpose |
 | --- | --- |
-| `-s, --status <statuses>` | Comma-separated column ids to render; defaults to every configured column. Unlike `task list --status`, this accepts several. |
+| `-s, --status <statuses>` | Comma-separated column ids to render; defaults to every configured column. Here the list chooses which columns appear, rather than filtering tasks the way `task list --status` does. |
 | `--tag <tag>` | Comma-separated or repeatable, with AND semantics. |
 | `-a, --assignee <assignee>` | Exact match. |
 | `-p, --priority <priority>` | Exact match. |
