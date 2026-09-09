@@ -9,7 +9,7 @@ tags:
   - site
   - positioning
 created: '2026-09-07T18:28:04.763Z'
-updated: '2026-09-07T18:28:04.763Z'
+updated: '2026-09-09T04:07:09.088Z'
 ---
 
 Make a first implementation pass on ShipBench's messaging across the repository docs and public site, then assess what work should follow. Strengthen the existing direction rather than repositioning ShipBench as another agentic project-management app.
@@ -59,3 +59,8 @@ Coordinate with these existing tasks before editing overlapping surfaces. Record
 After implementing and reviewing the first pass, assess what the clarified promise exposes beyond messaging. Separate remaining communication work, product gaps, onboarding or demonstration needs, and questions requiring observation. Map each to an existing task where possible and propose only concrete missing follow-ups, with rationale and relative priority.
 
 Use this filter: would the work still help a solo developer direct and understand their projects if agents became substantially more capable? Searchable decisions, inspectable history, and clear project state may qualify; features tied to a particular agent's temporary limitations need a specific justification. Distinguish necessary support for the current promise from optional expansion. Record the assessment here and recommend the next action; do not automatically begin a second implementation phase.
+
+## Task Updates
+
+### 2026-09-09T04:07:09.088Z
+Superseded and archived. Merged into strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps, which uses this task's framing as its spine and folds in the two tasks it listed as coordination points. Those two could not be done separately: the landing-page task's scope was already this task's first-pass surfaces, and the continuity-claim task's decision list was already this task's claim-verification bullet. The merged task adds the landing-page implementation depth this task stated at lower resolution, names the three continuity overstatements with verified locations, and makes the hero direction an explicit open decision now that docs/positioning-brief.md is confirmed absent from history. Promoted from backlog to todo at high priority, inheriting the landing-page task's priority.

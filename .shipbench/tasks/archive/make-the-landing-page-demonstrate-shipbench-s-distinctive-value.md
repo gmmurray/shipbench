@@ -10,7 +10,7 @@ tags:
 depends_on:
   - spike-establish-shipbench-s-distinctive-value-and-landing-page-promise
 created: '2026-09-05T21:33:42.781Z'
-updated: '2026-09-06T18:33:27.406Z'
+updated: '2026-09-09T04:06:55.884Z'
 ---
 
 The owner feels the landing page is focused but still generic and undersells ShipBench. Use the differentiation spike's evidence and selected narrative to make the page give visitors a stronger reason to care, believe the promise, and try the product.
@@ -46,3 +46,8 @@ Decide which existing sections earn their space and how the page develops the ar
 - Record what evidence motivated the selected direction and what remains a hypothesis for later observation.
 
 Sources: [landing page](../../apps/site/src/pages/index.astro), [workspace preview](../../apps/site/src/components/HeroWorkspaceWindow.astro), [site metadata](../../apps/site/src/config/site.ts), [why.md](../../docs/why.md), and [branding rules](../../AGENTS.md).
+
+## Task Updates
+
+### 2026-09-09T04:06:55.884Z
+Superseded and archived. Merged into strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps along with the continuity-claim corrections and the broader messaging pass: all three edited the same surfaces (index.astro, HeroWorkspaceWindow.astro, site.ts, why.md, README, docs entry points) and the per-surface adaptation rule made them inseparable — the hero's claim and the corrected continuity claims determine each other. This task was also unworkable as written: it depended on the positioning spike's selected narrative, but that narrative lived only in docs/positioning-brief.md, which was never committed, and the owner has since rejected its recommended direction. The merged task carries this task's landing-page depth (which sections earn their space, the CTA, preserving the visual language) and restates the hero direction as an open decision.

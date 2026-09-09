@@ -7,7 +7,7 @@ tags:
   - copy
   - product
 created: '2026-09-05T21:33:40.171Z'
-updated: '2026-09-06T18:33:34.322Z'
+updated: '2026-09-09T04:07:02.280Z'
 ---
 
 The evaluation found arguments that give file placement stronger guarantees than the system provides. The solo workflow says status cannot drift from code; the rationale says there is no chance the plan and repository have diverged, and describes todo lists as holding no state.
@@ -39,3 +39,8 @@ Identify the intended meaning of each affected passage before rewriting it. Pres
 - Coordinate with the positioning/landing-page work without turning this bounded accuracy correction into a second homepage rewrite.
 
 Evidence starts in [why.md](../../docs/why.md) and [solo trunk workflow](../../apps/site/src/content/docs/solo-trunk-workflow.md).
+
+## Task Updates
+
+### 2026-09-09T04:07:02.280Z
+Superseded and archived. Merged into strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps. This task's decision list had already been restated almost verbatim as a verification bullet in the broader messaging task, and its correction cannot be made independently of the hero's claim — the two determine each other. The merged task keeps the three named, checkable defects with their locations verified present: docs/why.md 'no chance the two have diverged', apps/site/src/content/docs/solo-trunk-workflow.md 'it cannot drift from the code', and README.md 'todo lists sit in the right place but hold no state'. It also keeps this task's framing that the correction must name the real advantage rather than add a page of qualifications.
