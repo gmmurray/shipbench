@@ -1,5 +1,60 @@
 # shipbench
 
+## 0.5.0
+
+### Minor Changes
+
+- 2617c6b: Stop an unreadable Updates section from eating the description it sits under. When the trailing `## Task Updates` section did not parse, core returned the entire raw body as `Task.body` — the field documented as "Timeless task description, excluding the reserved trailing Task Updates section" — and every consumer that trusted that comment inherited the damage.
+  
+  The sharpest consequence was silent data loss: `task edit --body` on such a task succeeded, reported success, and deleted the whole section, good entries included, because the raw text lived in `body` and the write serialized an empty `comments` over it. The description guard could not catch it, since the incoming body was clean. Git was the only trail.
+  
+  Core now keeps the split it already computed. `Task.body` is the description above the marker; the section is quarantined verbatim on a new optional `Task.unreadableUpdates` (`{ text, reason }`) and written back byte-identical on every write. A frontmatter or description edit can no longer drop it, the Board's description editor holds a real description again, and `task search` stops matching broken entry text as if it were the description. Comment mutations still refuse a task in this state — appending to a section that cannot be read would leave it just as unreadable.
+  
+  The warning now names the line that broke the parse rather than only the rule, and `unreadableUpdatesWarning` builds it from a single task, so `shipbench task get` reports it too. That was the narrowest read — the one agents are told to prefer — and it used to say nothing at all, because validation ran only over a whole directory. `task get --json` carries the quarantined section as `unreadable_updates`.
+  
+  Consumers reading `Task.body` for a malformed task will see a shorter string than before: the description, without the section appended.
+- b1e6037: `task search` now ranks results by relevance instead of returning them in board order. `searchTasks` in `@shipbench/core` scores each match on which fields the query terms landed in — title outweighs tags, tags outweigh the description, the description outweighs Task Updates — scaled by how much of the query each field covers. A more recently `updated` task breaks a score tie, then the caller's input order. The ranking lives in `searchTasks` itself, so the Board inherits the same order when its description-search work adopts the shared function.
+  
+  `--limit` no longer truncates silently. The CLI's JSON output gains `total_matches` (the count before the limit), and text output ends with a `… N of M matches not shown (raise --limit)` line whenever the limit drops a match, including `--limit 0`.
+  
+  Still staged to follow-up tasks: metadata and availability filters on `task search`, whole-word and exact-phrase matching, semantic retrieval.
+- 50df087: `task search` now takes `task list`'s own filters: `--status`, `--assignee`, `--priority`, `--tag` (comma-separated or repeated, AND semantics), and `--available` / `--blocked`. They narrow the candidate set before the search runs, so "ready work that mentions X" is one command instead of a search whose output you filter by hand.
+  
+  The filters reuse `task list`'s predicate and the `listAvailableTasks` / `listBlockedTasks` helpers verbatim, so semantics match exactly — `--available` / `--blocked` rank on `config.default_column` unless `--status` overrides it, and an archived dependency counts as satisfied. `--available` excludes `--blocked`, and availability is a live-column concept that cannot combine with `--archived` / `--all`. Filtering never changes the relevance ordering; it only decides which tasks are searched.
+  
+  This completes the metadata/availability narrowing that `make-cli-search-retrieve-recorded-decisions-with-useful-context` deferred. Still staged: whole-word and exact-phrase matching, semantic retrieval.
+- d5ad53b: `task search` now retrieves recorded decisions. The search corpus gains **Task Updates**: every parsed entry, plus a quarantined unreadable section, alongside the title, tags, and description it already covered. A pivot or rationale recorded only in an Update — the place ShipBench tells you to record it — is now findable with the one command built for that.
+  
+  `searchTasks` in `@shipbench/core` is now the shared lexical retrieval contract; the Board implements the same semantics next. Each `TaskSearchMatch` carries more source context so a caller can act on a hit without loading the whole task:
+  
+  - `status` — the task's current column, so an Update match reads as a record, not a claim that the decision still stands.
+  - `matched_fields` may now include `"updates"` (additive to the `title` / `tags` / `body` set).
+  - `update_matches` — present when an Update matched. A readable entry gives its zero-based `index`, ISO `timestamp`, and an excerpt, so the source is retrievable exactly; an unreadable section gives `{ unreadable: true, snippet }`.
+  
+  The CLI adds `location` (`"live"` / `"archive"`) to every JSON match and prints `[live · in-progress]` and `↳ update N (timestamp): …` lines in text mode. `--include-body` now also attaches `comments` so an Update hit resolves in one call. Search output never labels a match "current" or "decided".
+  
+  Deliberately staged to follow-up tasks, not in this change: metadata and availability filters on `task search`; whole-word and exact-phrase matching; semantic retrieval.
+- ea2df5b: `task search` gains two opt-in precision controls. Both narrow how a term matches and leave the corpus, ranking, and result context untouched.
+  
+  - **Exact phrase.** A double-quoted run in the query — `"token exchange"` — is one term that must match contiguously. Internal whitespace matches any whitespace run, so a phrase still hits when it wraps across a line; an empty or unbalanced quote is dropped. The CLI reads the quote characters from the `<query>` argument literally, so protect them from the shell: `shipbench task search '"token exchange"'`.
+  - **`--whole-word`.** Matches every term — loose or quoted — on word boundaries, so `ci` stops matching `decision`, `explicit`, and `specific`.
+  
+  The grammar lives in `searchTasks` in `@shipbench/core`, which now takes an optional third `TaskSearchOptions` argument (`{ wholeWord?: boolean }`); the quote grammar is parsed from the query string. The Board inherits both when it adopts the shared function. Substring, whitespace-delimited matching stays the default.
+  
+  This completes the whole-word and exact-phrase matching staged by `make-cli-search-retrieve-recorded-decisions-with-useful-context`. Still staged: semantic retrieval.
+- debafc0: `shipbench task edit` now revises validated task metadata, not just the description. New flags: `--title` (which never renames the file), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, and `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`. Array flags take comma-separated or repeated values; replacement and incremental forms are mutually exclusive, and clearing a field is always its own flag. Every requested change goes through one `updateTask` call, so core's validation runs before any write and a rejected value (an unconfigured priority, a `depends_on` slug with no task file) leaves the task exactly as it was. `status` and board placement stay with `task move`; the Updates section stays with `task comment`.
+  
+  `core`'s `updateTask` now rejects a `title` with no slug-able character, mirroring `createTask`, rather than writing a task with an empty title.
+  
+  `task list` and `task search` filters are now consistent: `--status`, `--assignee`, and `--priority` accept a comma-separated or repeated list and match a task whose value is any of the ones listed (`--tag` keeps AND). A `--status` or `--priority` value that is not configured is now an error that names the valid set — previously `task list --status backlog,todo` matched nothing and exited zero. `TaskAvailabilityOptions.status` accepts a list alongside a single id.
+  
+  Completes `complete-validated-task-metadata-editing-in-the-cli`, including the multi-value filter-flag defect folded into its scope during board review.
+
+### Patch Changes
+
+- Updated dependencies [e2d15c9]
+  - @shipbench/board@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
