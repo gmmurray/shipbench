@@ -40,11 +40,11 @@ Not adjacent to the repository. Not synced with it. Inside it — a [`.shipbench
 
 **Context switching gets cheap.** This is the benefit that matters day to day when several projects are in flight at once. Open the repository and the plan is already there — what's in flight, what's blocked, what's next. There's no separate tool to open and no mental mapping between a workspace and a working directory, because there is only one of each. The plan is still only as current as you kept it, the way it is in any tracker; what's gone is the second copy to reconcile it against. The repository is the context.
 
-**Decisions can stay with the task that caused them.** A task is a Markdown file, so the reason for a choice can go in the file you were already working from, as a [timestamped update](/docs/convention-spec/#task-updates). Nothing captures it for you. When you or your agent do write it down, [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) reaches it later across titles, tags, descriptions, and updates, live and archived — so a project's reasoning becomes something you look up rather than something you remember. What's there to find is whatever got written.
-
 **Agents read the plan with the access they already have.** No token, no MCP server, no round trip. The agent has the repository checked out, so it has the plan. This falls out of the premise rather than motivating it — the plan sits next to the code, and agents are already good at reading things next to the code. It is a consequence, and a real one, not the reason the system exists.
 
 **Git carries it.** History, branching, and portability come free because the plan is just files. Planning changes ride along with the branch that implements them. Every clone is complete. Nothing is stranded behind a service.
+
+**Decisions can stay with the task that caused them.** A task is a Markdown file, so the reason for a choice can go in the file you were already working from, as a [timestamped update](/docs/convention-spec/#task-updates). Nothing captures it for you. When you or your agent do write it down, [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) reaches it later across titles, tags, descriptions, and updates, live and archived — so a project's reasoning becomes something you look up rather than something you remember. What's there to find is whatever got written.
 
 **Multiple repositories work by default.** Each project carries its own plan, so there's no central system to keep in sync and nothing to set up per project beyond [`shipbench init`](/docs/quickstart/). Managing more projects costs proportionally more work, not exponentially more overhead.
 

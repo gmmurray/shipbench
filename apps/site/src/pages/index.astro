@@ -161,14 +161,19 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
     {/* The page's one demonstration. It replaced a three-card feature grid that
         listed the editor, the board, and the CLI as interchangeable surfaces —
         true, and it argued nothing. The same three surfaces are still here; they
-        are now the places one decision passes through, which is what the hero's
-        second clause promised. */}
+        are now the places one task passes through.
+
+        The task is the spine on purpose. An earlier draft framed this as a
+        decision followed through time, which made the page's most memorable
+        block read as a decision log with a board attached — the inverse of what
+        ShipBench is. Same three steps, same evidence; the task carries them, and
+        the reasoning is what it accumulates along the way. */}
     <section class="section-padding page-width decision-section">
       <div class="section-head">
-        <div class="section-badge">A Decision, Followed Through</div>
-        <h2>The reason ends up in the task you were already working from.</h2>
+        <div class="section-badge">One Task, Followed Through</div>
+        <h2>One task, from picked up to explained months later.</h2>
         <p>
-          Three commands, months apart, against one task file. None of it is automatic: ShipBench gives a decision somewhere to live and a way to reach it again — what gets written down is still yours to decide.
+          Three commands against one task file. The task is the spine: it says what to work on, it holds the explanation while the work happens, and it answers the question later. None of that is automatic — what gets written down is still yours to decide.
         </p>
       </div>
 
@@ -180,7 +185,7 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
           </div>
           <h3>Pick up what is actually ready</h3>
           <p>
-            <code>--available</code> lists the default column's tasks whose dependencies are all finished, ranked by priority, then age.
+            <code>--available</code> lists the default column's tasks whose dependencies are all finished, ranked by priority and then age. This is the everyday loop — the same question the local board answers visually, asked from a terminal or by an agent instead.
           </p>
           <CodeBlock
             class="trace-code"
@@ -226,7 +231,7 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
       </div>
 
       <p class="trace-note">
-        The local board and your editor are reading those same files the whole time. There is one copy on disk, so moving between the three surfaces syncs nothing and translates nothing.
+        None of this belongs to the terminal. <code>shipbench board</code> renders the same files as a live Kanban view — drag a card and the Markdown changes, edit the Markdown and the board follows — and your editor opens them directly. There is one copy on disk, so moving between the three surfaces syncs nothing and translates nothing.
       </p>
     </section>
 

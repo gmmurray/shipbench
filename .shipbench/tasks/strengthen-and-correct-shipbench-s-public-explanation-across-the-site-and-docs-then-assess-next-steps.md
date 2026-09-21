@@ -2,7 +2,7 @@
 title: >-
   Strengthen and correct ShipBench's public explanation across the site and
   docs, then assess next steps
-status: review
+status: done
 priority: high
 tags:
   - docs
@@ -10,7 +10,7 @@ tags:
   - copy
   - positioning
 created: '2026-09-09T04:06:45.565Z'
-updated: '2026-09-20T18:56:55.063Z'
+updated: '2026-09-21T00:47:30.317Z'
 ---
 
 Make one implementation pass on ShipBench's public explanation across the repository docs and the site, correcting the continuity claims that overstate what the system guarantees, then assess what work should follow. Strengthen the existing direction rather than repositioning ShipBench as another agentic project-management app.
@@ -154,3 +154,13 @@ Rejected the earlier spike's "Give your next agent the reasons behind the work":
 *Open to observation, not buildable.* Whether anyone but the owner writes Updates unprompted remains untested, and the spike that would have observed it was deleted. Whether the "and why" half lands on a visitor who has not felt the problem is also unknown. Both are hypotheses, and neither should be treated as settled by this pass.
 
 *Recommended next action*: board search, then the walkthrough. Do not start a second messaging phase.
+
+### 2026-09-21T00:43:43.785Z
+Rebalanced after review. The first draft over-rotated toward recorded reasoning in two places, which made the page's most memorable block read as a decision log with a board attached — the inverse of what ShipBench is.
+
+- The demonstration is now framed around the task, not the decision: badge "One Task, Followed Through", heading "One task, from picked up to explained months later." Same three steps and same evidence; the task is the spine and the reasoning is what it accumulates.
+- Step 01 was the thinnest step and the only one about doing the work. It now names the everyday loop and points at the local board as the same question asked visually.
+- The closing note gives the board a real sentence — live Kanban over the same files, drag a card and the Markdown changes — instead of a clause. The board had lost its dedicated block when the interface grid went, and was down to a passing mention.
+- In both why pages, "Decisions can stay with the task that caused them" moved from slot 2 to slot 4 of "What follows from that", behind context switching, agent access, and Git. It was sitting ahead of three proven structural consequences while being the newest and least-evidenced claim.
+
+The hero, How It Works, the quickstart, the site description, and the three claim corrections are unchanged — those were already task-forward. Checks re-run green: typecheck, lint, 120 vitest, 100 Playwright. Two e2e assertions follow the renamed badge.

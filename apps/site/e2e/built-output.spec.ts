@@ -375,12 +375,12 @@ test.describe('landing-page flow survives the build', () => {
     const home = html('');
 
     expect(home).toContain('How It Works');
-    // The three-card interface grid became the decision trace: the same
-    // surfaces, now as the steps one decision passes through. Asserting the
-    // step headings rather than the old card titles is the point of the
-    // section - a page that lists surfaces and a page that follows a decision
-    // through them are different arguments, and only the second one is here.
-    expect(home).toContain('A Decision, Followed Through');
+    // The three-card interface grid became the task trace: the same surfaces,
+    // now as the steps one task passes through. Asserting the step headings
+    // rather than the old card titles is the point of the section - a page that
+    // lists surfaces and a page that follows a task through them are different
+    // arguments, and only the second one is here.
+    expect(home).toContain('One Task, Followed Through');
     expect(home).toContain('Pick up what is actually ready');
     expect(home).toContain('Record the decision where the work is');
     expect(home).toContain('Find it again months later');
