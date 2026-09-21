@@ -12,10 +12,13 @@ export const SITE_CONFIG = {
   // characters. `description` carries the reason instead: it is the
   // search-result snippet, and the title beside it has already said the shelf.
   title: 'ShipBench — Git-native project management for solo developers',
-  // States the problem as a mechanism, not a valuation, per the doctrine.
-  // 147 characters — under the ~155 where snippets get cut mid-word.
+  // States the problem as a mechanism, not a valuation, per the doctrine. The
+  // second half used to end on where tasks are stored, which the <title> beside
+  // it has already implied and which is not the reason anyone clicks; it now
+  // names both halves of what the page promises. 144 characters — under the
+  // ~155 where snippets get cut mid-word.
   description:
-    'Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — tasks as Markdown, versioned in Git.',
+    'Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — what comes next, and why, in Git.',
   url: 'https://shipbench.dev',
   // Mirrored onto SITE_CONFIG so the pages read one object; flags.ts owns it
   // and carries the rationale.

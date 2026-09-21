@@ -4,16 +4,19 @@
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
-    "strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps"
+    "let-tasks-reference-related-work-without-implying-a-dependency",
+    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it"
   ],
   "backlog": [
-    "spike-evaluate-whether-shipbench-helps-people-resume-real-projects",
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
-    "spike-investigate-task-templates-in-the-shipbench-convention"
+    "spike-investigate-task-templates-in-the-shipbench-convention",
+    "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps"
+  ]
 }

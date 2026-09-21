@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('landing-page interfaces and code examples', () => {
-  // The home page draws the line between a specimen and an instruction. The two
-  // hero panes render what a task file and a CLI session look like; the
-  // quickstart block is the three commands the section's heading promises, so
-  // it copies. This asserts the clipboard payload rather than the button's
+  // The home page draws the line between a specimen and an instruction. Five
+  // blocks are specimens - the two hero panes render what a task file and a CLI
+  // session look like, and the three decision-trace steps are transcripts
+  // naming a slug the reader does not have. The quickstart block is the three
+  // commands the section's heading promises, so it alone copies. This asserts the clipboard payload rather than the button's
   // presence, because the reason the block can copy at all is that
   // `code-copy.ts` strips the numbered `.comment` captions and the `.prompt`
   // glyphs - if that stripping regressed, a button would still be there and
@@ -16,8 +17,8 @@ test.describe('landing-page interfaces and code examples', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await page.goto('/');
-    await expect(page.locator('pre[data-code-block]')).toHaveCount(3);
-    await expect(page.locator('pre[data-copy-disabled]')).toHaveCount(2);
+    await expect(page.locator('pre[data-code-block]')).toHaveCount(6);
+    await expect(page.locator('pre[data-copy-disabled]')).toHaveCount(5);
 
     const homeCopy = page.locator('.code-copy-button');
     await expect(homeCopy).toHaveCount(1);
@@ -55,13 +56,18 @@ test.describe('landing-page interfaces and code examples', () => {
     );
   });
 
-  test('local interface cards stack without mobile overflow', async ({
+  // The decision trace is the widest content on the page: three CLI
+  // transcripts that scroll horizontally inside their own boxes rather than
+  // rewrapping. That is the shape that leaks page-level overflow on a narrow
+  // viewport if a step ever loses its min-width: 0, so the steps are what
+  // this guards now that the interface card grid is gone.
+  test('decision trace steps stack without mobile overflow', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
 
-    const cards = page.locator('.local-interface-card');
+    const cards = page.locator('.trace-step');
     await expect(cards).toHaveCount(3);
 
     const boxes = await cards.evaluateAll(elements =>

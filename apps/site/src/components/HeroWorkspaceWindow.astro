@@ -1,25 +1,35 @@
 ---
 import CodeBlock from './CodeBlock.astro';
 
+/* All three panes show one project, and the board tab beside them is the same
+   four tasks in the same columns: `build-core-fsadapter` is the card in
+   progress, `add-board-hot-reload` is the one in review, and the two the CLI
+   lists as available are the two sitting in To Do. Two panes describing
+   different projects is the kind of detail a reader checks, and the page's
+   whole claim is that these surfaces read one set of files.
+
+   The CLI pane prints what the CLI actually prints. It used to answer `task
+   move` with two `✔ updated ...` lines and `task graph` with a one-line
+   summary; the first is not the command's output and the second emits JSON. */
 const taskFileSnippet = [
   { comment: true, text: '---' },
-  { text: 'title: Setup GitHub OAuth' },
+  { text: 'title: Build core FsAdapter' },
   { text: 'status: in-progress' },
   { text: 'priority: high' },
-  { text: 'tags: [auth, backend]' },
+  { text: 'tags: [core, storage]' },
   { comment: true, text: '---' },
   {},
-  { text: 'Configure Clerk provider for GitHub' },
-  { text: 'OAuth and sync user profile.' },
+  { text: 'Implement the filesystem StorageAdapter that' },
+  { text: 'core reads and writes tasks through.' },
 ];
 
 const cliWorkflowSnippet = [
-  { prompt: '›', text: 'shipbench task move setup-github-oauth --to=review' },
-  { comment: true, text: '✔ updated status: review' },
-  { comment: true, text: '✔ updated timestamp: 2026-07-22T17:18:00Z' },
+  { prompt: '›', text: 'shipbench task move add-board-hot-reload --to=review' },
+  { comment: true, text: 'Moved add-board-hot-reload → review' },
   {},
-  { prompt: '›', text: 'shipbench task graph' },
-  { comment: true, text: '✔ 4 tasks, 0 dependency blocks' },
+  { prompt: '›', text: 'shipbench task list --available' },
+  { comment: true, text: '[todo] Design landing hero (design-landing-hero)' },
+  { comment: true, text: '[todo] Write CLI docs (write-cli-docs)' },
 ];
 ---
 
@@ -152,14 +162,14 @@ const cliWorkflowSnippet = [
           specimens rather than instructions. This one renders what a task file
           looks like on disk - a file `shipbench task create` writes, never
           something a reader pastes. The next is a transcript acting on
-          `setup-github-oauth`, a slug that exists only in this mockup; its `✔`
+          `add-board-hot-reload`, a slug that exists only in this mockup; its
           result lines are `.comment` spans and would strip cleanly, so what a
-          reader would actually get is two commands naming a task they do not
+          reader would actually get is two commands naming tasks they do not
           have. The landing page's quickstart block is the opposite case, and
           copies. */}
       <div class="visual-pane">
         <span class="pane-tag">Direct Markdown</span>
-        <div class="visual-pane-title">setup-github-oauth.md</div>
+        <div class="visual-pane-title">build-core-fsadapter.md</div>
         <CodeBlock copyable={false} label="Example ShipBench task file" lines={taskFileSnippet} />
       </div>
 

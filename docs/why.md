@@ -22,7 +22,7 @@ Three specific things got harder, and each one is a place todo lists break:
 
 **Hosted project management is overkill.** Linear, Jira, and their peers are built to coordinate people, and coordination is most of what you're paying for in setup cost and process surface. A solo developer has none of the problems that ceremony solves. Worse, the plan ends up on the far side of a network boundary from the code it describes — so when you want your coding agent to see it, you build a bridge. That bridge is the tell. Wiring an MCP server between an agent and a hosted tracker is a lot of machinery to carry context across a wall that didn't need to exist.
 
-**Todo lists are underkill.** They have the right access model — a file in the repo, readable by anything — and no structure to hold state. No status, no priority, no dependencies, no ordering, no validation. Nothing stops a plan from drifting out of sync with reality, so it does.
+**Todo lists are underkill.** They have the right access model — a file in the repo, readable by anything — and almost no structure. A checked box is state; it is just the only state there is. No status beyond done, no priority, no dependencies, no ordering, nothing a tool can validate, and nowhere to put the reasoning behind an item. Keeping the list true to the project is entirely manual, and nothing in the file helps you do it.
 
 ## The premise
 
@@ -32,7 +32,9 @@ Not adjacent to the repo. Not synced with it. Inside it — `.shipbench/`, versi
 
 ## What follows from that
 
-**Context switching gets cheap.** This is the benefit that matters day to day when you're running several projects at once. Open the repo and the plan is already there — what's in flight, what's blocked, what's next. There's no separate tool to open, no mental mapping between a workspace and a working directory, and no chance the two have diverged. The repository is the context.
+**Context switching gets cheap.** This is the benefit that matters day to day when you're running several projects at once. Open the repo and the plan is already there — what's in flight, what's blocked, what's next. There's no separate tool to open and no mental mapping between a workspace and a working directory, because there is only one of each. The plan is still only as current as you kept it, the way it is in any tracker; what's gone is the second copy to reconcile it against. The repository is the context.
+
+**Decisions can stay with the task that caused them.** A task is a Markdown file, so the reason for a choice can go in the file you were already working from, as a timestamped update. Nothing captures it for you. When you or your agent do write it down, `shipbench task search` reaches it later across titles, tags, descriptions, and updates, live and archived — so a project's reasoning becomes something you look up rather than something you remember. What's there to find is whatever got written.
 
 **Your agents read it with the access they already have.** No token, no MCP server, no round trip. The agent has the repository checked out, so it has the plan. This falls out of the premise rather than motivating it — the plan is next to the code, and agents are already good at reading things next to the code. It is a consequence and a real one, not the reason the system exists.
 

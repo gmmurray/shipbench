@@ -3,10 +3,10 @@ title: ShipBench Overview
 description: Learn how the ShipBench project system, ShipBench CLI, local board, and ShipBench Harbor work together.
 group: Getting Started
 order: 1
-updated: 2026-08-05
+updated: 2026-09-20
 ---
 
-A hosted tracker is built to coordinate a team, and you configure it again for every repository — so most projects never get one, and the plan ends up in your head or in a `TODO.md` that stopped reflecting reality a week ago. ShipBench's answer is to keep the plan in the repository that already holds your code, your documentation, and your architecture decisions. [Why ShipBench](/docs/why/) makes the full argument.
+A hosted tracker is built to coordinate a team, and you configure it again for every repository — so most projects never get one, and the plan ends up in your head or in a `TODO.md` that stopped reflecting reality a week ago. ShipBench's answer is to keep the plan in the repository that already holds your code, your documentation, and your architecture decisions — as files structured enough to say what is next and what is blocked, and open enough to hold why you chose it. [Why ShipBench](/docs/why/) makes the full argument.
 
 ShipBench is Git-native project management for solo developers. Your project plan lives inside your repository as plain Markdown files, so Git, your editor, the ShipBench CLI, the local board, and coding agents share one source of truth. The project system requires no external database or hosted account.
 

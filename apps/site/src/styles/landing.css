@@ -214,62 +214,105 @@
   word-break: break-word;
 }
 
-/* Three Local Interfaces */
-.local-interface-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+/* A Decision, Followed Through — the page's one demonstration.
+   One container with internal dividers, the same shape as .system-facts, so the
+   three steps read as a single sequence rather than three cards that happen to
+   sit near each other. It replaced a .local-interface-card grid, and the mono
+   index carries what that grid could not: the order. No icon set here on
+   purpose — the steps are numbered, and a glyph beside a number says nothing
+   the number has not already said. */
+.decision-trace {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  box-sizing: border-box;
-}
-
-.local-interface-card {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  padding: 24px;
   background: var(--surface);
   border: 1px solid var(--iron);
   box-sizing: border-box;
 }
 
-.local-interface-icon {
-  display: grid;
+.trace-step {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 24px;
+  border-top: 1px solid var(--divider);
+  box-sizing: border-box;
+}
+
+.trace-step:first-child {
+  border-top: 0;
+}
+
+.trace-step-head {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-family: var(--font-intel-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.trace-step-index {
+  color: var(--accent);
+}
+
+.trace-step-surface {
   color: var(--silver);
-  background: var(--surface2);
-  border: 1px solid var(--iron);
-  border-radius: 2px;
 }
 
-.local-interface-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.local-interface-card h3 {
-  margin: 0 0 12px;
+.trace-step h3 {
+  margin: 0 0 10px;
   font-size: 16px;
   font-weight: 600;
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
-.local-interface-card p {
-  margin: 0;
+.trace-step > p {
+  margin: 0 0 16px;
+  max-width: 68ch;
   color: var(--silver);
   font-size: 14px;
   line-height: 1.75;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+/* Scrolls rather than wraps, for the reason .quickstart-code does: these are
+   transcripts, and a rewrapped CLI line stops being a faithful specimen. */
+.trace-code {
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--canvas);
+  border: 1px solid var(--iron);
+  border-radius: 3px;
+  color: var(--frosted);
+  font-size: 12.5px;
+  line-height: 1.9;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  white-space: pre;
+  word-break: normal;
+}
+
+.trace-code code {
+  white-space: pre;
+  word-break: normal;
+  display: block;
+  min-width: max-content;
+}
+
+.trace-note {
+  margin: 20px 0 0;
+  max-width: 720px;
+  color: var(--silver);
+  font-size: 14px;
+  line-height: 1.75;
 }
 
 .quickstart-code code {
@@ -372,8 +415,7 @@
 @media (max-width: 840px) {
   .board-visual-body,
   .split-visual-body,
-  .system-facts,
-  .local-interface-grid {
+  .system-facts {
     grid-template-columns: 1fr;
   }
 
@@ -419,7 +461,7 @@
   }
 
   .system-fact,
-  .local-interface-card {
+  .trace-step {
     padding: 16px;
   }
 

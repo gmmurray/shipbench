@@ -2,7 +2,7 @@
 
 ## Motivation
 
-Solo developers working with AI now ship at the scale of a small team — several workstreams in flight, often across several repositories — while the tools for managing that work still assume either one person with a checklist or an organization with a process. Hosted trackers charge a per-project setup cost that made sense when a team used one workspace for a year and does not when one person starts a project a month. Todo lists sit in the right place and hold no state. ShipBench's premise is that the repository already contains the code, the documentation, and the architecture decisions, so the plan belongs there too.
+Solo developers working with AI now ship at the scale of a small team — several workstreams in flight, often across several repositories — while the tools for managing that work still assume either one person with a checklist or an organization with a process. Hosted trackers charge a per-project setup cost that made sense when a team used one workspace for a year and does not when one person starts a project a month. Todo lists sit in the right place, and a checked box is all the structure they have — nothing to sequence, nothing a tool can validate or query, and nowhere for the reasoning behind an item. ShipBench's premise is that the repository already contains the code, the documentation, and the architecture decisions, so the plan belongs there too.
 
 Everything below follows from that premise: tasks are files, Git carries the history, and every client is optional. The full argument — including what ShipBench deliberately declines to decide — is in [why.md](why.md).
 

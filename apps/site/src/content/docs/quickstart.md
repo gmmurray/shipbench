@@ -3,7 +3,7 @@ title: Quickstart
 description: Install the ShipBench CLI, initialize a repository, create a task, and open the local Kanban board.
 group: Getting Started
 order: 2
-updated: 2026-09-02
+updated: 2026-09-20
 ---
 
 ShipBench keeps your project plan in the repository itself. Tasks are Markdown files under `.shipbench/tasks/`, so Git, your editor, the ShipBench CLI, the local board, and coding agents all work from the same source.
@@ -94,6 +94,28 @@ Choose another port or keep the browser closed:
 shipbench board --port 4400
 shipbench board --no-open
 ```
+
+## 4. Record a decision, and find it later
+
+A task can carry timestamped updates below its description. Append one when a
+choice only makes sense against the moment it was made:
+
+```bash
+shipbench task comment build-the-landing-page \
+  "Chose static generation over SSR: the content changes at release, not per request."
+```
+
+`--body-file` reads a Markdown file, the same way it does for `task create`.
+
+Search covers titles, tags, descriptions, and updates, so the explanation stays
+reachable long after the session that wrote it:
+
+```bash
+shipbench task search "static generation" --all
+```
+
+`--all` includes archived tasks alongside live ones. Nothing is captured for
+you — search finds what you or your agent chose to write down.
 
 ## Work with a coding agent
 

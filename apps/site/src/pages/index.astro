@@ -4,7 +4,6 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import HeroWorkspaceWindow from '../components/HeroWorkspaceWindow.astro';
 import CodeBlock from '../components/CodeBlock.astro';
-import LocalInterfaceIcon from '../components/LocalInterfaceIcon.astro';
 import { SITE_CONFIG } from '../config/site';
 
 const quickstartSnippet = [
@@ -16,6 +15,38 @@ const quickstartSnippet = [
   {},
   { comment: true, text: '# 3. Open the local board' },
   { prompt: '›', text: 'npx shipbench board' },
+];
+
+/* The three trace specimens follow one task — `build-core-fsadapter`, the card
+   the hero board shows in progress — from selection, to a recorded decision, to
+   the search that finds it again. They are specimens, not instructions: every
+   line names a slug the reader does not have, so none of them copies. The
+   output shapes are the CLI's real ones, down to the `[live · done]` location
+   tag and the `↳ update 0` line. `task search` gained Task Updates coverage and
+   relevance ranking before this page claimed any of it. */
+const traceSelectSnippet = [
+  { prompt: '›', text: 'shipbench task list --available' },
+  { comment: true, text: '[todo] Build core FsAdapter (build-core-fsadapter)' },
+  { comment: true, text: '[todo] Add board hot-reload (add-board-hot-reload)' },
+];
+
+const traceRecordSnippet = [
+  { prompt: '›', text: 'shipbench task comment build-core-fsadapter --body-file decision.md' },
+  { comment: true, text: 'Added update to build-core-fsadapter' },
+  {},
+  { comment: true, text: '# .shipbench/tasks/build-core-fsadapter.md' },
+  { text: '## Task Updates' },
+  {},
+  { text: '### 2026-07-22T17:18:00.000Z' },
+  { text: 'Chose a StorageAdapter interface over direct fs calls, so the' },
+  { text: 'same board can run against the GitHub API unchanged.' },
+];
+
+const traceRetrieveSnippet = [
+  { prompt: '›', text: 'shipbench task search "StorageAdapter" --all' },
+  { comment: true, text: 'Build core FsAdapter (build-core-fsadapter) [live · done] [updates]' },
+  { comment: true, text: '  ↳ update 0 (2026-07-22T17:18:00.000Z): …Chose a StorageAdapter' },
+  { comment: true, text: '    interface over direct fs calls, so the same board can run…' },
 ];
 
 const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
@@ -35,13 +66,17 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
     <!-- Hero Section -->
     <section class="hero page-width">
       <span class="hero-badge">Plans that ship with the work</span>
-      <h1>Everything else lives in your repository. <span>So should the plan.</span></h1>
+      {/* Deliberately not a file-placement claim. Where the files sit is the
+          mechanism, and the page gives it a whole section two scrolls down; the
+          h1's job is the consequence a visitor would notice missing. The second
+          clause is the half a generic task board cannot say. */}
+      <h1>Know where every project stands. <span>And why it got there.</span></h1>
       {/* No problem clause here on purpose (AGENTS.md › Naming and branding).
           The h1 has already made the claim, and the why-section is the very
           next thing on the page — a compressed version of its argument in the
           subhead only restates it two scroll-lengths early. */}
       <p class="subhead">
-        ShipBench makes the repository itself the board — Markdown tasks, Git history, nothing to sign up for.
+        ShipBench keeps the plan, its sequencing, and the decisions behind it in the repository as Markdown — so the project you open six weeks from now can still answer both.
       </p>
 
       <div class="hero-cta">
@@ -56,11 +91,11 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
 
     {/* Deliberately the one section on the page that is prose rather than a
         container. Everything around it — the hero window, the fact strip, the
-        card grid, the quickstart terminal — is a box, and boxes get scanned.
-        This is the only section that has to be read sentence by sentence, and
-        its argument runs on connective tissue that splitting into columns
-        would throw away. Placement is load-bearing too: after the hero it
-        motivates every section below it, and anywhere later it is a box the
+        decision trace, the quickstart terminal — is a box, and boxes get
+        scanned. This is the only section that has to be read sentence by
+        sentence, and its argument runs on connective tissue that splitting into
+        columns would throw away. Placement is load-bearing too: after the hero
+        it motivates every section below it, and anywhere later it is a box the
         reader has no reason to stop at. */}
     <section class="section-padding page-width why-shipbench">
       <div class="section-head">
@@ -72,14 +107,19 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
         <p>
           A developer working alone with AI now keeps several workstreams moving at once, often across more than one repository. The output scaled. The tools for tracking it didn't.
         </p>
+        {/* Both halves name a mechanism rather than pass a verdict, per
+            AGENTS.md › the problem statement. The todo-list half used to say
+            such lists "hold no state", which is plainly untrue — a checked box
+            is state. What they lack is structure a tool can act on, and room
+            for the reason behind the line. */}
         <p>
-          That leaves two bad fits. Hosted project tools are built to coordinate people, so most of what you configure is overhead for a team you don't have — and you pay it again with every new project. Todo lists have the opposite problem: they sit in the right place but hold no state, so they drift out of sync within a week and stop being worth reading.
+          That leaves two bad fits. Hosted project tools are built to coordinate people, so most of what you configure is overhead for a team you don't have — and you configure it again with every new project. A <code>TODO.md</code> is in the right place and costs nothing to start, but a checked box is the whole record: no ordering, no dependencies, nothing a tool can validate or query, and nowhere to put the reason you took that line over another.
         </p>
         <p class="why-premise">
           Your repository already holds your code, your documentation, and your architecture decisions. The plan belongs there too.
         </p>
         <p>
-          So ShipBench keeps it there — Markdown tasks with real structure, versioned alongside the work they describe, readable by your editor, your terminal, and the agents already working in the repo.
+          So ShipBench keeps it there — Markdown tasks with real structure, versioned alongside the work they describe, readable by your editor, your terminal, and the agents already working in the repo. The same files hold what you decided and why, when you write it down, and a query reaches it later.
         </p>
         <p class="why-proof">
           ShipBench runs on ShipBench: this page began as a task in <a href={boardUrl} target="_blank" rel="noopener">the repository that builds it</a>.
@@ -106,8 +146,8 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
 
         <article class="system-fact">
           <span class="system-fact-label">Structure</span>
-          <h3>Readable by people and tools</h3>
-          <p>Each task combines Markdown prose with YAML metadata for status, priority, dependencies, and timestamps.</p>
+          <h3>Structured enough to query</h3>
+          <p>Each task pairs Markdown prose with YAML metadata — status, priority, dependencies, timestamps — so the CLI can rank what is ready and refuse an invalid write.</p>
         </article>
 
         <article class="system-fact">
@@ -118,41 +158,76 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
       </div>
     </section>
 
-    <!-- Local Interfaces Section -->
-    <section class="section-padding page-width">
+    {/* The page's one demonstration. It replaced a three-card feature grid that
+        listed the editor, the board, and the CLI as interchangeable surfaces —
+        true, and it argued nothing. The same three surfaces are still here; they
+        are now the places one decision passes through, which is what the hero's
+        second clause promised. */}
+    <section class="section-padding page-width decision-section">
       <div class="section-head">
-        <div class="section-badge">Three Local Interfaces</div>
-        <h2>Choose the surface that fits the moment.</h2>
+        <div class="section-badge">A Decision, Followed Through</div>
+        <h2>The reason ends up in the task you were already working from.</h2>
         <p>
-          Each interface reads and changes the same project files. Move between them without syncing or translating your work.
+          Three commands, months apart, against one task file. None of it is automatic: ShipBench gives a decision somewhere to live and a way to reach it again — what gets written down is still yours to decide.
         </p>
       </div>
 
-      <div class="local-interface-grid">
-        <article class="local-interface-card">
-          <div class="local-interface-icon"><LocalInterfaceIcon kind="file" /></div>
-          <h3>Direct Markdown</h3>
+      <div class="decision-trace">
+        <article class="trace-step">
+          <div class="trace-step-head">
+            <span class="trace-step-index">01</span>
+            <span class="trace-step-surface">ShipBench CLI</span>
+          </div>
+          <h3>Pick up what is actually ready</h3>
           <p>
-            Open any task in your editor to read the full context or make a direct change.
+            <code>--available</code> lists the default column's tasks whose dependencies are all finished, ranked by priority, then age.
           </p>
+          <CodeBlock
+            class="trace-code"
+            copyable={false}
+            label="Listing available ShipBench tasks"
+            lines={traceSelectSnippet}
+          />
         </article>
 
-        <article class="local-interface-card">
-          <div class="local-interface-icon"><LocalInterfaceIcon kind="dashboard" /></div>
-          <h3>Local Board</h3>
+        <article class="trace-step">
+          <div class="trace-step-head">
+            <span class="trace-step-index">02</span>
+            <span class="trace-step-surface">The task file</span>
+          </div>
+          <h3>Record the decision where the work is</h3>
           <p>
-            Scan the project, move tasks, and set their order in a live Kanban view.
+            One command appends a timestamped entry to the same Markdown file your editor opens and the board renders. You write it, or you ask your agent to — the capture step is deliberate.
           </p>
+          <CodeBlock
+            class="trace-code"
+            copyable={false}
+            label="Recording a decision as a ShipBench task update"
+            lines={traceRecordSnippet}
+          />
         </article>
 
-        <article class="local-interface-card">
-          <div class="local-interface-icon"><LocalInterfaceIcon kind="code" /></div>
-          <h3>ShipBench CLI</h3>
+        <article class="trace-step">
+          <div class="trace-step-head">
+            <span class="trace-step-index">03</span>
+            <span class="trace-step-surface">ShipBench CLI</span>
+          </div>
+          <h3>Find it again months later</h3>
           <p>
-            List the next task, inspect dependencies, and make validated updates from your terminal or coding agent.
+            Search covers titles, tags, descriptions, and Task Updates, live and archived, and reports which of them matched. What comes back is the entry itself, dated and attached to its task, rather than a summary of it.
           </p>
+          <CodeBlock
+            class="trace-code"
+            copyable={false}
+            label="Searching ShipBench tasks and updates for a recorded decision"
+            lines={traceRetrieveSnippet}
+          />
         </article>
       </div>
+
+      <p class="trace-note">
+        The local board and your editor are reading those same files the whole time. There is one copy on disk, so moving between the three surfaces syncs nothing and translates nothing.
+      </p>
     </section>
 
     <!-- Quickstart Section -->
@@ -168,14 +243,15 @@ const boardUrl = `${SITE_CONFIG.githubUrl}/tree/main/.shipbench`;
           <span>SHIPBENCH CLI QUICKSTART</span>
           <span>~/code/my-project</span>
         </div>
-        {/* Copyable, unlike the two specimens in the hero. These are the three
-            real commands the section's heading promises, and they are the most
-            copy-worthy strings on the page. `code-copy.ts` strips the `.comment`
-            captions and the `.prompt` glyphs, so the clipboard gets the three
-            `npx shipbench ...` commands and nothing to clean up - blank lines
-            and all, since only consecutive blanks collapse. The old
-            `copyable={false}` grouped this with the hero mockups as
-            "illustrative", which these commands never were. */}
+        {/* Copyable, unlike the specimens in the hero and the decision trace.
+            These are the three real commands the section's heading promises,
+            and they are the most copy-worthy strings on the page.
+            `code-copy.ts` strips the `.comment` captions and the `.prompt`
+            glyphs, so the clipboard gets the three `npx shipbench ...` commands
+            and nothing to clean up - blank lines and all, since only
+            consecutive blanks collapse. The old `copyable={false}` grouped this
+            with the hero mockups as "illustrative", which these commands never
+            were. */}
         <CodeBlock
           class="quickstart-code"
           label="ShipBench CLI quickstart"

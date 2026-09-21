@@ -371,14 +371,21 @@ test('docs tables ship as accessible scroll regions before JavaScript runs', () 
 });
 
 test.describe('landing-page flow survives the build', () => {
-  test('keeps repository mechanics, local interfaces, and Harbor distinct', () => {
+  test('keeps repository mechanics, the decision trace, and Harbor distinct', () => {
     const home = html('');
 
     expect(home).toContain('How It Works');
-    expect(home).toContain('Three Local Interfaces');
-    expect(home).toContain('Direct Markdown');
-    expect(home).toContain('Local Board');
+    // The three-card interface grid became the decision trace: the same
+    // surfaces, now as the steps one decision passes through. Asserting the
+    // step headings rather than the old card titles is the point of the
+    // section - a page that lists surfaces and a page that follows a decision
+    // through them are different arguments, and only the second one is here.
+    expect(home).toContain('A Decision, Followed Through');
+    expect(home).toContain('Pick up what is actually ready');
+    expect(home).toContain('Record the decision where the work is');
+    expect(home).toContain('Find it again months later');
     expect(home).toContain('ShipBench CLI');
+    expect(home).not.toContain('Three Local Interfaces');
     expect(home).not.toContain('One System, Multiple Clients');
     expect(home).not.toContain('Dual Control Model');
 
@@ -404,17 +411,19 @@ test.describe('landing-page flow survives the build', () => {
     }
   });
 
-  // Two of the three, not all three. The hero panes are specimens - a task file
-  // and a CLI session - and stay opted out; the quickstart block is the page's
-  // three real commands and copies. See the comments at both call sites.
+  // Five of the six, not all six. The hero panes are specimens - a task file
+  // and a CLI session - and the three decision-trace steps are transcripts
+  // naming a slug the reader does not have, so all five stay opted out. The
+  // quickstart block is the page's three real commands and copies. See the
+  // comments at both call sites.
   test('opts the home-page specimens out of copying but not the quickstart', () => {
     const home = html('');
     const codeBlocks = home.match(/<pre[^>]+data-code-block[^>]*>/g) ?? [];
 
-    expect(codeBlocks).toHaveLength(3);
+    expect(codeBlocks).toHaveLength(6);
     expect(
       codeBlocks.filter(block => block.includes('data-copy-disabled')),
-    ).toHaveLength(2);
+    ).toHaveLength(5);
 
     // `data-copy-disabled` is CodeBlock.astro's opt-out and never appears in
     // Markdown; a fence opts out with ```bash no-copy, which the Shiki

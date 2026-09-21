@@ -2,7 +2,7 @@
 title: >-
   Strengthen and correct ShipBench's public explanation across the site and
   docs, then assess next steps
-status: todo
+status: review
 priority: high
 tags:
   - docs
@@ -10,7 +10,7 @@ tags:
   - copy
   - positioning
 created: '2026-09-09T04:06:45.565Z'
-updated: '2026-09-09T04:06:45.565Z'
+updated: '2026-09-20T18:56:55.063Z'
 ---
 
 Make one implementation pass on ShipBench's public explanation across the repository docs and the site, correcting the continuity claims that overstate what the system guarantees, then assess what work should follow. Strengthen the existing direction rather than repositioning ShipBench as another agentic project-management app.
@@ -111,3 +111,46 @@ After implementing and reviewing the pass, assess what the clarified promise exp
 Use this filter: would the work still help a solo developer direct and understand their projects if agents became substantially more capable? Searchable decisions, inspectable history, and clear project state may qualify; features tied to a particular agent's temporary limitations need a specific justification. Distinguish necessary support for the current promise from optional expansion. Record the assessment here and recommend the next action; do not automatically begin a second implementation phase.
 
 Sources: [landing page](../../apps/site/src/pages/index.astro), [workspace preview](../../apps/site/src/components/HeroWorkspaceWindow.astro), [site metadata](../../apps/site/src/config/site.ts), [why.md](../../docs/why.md), [solo trunk workflow](../../apps/site/src/content/docs/solo-trunk-workflow.md), [README](../../README.md), and [branding rules](../../AGENTS.md).
+
+## Task Updates
+
+### 2026-09-20T18:56:51.196Z
+Implemented the messaging pass and the three claim corrections. Direction chosen with the owner before any editing.
+
+**Direction: "Know where every project stands — and why it got there."**
+
+- *Primary visitor and situation*: one developer running several repositories, opening one after a gap or switching between them, who cannot say from memory what is next, what is blocked, or why the last call went the way it did.
+- *Promise the product can keep today*: the plan, its sequencing, and the reasoning behind it are structured files in the repository, so all three are things you look up rather than remember. Nothing is captured automatically; what is findable is what got written.
+- *Reasons over the likely alternative*: a hosted tracker is built to coordinate people and is configured again per repository; a TODO file has the right access model and almost no structure — a checked box is the whole record, with nowhere for the reason behind an item. Neither is caricatured, and both remain adequate for some people.
+- *Evidence*: `task list --available` (dependency-aware ranking), `task comment` (timestamped capture in the same file), and `task search` over titles, tags, descriptions and Task Updates, live and archived, with per-update snippets. All three shipped before this page claimed them.
+- *Next action*: quickstart, which now ends on recording a decision and searching it back.
+
+Rejected the earlier spike's "Give your next agent the reasons behind the work": it framed the system as a remedy for agent memory limits. The reasoning cycle is kept as the page's demonstration and as one bullet in why.md, not as the identity. The explanation survives agents getting substantially better, because a better agent still needs the record to exist.
+
+**Landing page.** New hero (the old one led with file placement, which the page already has a section for). Why-prose rewritten on the todo-list half. Replaced the "Three Local Interfaces" card grid with "A Decision, Followed Through" — three steps against one task file, using real CLI output shapes, with the capture step visible and stated as deliberate. The three surfaces survive as the steps' labels plus a closing note. `LocalInterfaceIcon.astro` and the `.local-interface-*` rules are gone; `.decision-trace` replaces them.
+
+**Hero workspace preview.** Its two tabs described different projects, and its CLI pane printed output the CLI does not produce (`✔ updated status: review`, and a one-line summary for `task graph`, which emits JSON). Both panes now show the same four tasks as the board tab, with real output.
+
+**The three overstatements, plus a fourth.** docs/why.md and the published why page ("no chance the two have diverged") now say there is one location rather than two to reconcile, and state plainly that currency is still the writer's. solo-trunk-workflow.md ("it cannot drift from the code") now claims one commit instead of two systems, and says keeping a description true is still your job. README.md ("hold no state") and docs/spec.md, which carried the same sentence, now name the missing structure instead of denying state.
+
+**Also changed.** `site.ts` description — its second half ended on where tasks are stored, which the `<title>` beside it already implies; it now carries both halves of the promise (144 characters). overview.md gained the "and why" clause. quickstart.md gained step 4, recording a decision and finding it again. Doc `updated` dates bumped. Tagline, descriptor, casing, punctuation, umbrella/client naming, and the Harbor availability boundary are unchanged.
+
+**Verification.** typecheck, lint, 120 vitest, and 100 Playwright tests including axe. Three e2e assertions were updated for the section swap, not worked around: code-block counts 3/2 → 6/5, `.local-interface-card` → `.trace-step`, and the built-output landing assertion now names the trace headings. Landing page reviewed at 1440 and 390 in both themes; the hero's Markdown & CLI tab reviewed separately at both sizes, since no screenshot covers it. Both new doc anchors verified against the built HTML.
+
+**Deferred, not done.** docs/workflows.md, concurrent-agents.md, the three recipe pages, and docs/harbor.md were not reviewed — none carries the corrected claims, and none is an entry point. The landing CTA still goes to the quickstart rather than a resumption walkthrough, because that walkthrough does not exist yet.
+
+**Coordination.** `add-a-complete-project-resumption-and-agent-handoff-walkthrough` and `make-task-descriptions-discoverable-through-board-search` are untouched and now more load-bearing than before — see the assessment. The third coordination link, `spike-evaluate-whether-shipbench-helps-people-resume-real-projects.md`, is dangling: that file was deleted from the working tree before this pass started. Left the description as written rather than editing around the owner's deletion.
+
+**Assessment: what the clarified promise exposes.**
+
+*Product gaps.* Board search reads titles only, so the surface a non-terminal user opens cannot do the retrieval the page demonstrates. This is the widest gap between the claim and the product, and `make-task-descriptions-discoverable-through-board-search` is now unblocked — its dependency landed. Recommend raising it to high. `expose-a-consistent-cli-project-validation-report` supports the "where it stands" half when files drift, and `let-tasks-reference-related-work-without-implying-a-dependency` supports the "why" half, since a decision usually points at sibling work; both stay medium. All three pass the durability filter.
+
+*Communication.* `add-a-complete-project-resumption-and-agent-handoff-walkthrough` is the destination the new CTA wants and does not have. Recommend high. The deferred workflow and recipe pages are low and can ride the next docs pass.
+
+*Cross-project scope.* The hero says "every project" while ShipBench is per-repository. Nothing on the page claims a single pane across repositories, and why.md frames independent plans as the design, so this is not an overstatement — but it does make `spike-explore-a-local-workbench-across-shipbench-repositories` more relevant than it was. Leave in backlog; promote only if the gap is felt in use.
+
+*Onboarding.* One concrete gap with no task: the welcome task `shipbench init` scaffolds shows frontmatter and a description but no Task Update, so a new board never demonstrates the half of the promise this pass just committed to. Small, self-contained, and worth a task. `.shipbench/AGENTS.md` already teaches agents the Update heuristic and `task comment`, so nothing is needed there.
+
+*Open to observation, not buildable.* Whether anyone but the owner writes Updates unprompted remains untested, and the spike that would have observed it was deleted. Whether the "and why" half lands on a visitor who has not felt the problem is also unknown. Both are hypotheses, and neither should be treated as settled by this pass.
+
+*Recommended next action*: board search, then the walkthrough. Do not start a second messaging phase.

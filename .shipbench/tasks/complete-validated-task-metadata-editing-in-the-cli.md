@@ -8,7 +8,7 @@ tags:
   - agents
   - dx
 created: '2026-09-06T18:32:57.540Z'
-updated: '2026-09-08T22:59:01.887Z'
+updated: '2026-09-14T21:46:17.566Z'
 ---
 
 The CLI can set metadata at creation, but task edit currently replaces only the description. Agents adjusting priority, tags, assignee, or dependencies must use another surface or edit frontmatter themselves. Round out the CLI so normal task maintenance keeps using core's validation and preservation rules.
