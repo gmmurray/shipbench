@@ -5,7 +5,13 @@
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "let-tasks-reference-related-work-without-implying-a-dependency",
-    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it"
+    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it",
+    "reject-cross-origin-and-rebound-requests-to-the-cli-board-server",
+    "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
+    "confine-task-slugs-to-the-tasks-directory-in-core",
+    "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
+    "keep-board-drafts-intact-when-the-task-changes-on-disk",
+    "let-host-apps-size-the-board-with-css-variables"
   ],
   "backlog": [
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
@@ -13,7 +19,8 @@
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
-    "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects"
+    "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
+    "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
   "review": []
