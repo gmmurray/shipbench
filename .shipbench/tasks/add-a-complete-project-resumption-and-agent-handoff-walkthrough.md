@@ -1,14 +1,14 @@
 ---
 title: Add a complete project-resumption and agent-handoff walkthrough
 status: todo
-priority: medium
+priority: high
 tags:
   - docs
   - onboarding
   - agents
   - product
 created: '2026-09-05T21:33:39.262Z'
-updated: '2026-09-06T18:33:29.092Z'
+updated: '2026-09-23T21:45:43.648Z'
 ---
 
 The quickstart successfully gets a user to their first card. Add a reference workflow showing what recorded task context enables after an interruption: understand the state, recover the relevant decision, select available work, and hand it to a fresh agent.

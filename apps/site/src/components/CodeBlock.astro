@@ -8,6 +8,11 @@ interface Props {
     prompt?: string;
     text?: string;
   }>;
+  /** Set for blocks styled to scroll sideways rather than wrap. A region that
+      scrolls has to take focus so a keyboard can scroll it (axe
+      scrollable-region-focusable), the same reason Markdown tables get a
+      focusable wrapper. Opt-in, so blocks that never overflow add no tab stop. */
+  scrollable?: boolean;
 }
 
 const {
@@ -15,9 +20,10 @@ const {
   copyable = true,
   label = 'Code example',
   lines,
+  scrollable = false,
 } = Astro.props;
 ---
 
-<pre class:list={className} data-code-block data-copy-disabled={copyable ? undefined : true} aria-label={label}><code>{lines.map((line, index) => (
+<pre class:list={className} data-code-block data-copy-disabled={copyable ? undefined : true} aria-label={label} tabindex={scrollable ? 0 : undefined}><code>{lines.map((line, index) => (
   <>{index > 0 && '\n'}{line.prompt && <><span class="prompt">{line.prompt}</span> </>}{line.comment ? <span class="comment">{line.text}</span> : line.text}</>
 ))}</code></pre>

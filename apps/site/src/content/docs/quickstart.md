@@ -1,9 +1,9 @@
 ---
 title: Quickstart
-description: Install the ShipBench CLI, initialize a repository, create a task, and open the local Kanban board.
+description: Install the ShipBench CLI, initialize a repository, create a task, open the local Kanban board, and record a decision you can search for later.
 group: Getting Started
 order: 2
-updated: 2026-09-20
+updated: 2026-09-23
 ---
 
 ShipBench keeps your project plan in the repository itself. Tasks are Markdown files under `.shipbench/tasks/`, so Git, your editor, the ShipBench CLI, the local board, and coding agents all work from the same source.

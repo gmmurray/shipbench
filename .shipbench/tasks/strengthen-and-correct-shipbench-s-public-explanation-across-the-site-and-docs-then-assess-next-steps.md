@@ -10,7 +10,7 @@ tags:
   - copy
   - positioning
 created: '2026-09-09T04:06:45.565Z'
-updated: '2026-09-21T00:47:30.317Z'
+updated: '2026-09-23T21:51:06.063Z'
 ---
 
 Make one implementation pass on ShipBench's public explanation across the repository docs and the site, correcting the continuity claims that overstate what the system guarantees, then assess what work should follow. Strengthen the existing direction rather than repositioning ShipBench as another agentic project-management app.
@@ -91,7 +91,7 @@ Coordinate with these before editing overlapping surfaces, and record which part
 
 - [Resumption and agent-handoff walkthrough](add-a-complete-project-resumption-and-agent-handoff-walkthrough.md)
 - [Board search](make-task-descriptions-discoverable-through-board-search.md)
-- [Observation of real project use](spike-evaluate-whether-shipbench-helps-people-resume-real-projects.md)
+- Observation of real project use (`spike-evaluate-whether-shipbench-helps-people-resume-real-projects`, deleted before this pass began)
 
 ## Acceptance
 
@@ -164,3 +164,16 @@ Rebalanced after review. The first draft over-rotated toward recorded reasoning 
 - In both why pages, "Decisions can stay with the task that caused them" moved from slot 2 to slot 4 of "What follows from that", behind context switching, agent access, and Git. It was sitting ahead of three proven structural consequences while being the newest and least-evidenced claim.
 
 The hero, How It Works, the quickstart, the site description, and the three claim corrections are unchanged — those were already task-forward. Checks re-run green: typecheck, lint, 120 vitest, 100 Playwright. Two e2e assertions follow the renamed badge.
+
+### 2026-09-23T21:46:37.377Z
+Post-completion review, with fixes applied.
+
+- **The problem statement had become one sentence on four surfaces.** "A checked box is the whole record — nothing to sequence, nothing a tool can validate or query…" appeared almost verbatim in the README, spec.md, the landing page, and both why pages, which is exactly the drift the AGENTS.md problem-statement rule exists to stop. Each surface now takes its own angle. The why pages stay the long form. The landing page describes coming back to a TODO.md a month later. The README says what a line can't express. The spec states the tooling consequence. The landing version's "costs nothing to start" was ledger vocabulary and is gone.
+- **The hero subhead claimed capture.** "ShipBench keeps … the decisions behind it" said the system keeps decisions, which it doesn't. It now says each task has room for the reason, and names both halves of the h1 instead of ending on "both".
+- **h1: "every project" → "each project".** Plans are per repository and Harbor isn't live, so nothing gives a view across projects. This is the independent-plans-versus-cross-project-visibility distinction the task asked to keep. The owner agreed.
+- **The manual-capture caveat is stated once per surface.** The landing page said it three times in one scroll. It now says it once, in step 02, where the capture happens. The why pages drop their second statement of it.
+- **The search specimen is verbatim CLI output.** It had a leading ellipsis the CLI doesn't print and was hand-wrapped over two lines, against the `.trace-code` comment's own rule. Printed verbatim, the line ran off the desktop column, so the example entry is now short enough that the CLI prints it whole: "Put fs calls behind a StorageAdapter so the board can run on GitHub too." I checked it by running the transcript against the built CLI. Because the trace blocks scroll, axe then flagged scrollable-region-focusable, so `CodeBlock` gained an opt-in `scrollable` prop that adds `tabindex="0"`, the same treatment Markdown tables already get. The quickstart block also scrolls on phones and doesn't have it yet; axe only runs at desktop width, so it hasn't flagged that.
+- **Leftovers.** The CSS header was renamed to match the rebalanced section, the unused `decision-section` class was removed, and the quickstart's frontmatter description now covers step 4.
+- **Copy pass.** A humanizer pass removed "X, not Y" kickers and some internal framing that had leaked into public copy ("The task is the spine") from the landing page, solo-trunk-workflow, and why pages.
+
+Follow-ups acted on: `make-task-descriptions-discoverable-through-board-search` and `add-a-complete-project-resumption-and-agent-handoff-walkthrough` were raised to high, as the assessment recommended. The welcome-task proposal is now `show-a-task-update-in-the-welcome-task-shipbench-init-scaffolds`, kept separate from `updating-shipbench-init-with-new-versions` at the owner's direction. The dangling spike link in the description is now plain text noting the deletion.

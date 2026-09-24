@@ -1,7 +1,7 @@
 ---
 title: Make task descriptions discoverable through board search
 status: todo
-priority: medium
+priority: high
 tags:
   - board
   - search
@@ -9,7 +9,7 @@ tags:
 depends_on:
   - make-cli-search-retrieve-recorded-decisions-with-useful-context
 created: '2026-09-05T21:33:38.341Z'
-updated: '2026-09-07T19:32:52.397Z'
+updated: '2026-09-23T21:45:43.552Z'
 ---
 
 A person returning to a project may remember a phrase from its reasoning rather than a task title. The September 5 evaluation created a task with "concise" only in its description. The CLI's task search found it with a body snippet; the browser board's "Search tasks" field reported no matching live tasks.

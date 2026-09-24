@@ -11,7 +11,8 @@
     "confine-task-slugs-to-the-tasks-directory-in-core",
     "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "keep-board-drafts-intact-when-the-task-changes-on-disk",
-    "let-host-apps-size-the-board-with-css-variables"
+    "let-host-apps-size-the-board-with-css-variables",
+    "show-a-task-update-in-the-welcome-task-shipbench-init-scaffolds"
   ],
   "backlog": [
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",

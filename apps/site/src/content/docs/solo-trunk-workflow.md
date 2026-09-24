@@ -3,7 +3,7 @@ title: Solo Trunk Workflow
 description: Work one task at a time directly on main, so the task move and its implementation land in the same commit without a branch or pull request.
 group: Workflows
 order: 1
-updated: 2026-09-20
+updated: 2026-09-23
 ---
 
 One stream of work, no branches. You move a task to `in-progress`, implement it, move it to the completion column, and commit the code and the task change together.
@@ -28,7 +28,7 @@ git commit -m "Complete <slug>"
 
 The task and its implementation travel in the same Git history. A feature branch, a pull request, or an external task transition for every small change buys isolation you are not using — nothing else is writing to the repository, so there is nothing to isolate from.
 
-It also puts the status change in the same commit as the code. Moving a task is a working-tree edit like any other, so finishing the work and recording that it is finished are one action rather than two in different systems, and `main` is the only place either one lives. Keeping a task's description true to what you actually built is still your job — what the workflow removes is the reconciliation, not the writing.
+It also puts the status change in the same commit as the code. Moving a task is a working-tree edit like any other, so finishing the work and recording that it is finished are one action rather than two in different systems, and `main` is the only place either one lives. Keeping a task's description true to what you actually built is still your job; the workflow just means you don't also update it somewhere else.
 
 ## When to leave it
 
