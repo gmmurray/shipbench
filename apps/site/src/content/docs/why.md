@@ -44,6 +44,6 @@ A task is a Markdown file and the columns are whatever you name them, so nothing
 
 ## Something I didn't plan for
 
-The most useful thing ShipBench does for me now wasn't a reason I built it. When agents write tasks and [Task Updates](/docs/convention-spec/#task-updates), they're good about linking to related tasks and noting where a decision came from. Later I can ask an agent something like "how did we decide to build this in the first place?" It can use [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) and those links to walk back through the tasks that led there, going as deep as the question needs. What comes back is close to documentation of how the project got its shape.
+One of the most useful things ShipBench does for me now wasn't a reason I built it. When agents write tasks and [Task Updates](/docs/convention-spec/#task-updates), they're good about linking to related tasks and noting where a decision came from. Later I can ask an agent something like "how did we decide to build this in the first place?" It can use [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) and those links to walk back through the tasks that led there, going as deep as the question needs. What comes back is close to documentation of how the project got its shape.
 
 That isn't really a feature. Nothing records it automatically, and it only works as well as what got written down. It comes from tasks being ordinary files with a few rails around them.

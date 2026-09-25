@@ -3,7 +3,7 @@ title: Concurrent Agents with Worktrees
 description: Run several agents at once by giving each task its own Git worktree and branch, while one canonical checkout keeps task status authoritative.
 group: Workflows
 order: 2
-updated: 2026-09-07
+updated: 2026-09-24
 ---
 
 Two agents writing in one checkout can collide in source files, task files, dependency installs, and test output. Git worktrees give each concurrent task its own directory and branch while sharing the repository's object database.
@@ -14,7 +14,7 @@ Use one worktree for one task:
 1 task ↔ 1 branch ↔ 1 worktree ↔ 1 agent
 ```
 
-Worktrees are an isolation tool, not the default requirement for sequential work. If you are running one agent at a time, the [solo trunk workflow](/docs/solo-trunk-workflow/) is enough.
+If you run one agent at a time, you don't need any of this. The [solo trunk workflow](/docs/solo-trunk-workflow/) is enough.
 
 ## Route status through the canonical checkout
 
@@ -24,7 +24,7 @@ A ShipBench board is branch-local: each worktree carries its own copy of `.shipb
 shipbench -C ~/code/my-project task move <slug> --to <status>
 ```
 
-The rule is narrow on purpose. From inside its worktree, an agent may still write to the board files that belong to its own task:
+That rule covers status only. From inside its worktree, an agent can still write to its own task:
 
 - append Updates with `shipbench task comment`;
 - refine its own task's description or metadata (tags, priority, dependencies) with `shipbench task edit` — but not its `status`, which stays with `task move`;
@@ -36,13 +36,13 @@ Those changes ride the task branch and merge in with the code. What an agent mus
 - edit a task description without first reading the current version from the canonical checkout, since the worktree's copy may be stale;
 - touch anything else under `.shipbench/`: other agents' tasks, `config.json`, `layout.json`.
 
-One directory owns status; task branches carry everything else. [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) has this stated as a block you can paste into your repository's `AGENTS.md`, so each agent reads it without you repeating it in a prompt.
+[Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) has these rules as a block you can paste into your repository's `AGENTS.md`, so every agent reads them without you repeating them in a prompt.
 
 ## One writer at a time per task file
 
-Splitting the writes by *what* is not enough on its own, because both halves land in the same file. A task's entire record is `.shipbench/tasks/<slug>.md`: the canonical checkout writes `status` there, the branch writes Updates and the description there, and every one of those writes also stamps the `updated:` line directly under `status:`. (`layout.json` is the other file both sides reach, though only when a task is created or changes column; [the recovery section](#recovering-a-collided-merge) covers it.)
+Dividing the writes this way isn't enough by itself, because both sides write to the same file. A task's entire record is `.shipbench/tasks/<slug>.md`: the canonical checkout writes `status` there, the branch writes Updates and the description there, and every one of those writes also stamps the `updated:` line directly under `status:`. (`layout.json` is the other file both sides reach, though only when a task is created or changes column; [the recovery section](#recovering-a-collided-merge) covers it.)
 
-Git merges that content without complaint. What it refuses is *starting* a merge that would overwrite an uncommitted local edit — so a status write left sitting in the canonical checkout while that task's branch is unmerged aborts the merge that would have integrated the work:
+Git merges that content fine. What it won't do is start a merge that would overwrite an uncommitted local edit. So if a status write is sitting uncommitted in the canonical checkout while that task's branch is unmerged, the merge aborts:
 
 ```text
 error: Your local changes to the following files would be overwritten by merge:
@@ -50,9 +50,9 @@ error: Your local changes to the following files would be overwritten by merge:
 Please commit your changes or stash them before you merge.
 ```
 
-Committing it instead lets the merge start, and then it conflicts on the `updated:` line that both sides rewrote. Neither state is one to work from, and [recovering a collided merge](#recovering-a-collided-merge) is the way out of both.
+If you commit the status write instead, the merge starts and then conflicts on the `updated:` line that both sides rewrote. [Recovering a collided merge](#recovering-a-collided-merge) covers both cases.
 
-The fix is timing. A task branch owns its task's file for as long as it exists, and status writes go on either side of it:
+The way to avoid both is timing. While a task branch exists, it owns that task's file, so status writes happen before it's created or after it merges:
 
 - **before the worktree exists** — the claim, committed, so the branch inherits it;
 - **after the branch merges** — `review`, `done`, and anything else.
@@ -87,9 +87,9 @@ git worktree add -b task/build-ui \
   ../my-project-worktrees/build-ui main
 ```
 
-Each branch now starts from a commit that already carries the claim, so the agent reading its task inside the worktree sees `in-progress` rather than a stale `todo`. That is also the commit the merge compares against later, which is what keeps the integration clean.
+Each branch now starts from a commit that already includes the claim, so an agent reading its task inside the worktree sees `in-progress` instead of a stale `todo`. The merge later compares against that same commit, which keeps the integration clean.
 
-Placing worktrees in a sibling directory keeps the main repository's development servers and file watchers from scanning them.
+Putting worktrees in a sibling directory keeps the main repository's dev servers and file watchers from scanning them.
 
 ## Agent loop inside a worktree
 
@@ -110,7 +110,7 @@ shipbench task comment build-api \
 
 The agent should commit code, tests, its own task's description changes, and Updates on its task branch. It should not change any task's `status`, touch another agent's task, or create orchestration state outside the repository.
 
-An agent that finishes commits and stops. Its task stays `in-progress`, because the branch carrying the work has not landed yet — so the queue of finished agents is the set of unmerged task branches:
+An agent that finishes commits and stops. Its task stays `in-progress` because the branch with the work hasn't merged yet, so the list of finished agents is the list of unmerged task branches:
 
 ```bash
 git -C ~/code/my-project branch --list 'task/*' --no-merged main
@@ -120,7 +120,7 @@ To give the board its own name for work that is integrated and waiting on you, a
 
 ## Integrate on `main`
 
-Review each branch in its worktree, then merge it into `main` using your preferred Git strategy. The branch's Updates and description edits arrive with the code. Move the task once the merge has landed — that is the moment its file has one writer again:
+Review each branch in its worktree, then merge it into `main` however you normally merge. The branch's Updates and description edits arrive with the code. Move the task after the merge, when its file has one writer again:
 
 ```bash
 git switch main
@@ -132,7 +132,7 @@ git add .shipbench
 git commit -m "Complete build-api"
 ```
 
-This sequence keeps `main` authoritative throughout the work:
+This order keeps `main` authoritative the whole time:
 
 - the claim is visible before dispatch, and committed before the branch exists;
 - implementation stays isolated;
@@ -147,11 +147,11 @@ git branch -d task/build-api
 
 ## Recovering a collided merge
 
-Both failures above have one cause — a status write in the canonical checkout for a task whose branch has not landed — and one recovery: take what the branch has, then write the status again with the CLI.
+Both failures above come from a status write in the canonical checkout for a task whose branch hasn't merged. The recovery is the same for both: take what the branch has, then write the status again with the CLI.
 
-Every command below runs in the canonical checkout, so none of them needs `-C`. A half-finished merge lives there and nowhere else, which is why these are the one set of `shipbench` commands on this page that do not name their target.
+Every command below runs in the canonical checkout, where the half-finished merge is, so none of them needs `-C`.
 
-Do not replay the old file to get the status back. A task file is a snapshot of its description, its Updates, and the `updated` timestamp covering them, so restoring its bytes — `git stash pop`, `git checkout --ours`, a copy you set aside — reinstates content the branch has since moved past. `shipbench task move` writes the one field you meant to change onto whatever the merge produced.
+Don't restore the old file to get the status back. A task file holds its description, its Updates, and the `updated` timestamp that covers them, so restoring its old contents with `git stash pop`, `git checkout --ours`, or a saved copy brings back content the branch has since changed. `shipbench task move` writes only the field you meant to change, on top of whatever the merge produced.
 
 **The merge aborted.** The status write is uncommitted. Restore the single file it touched, merge, and move the task again:
 
@@ -161,7 +161,7 @@ git merge --no-edit task/build-api
 shipbench task move build-api --to review
 ```
 
-Naming the file keeps the recovery off everything else. A second task claimed and commented in the canonical checkout, still uncommitted, comes through unchanged — so never widen this to `git restore .shipbench` or a branch-wide reset, which would take that work with it.
+Naming the one file leaves everything else alone. If another task was claimed or commented on in the canonical checkout and not yet committed, that work survives. Don't widen this to `git restore .shipbench` or a branch-wide reset, which would throw it away.
 
 **The merge conflicted on the task file.** The status write is committed, and conflict markers surround the `updated:` line. The `status:` line above them merged cleanly, because only `main` changed it. Take the branch's copy whole, then put the status back:
 
@@ -172,7 +172,7 @@ git commit --no-edit
 shipbench task move build-api --to review
 ```
 
-`--theirs` discards every canonical-side change to that file. It is safe here only because the status write was the only one, and the last line restores it.
+`--theirs` discards every change the canonical checkout made to that file. That's only safe because the status write was the only one, and the last line puts it back.
 
 **The conflict is in `layout.json`.** A follow-up task created on the branch and a status move in the canonical checkout both rewrite the placement index. Keep the canonical copy and finish the merge:
 
@@ -182,7 +182,7 @@ git add .shipbench/layout.json
 git commit --no-edit
 ```
 
-`layout.json` is a partial index, so the branch's new task still appears on the board — ordered deterministically rather than where the branch put it, and healed by the next board write. If these conflicts are routine for you, [gitignore layout.json](/docs/recipe-gitignore-layout/) takes the file out of merges entirely.
+`layout.json` is a partial index, so the branch's new task still appears on the board. It's placed in the default order rather than where the branch put it, until the next board write updates the index. If these conflicts are routine for you, [gitignore layout.json](/docs/recipe-gitignore-layout/) takes the file out of merges entirely.
 
 ## Multi-agent cheat sheet
 
@@ -204,7 +204,7 @@ Use `shipbench task list --blocked --json` when a candidate cannot start, `task 
 
 ## Conventions worth writing down
 
-Three optional pieces of this workflow have pasteable blocks, so your agents read the rules instead of being told them each time:
+Three optional parts of this workflow have blocks you can paste into your agent instructions, so agents read the rules instead of being told them each time:
 
 - [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) — the status rule above, as agent instructions.
 - [Recipe: human review gate](/docs/recipe-review-gate/) — a `review` column plus the ownership line that makes it mean something.

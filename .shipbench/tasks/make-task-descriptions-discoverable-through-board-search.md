@@ -9,7 +9,7 @@ tags:
 depends_on:
   - make-cli-search-retrieve-recorded-decisions-with-useful-context
 created: '2026-09-05T21:33:38.341Z'
-updated: '2026-09-23T21:45:43.552Z'
+updated: '2026-09-25T03:21:47.583Z'
 ---
 
 A person returning to a project may remember a phrase from its reasoning rather than a task title. The September 5 evaluation created a task with "concise" only in its description. The CLI's task search found it with a body snippet; the browser board's "Search tasks" field reported no matching live tasks.
@@ -58,3 +58,6 @@ What this task implements against:
 Deferred to their own tasks, so this board work does not inherit them: relevance ranking + omitted-match signalling, metadata/availability filters, whole-word and exact-phrase matching, semantic retrieval. The "need not wait for every CLI enhancement" line still governs scope — implement the corpus + result-context contract and stop.
 
 Reuse: `searchTasks` in packages/core/src/search.ts is the contract in code. `TaskSearchMatch` / `TaskUpdateMatch` are exported from @shipbench/core.
+
+### 2026-09-25T03:21:47.583Z
+When this lands, update the last item under Limits in apps/site/src/content/docs/decision-trail.md. It currently says the local board's search matches task titles only.

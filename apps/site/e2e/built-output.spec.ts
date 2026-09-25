@@ -72,6 +72,7 @@ const DOC_PAGES = [
   'docs/quickstart',
   'docs/cli-reference',
   'docs/convention-spec',
+  'docs/decision-trail',
   ...(HARBOR_ENABLED ? ['docs/harbor'] : []),
   'docs/workflows',
   'docs/solo-trunk-workflow',

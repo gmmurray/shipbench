@@ -25,4 +25,5 @@ New to ShipBench? Read these in order:
 ## Reference
 
 - [ShipBench Project Files](/docs/convention-spec/): the `.shipbench/` directory in full, covering the task format, dependencies, updates, ordering, and archives.
+- [Tracing a Decision](/docs/decision-trail/): link related tasks and record decisions so you can find out later why something was built.
 - [ShipBench CLI Reference](/docs/cli-reference/): every command, flag, and JSON payload, with query patterns for agents.

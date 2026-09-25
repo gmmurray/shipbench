@@ -3,7 +3,7 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-09-02
+updated: 2026-09-24
 ---
 
 The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, local board, ShipBench Harbor, and coding agents are clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
@@ -120,7 +120,7 @@ shipbench task comment setup-github-oauth \
   "Switched to PKCE after the security review."
 ```
 
-This placement heuristic is guidance, not a validation rule. Update text may contain arbitrary Markdown; readers do not judge its prose. You may use the section as a freeform comments log. It is a curated task record, not an automatically generated change log; Git already records file history.
+That question is guidance; nothing validates it. Update text can be any Markdown, and you can use the section as a freeform comment log if you like. Updates are what someone chose to write down. Git already keeps the file's full history. [Tracing a Decision](/docs/decision-trail/) shows how Updates and links between tasks let you work out later why something was built.
 
 Only a `### <ISO 8601 timestamp>` line at the start of a line, outside a code fence, opens an entry. Every other heading in an entry belongs to that entry's text, so an update is free to use `##` or `####` for its own structure. Three shapes are refused on write instead, because the next read would file them as structure rather than prose: a `## Task Updates` heading of its own, a line-initial heading whose text is a date, and an unclosed code fence. Indenting the line by four spaces or fencing it keeps any of them as literal text.
 
@@ -191,4 +191,4 @@ The convention requires strict writes and graceful reads.
 - A file with malformed YAML is skipped with a warning; other readable tasks remain available.
 - Tasks with an unknown status appear in the board's Uncategorized column.
 
-This balance keeps structured tools safe without making hand-edited Markdown fragile.
+Strict writes stop the CLI and other tools from producing invalid files. Graceful reads mean a hand-edited file with a mistake in it still shows up, with a warning, instead of disappearing.

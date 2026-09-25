@@ -3,7 +3,7 @@ title: 'Recipe: Multi-Agent Worktree Rules'
 description: A pasteable AGENTS.md block that keeps task status truthful when agents work from Git worktrees, by routing every status change through the canonical checkout.
 group: Workflows
 order: 3
-updated: 2026-09-06
+updated: 2026-09-24
 ---
 
 ## What it does
@@ -67,7 +67,7 @@ One directory owns status. Task branches carry everything else.
 
 **It hardcodes a path.** The block names your canonical checkout, so it is accurate on your machine and wrong on anyone else's. For a solo project that is the point — the agent needs a real path, not a description of one. If the repository ever gains a second developer, the path becomes the first thing to generalize.
 
-**It constrains agents that could have been right.** An agent that correctly worked out it was in the canonical checkout would be allowed to move the task; the block tells it to route through `-C` regardless. The redundant `-C` costs nothing and removes the judgment call, which is the trade being made.
+**It constrains agents that could have been right.** An agent that correctly worked out it was in the canonical checkout could safely move the task, but the block tells it to use `-C` anyway. An unnecessary `-C` does no harm, and it removes the judgment call.
 
 **It leaves the agent without a status to signal with.** An agent that finishes mid-branch can commit and say so, but it cannot put that on the board, so `in-progress` covers both "working" and "waiting for you to merge". The distinction lives in Git instead — `git branch --list 'task/*' --no-merged main` is the list of agents waiting on you — and the board regains it once the branch lands, if you also run the [human review gate](/docs/recipe-review-gate/).
 

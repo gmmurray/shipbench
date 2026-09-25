@@ -3,7 +3,7 @@ title: 'Recipe: Human Review Gate'
 description: Add a review column and the ownership line that makes it mean something, so agents can submit finished work without marking it complete.
 group: Workflows
 order: 4
-updated: 2026-09-07
+updated: 2026-09-24
 ---
 
 ## What it does
@@ -14,7 +14,7 @@ Adds a `review` column between `in-progress` and `done`, and reserves `done` for
 
 When agents produce work you intend to check before accepting. The default lifecycle forces a choice between leaving finished work in `in-progress`, where it looks unstarted, and letting an agent close its own task, which makes `done` mean "an agent thinks so."
 
-It pays off most with [concurrent agents](/docs/concurrent-agents/), where several tasks finish while you are reading the first one. There, `review` collects the ones you have already integrated, so the column is the list of things still owing you a verification.
+It helps most with [concurrent agents](/docs/concurrent-agents/), where several tasks finish while you're still reading the first. There, `review` holds the ones you've already merged, so the column is your list of things left to verify.
 
 ## The block
 
@@ -77,7 +77,7 @@ With worktrees, then, `review` means "integrated and waiting on your verificatio
 
 **You become a required step.** Work accumulates in `review` at whatever rate agents produce it and leaves at whatever rate you read it. That queue is real information, but it is also a column only you empty — and a full `review` column is easy to misread as progress.
 
-**`done` gets slower and truer.** Completion now trails verification instead of tracking it, so velocity read off the board understates what has been built. That is the intended trade: `done` stops being a claim anyone but you can make.
+**`done` lags behind the work.** A task reaches `done` only after you've checked it, so at any moment the board shows less finished than has actually been built. In exchange, nobody but you can mark something done.
 
 **It is one more column to explain.** Every agent instruction, query, and habit that assumed three columns now has a fourth to account for. Adopt it when you actually review agent work — a `review` column nobody empties is worse than not having one.
 

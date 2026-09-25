@@ -1,6 +1,6 @@
 ---
 title: 'Rewrite ShipBench''s public copy from an outline, with a new landing page'
-status: review
+status: done
 priority: high
 tags:
   - docs
@@ -8,7 +8,7 @@ tags:
   - copy
   - design
 created: '2026-09-24T19:36:56.397Z'
-updated: '2026-09-25T03:10:36.682Z'
+updated: '2026-09-25T03:13:47.059Z'
 ---
 
 Rewrite ShipBench's public explanation from scratch, starting from a plain outline of what each surface needs to say rather than from the sentences already there. It covers a new landing page with a new flow and visual treatment, plus the other surfaces that make the argument.

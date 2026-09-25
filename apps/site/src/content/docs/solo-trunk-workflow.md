@@ -3,10 +3,10 @@ title: Solo Trunk Workflow
 description: Work one task at a time directly on main, so the task move and its implementation land in the same commit without a branch or pull request.
 group: Workflows
 order: 1
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
-One stream of work, no branches. You move a task to `in-progress`, implement it, move it to the completion column, and commit the code and the task change together.
+Work one task at a time on `main`, without branches. You move a task to `in-progress`, do the work, move the task to the completion column, and commit the code and the task change together.
 
 ## The loop
 
@@ -26,12 +26,12 @@ git commit -m "Complete <slug>"
 
 ## Why there is no branch
 
-The task and its implementation travel in the same Git history. A feature branch, a pull request, or an external task transition for every small change buys isolation you are not using — nothing else is writing to the repository, so there is nothing to isolate from.
+When only one thing writes to the repository, a feature branch or pull request for each change adds steps without protecting anything. Skipping them also keeps each task and its implementation in the same history.
 
-It also puts the status change in the same commit as the code. Moving a task is a working-tree edit like any other, so finishing the work and recording that it is finished are one action rather than two in different systems, and `main` is the only place either one lives. Keeping a task's description true to what you actually built is still your job; the workflow just means you don't also update it somewhere else.
+Moving a task is a working-tree edit like any other, so the status change goes into the same commit as the code. Finishing the work and recording that it's finished happen together, in one place. You still have to keep the task's description true to what you built, but you don't also have to update a second system.
 
 ## When to leave it
 
-Move to [concurrent agents with worktrees](/docs/concurrent-agents/) when two agents would otherwise write in the same checkout. That is the real trigger — collisions in source files, task files, dependency installs, and test output. Wanting a branch for its own sake is not.
+Switch to [concurrent agents with worktrees](/docs/concurrent-agents/) when two agents would otherwise write in the same checkout and collide in source files, task files, dependency installs, or test output.
 
-Adopting worktrees does not undo anything here. The concurrent workflow is this loop with isolation added around it, and `main` stays the checkout that owns task status either way.
+Nothing here has to be undone when you switch. The concurrent workflow is this loop with isolation around it, and `main` is still the checkout that owns task status.

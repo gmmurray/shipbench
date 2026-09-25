@@ -3,7 +3,7 @@ title: ShipBench Harbor
 description: Use ShipBench Harbor to develop ideas and observe pushed project boards across public GitHub repositories.
 group: Guides
 order: 2
-updated: 2026-08-05
+updated: 2026-09-24
 ---
 
 ShipBench Harbor is the hosted web client for ShipBench. It gives solo developers one place to develop ideas before code exists and observe pushed task boards after those ideas become Git-backed projects.
@@ -99,4 +99,4 @@ Private-repository support and live board editing require a separate permission 
 | Task Markdown and Updates | Git repository | No |
 | Manual task order | Git repository | No |
 
-This boundary keeps active project work portable. Harbor provides the workbench and portfolio view; Git remains the source of truth for ShipBench projects.
+Everything about a project's tasks stays in its repository, so none of it depends on Harbor. Harbor adds the idea workbench and a view across projects on top.

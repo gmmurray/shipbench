@@ -13,7 +13,6 @@
     "keep-board-drafts-intact-when-the-task-changes-on-disk",
     "let-host-apps-size-the-board-with-css-variables",
     "show-a-task-update-in-the-welcome-task-shipbench-init-scaffolds",
-    "rewrite-the-guide-docs-in-the-approved-voice",
     "update-package-readmes-and-npm-descriptions-to-the-approved-copy",
     "strip-rationale-comments-from-the-rest-of-the-site"
   ],
@@ -27,7 +26,5 @@
     "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
-  "review": [
-    "rewrite-shipbench-s-public-copy-from-an-outline-with-a-new-landing-page"
-  ]
+  "review": []
 }
