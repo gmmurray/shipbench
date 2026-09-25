@@ -11,35 +11,32 @@ ShipBench is a Git-native project management system for solo developers. It has 
 
 ## Naming and branding
 
-This section is public on purpose. It governs every ShipBench surface — this repository, the site, npm metadata, and Harbor — and it is the clearest statement anywhere of how the pieces relate, so it belongs where anyone writing copy or docs can find it.
+These rules cover every ShipBench surface: this repository, the site, npm metadata, and Harbor. They're kept here, in public, so anyone writing copy or docs can find them.
 
-**ShipBench is the system. Harbor (and the CLI) are clients for it.** Tasks live in repos; Harbor is one surface for managing them, the CLI is another. This relationship is load-bearing — keep it visible everywhere:
+**ShipBench is the system. The CLI and Harbor are clients for it.** Tasks live in repositories, and each client is one way of working with them.
 
-- **Umbrella name everywhere**: ShipBench. Never refer to the whole project as "Harbor."
-- **User-facing product names**: "ShipBench CLI" and "ShipBench Harbor" (proper-noun Harbor). The umbrella always comes first.
-- **In Harbor's own copy**: lead with "Harbor" in headers, but anywhere it explains itself, mention ShipBench (e.g. "Sign in to Harbor to manage your ShipBench projects"). Harbor's brand should never swallow the convention's identity.
-- **Package names** stay scoped to `@shipbench/*`: `@shipbench/core` and `@shipbench/board` publish from here; `@shipbench/harbor` is private and lives in its own repository. The CLI's npm name is `shipbench` (it's the namesake binary). Don't introduce unscoped sub-brand packages.
-- **Inside the codebase**, lowercase `harbor` is fine as a working name (directory, package suffix, slug). Reserve the proper noun "Harbor" for user-facing surfaces.
+- Call the whole project ShipBench, never "Harbor."
+- User-facing product names are "ShipBench CLI" and "ShipBench Harbor," with the umbrella first.
+- Harbor's own copy can lead with "Harbor" in headers, but anywhere it explains itself it names ShipBench (for example, "Sign in to Harbor to manage your ShipBench projects").
+- Packages stay under `@shipbench/*`. `@shipbench/core` and `@shipbench/board` publish from here, `@shipbench/harbor` is private and lives in its own repository, and the CLI's npm name is `shipbench`. Don't add unscoped sub-brand packages.
+- Lowercase `harbor` is fine as a working name inside the codebase (directories, package suffixes, slugs). Use the proper noun "Harbor" only on user-facing surfaces.
 
-**Tagline vs. descriptor**: two canonical strings with different jobs. Don't swap them and don't invent variants.
+**Two fixed strings.** Use them as written. Don't swap them or invent variants.
 
-- **Tagline — "Plans that ship with the work."** Carries the reason. Use it where a human reads it as a statement: the site footer, the hero, the social image, the top of a README. Deliberately domain-neutral — ShipBench is used for writing and posts as well as code (see [docs/why.md](docs/why.md)), so the tagline must never narrow to code.
-- **Descriptor — "Git-native project management for solo developers."** Says what shelf the project is on and carries no reason. Use it where the job is search and categorization: `<title>`, the GitHub repository description, npm.
+- **Tagline: "Plans that ship with the work."** Use it where someone reads it as a statement: the hero, the footer, the social image, the top of a README. It stays domain-neutral because ShipBench is also used for writing and publishing, not only code.
+- **Descriptor: "Git-native project management for solo developers."** Use it for search and categorization: `<title>`, the GitHub repository description, npm. Keep it in sentence case everywhere, `<title>` included, so it matches GitHub and npm.
+- Don't put the two next to each other where they'd say the same thing twice.
+- The tagline keeps its period wherever it reads as a sentence (the social image, alt text, a README) and drops it in label contexts such as badges and the footer. Both forms are the tagline.
 
-The two must not appear as each other's neighbors restating one claim twice. `docs/why.md` is the full argument both compress.
+**The meta description says why, not what.** The `<title>` next to it already says what ShipBench is, so `description`, and the `og:` and `twitter:` descriptions that reuse it, should give a reason to click. See `apps/site/src/config/site.ts`.
 
-**The description slot is not the descriptor's.** A meta description is not a shelf label — it is the search-result snippet, read by someone deciding whether to click, and the `<title>` sitting beside it has already done the categorizing. So the title carries the shelf and the description carries the reason. This governs `og:description` and `twitter:description` too, since they inherit the same string, and it is why `apps/site/src/config/site.ts` writes a reason into `description` rather than repeating the descriptor.
+**Say only what the product does today.**
 
-**Terminal punctuation belongs to the context, not to the string.** The tagline is a sentence and keeps its period wherever it is read as one: the social image headline, an alt string, the top of a README. Standalone label contexts drop it, the way any badge, chip, or footer colophon does — the site's hero badge and footer both render `Plans that ship with the work` bare. Both forms are the tagline; neither is a variant.
-
-**The descriptor keeps its sentence case.** It is a sentence, not a name, so re-casing it is inventing a variant even when no word changes: "Git-Native" reads as a proper noun the thing isn't, and it diverges from the identical string on GitHub and npm one click away. That includes `<title>`, the one slot where title-casing is the ordinary convention. Sentence case also renders narrower, which matters where the full string sits near the ~60-character mark search results truncate around.
-
-**The problem statement is a theme, not a third canonical string.** Most surfaces have to say why a hosted tracker is a bad fit for one developer, and that wording is deliberately *not* shared. A search-result snippet, a subhead read after the `h1` has already made its claim, and the opening of a docs page are three different shapes; one sentence stretched across all three is what produced the drift this rule exists to stop. What is fixed is the constraint, not the sentence:
-
-- **State a mechanism, never a valuation.** "Costs more than it saves" announces a verdict. "Built to coordinate a team, and you configure it again for every repository" says what actually happens. Everywhere else this project earns its claims by showing a mechanism; the problem statement does not get an exemption.
-- **Keep ledger vocabulary out of it** — _costs_, _worth_, _saves_, _tax_, _pays for itself_. Those words assert a valuation by their nature, whatever sentence they land in.
-- **Lead with the checkable half.** "Most projects never get one" is an observation about behaviour. It is the evidence, not support for a verdict, so don't demote it to a subordinate clause.
-- **Mine `docs/why.md` before writing a new variant.** The long form is already there and already concrete. Then check the surfaces a reader meets alongside yours: if the section two scroll-lengths down takes the same angle, take a different one.
+- Plans are per repository. Don't imply a view across projects unless a live client provides one.
+- Nothing is recorded automatically. Task Updates and links between tasks exist because someone wrote them.
+- Keeping a plan current is still the writer's job. Don't claim task files can't drift from the code.
+- ShipBench works well with agents and works without them. It is a task management system that works well with AI, not an AI task management system, so agents shouldn't become the subject.
+- Harbor availability follows `harborEnabled` in `apps/site/src/config/flags.ts`.
 
 **Domain**: `shipbench.dev` is the official, owned domain. Harbor lives under it (`harbor.shipbench.dev`), never on its own apex. No Harbor-first domain.
 
@@ -262,6 +259,7 @@ Any task can be archived: the file moves byte-identical to `tasks/archive/<slug>
 - `tsup` for building core and CLI. Vite for board.
 - `gray-matter` for frontmatter parsing.
 - Workspace dependencies use the `"workspace:*"` protocol.
+- Comments explain code, not copy. The reasoning behind a piece of public copy or a design choice goes in the task record, not in a comment next to it.
 
 ## Architectural boundaries
 

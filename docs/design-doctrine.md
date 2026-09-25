@@ -277,6 +277,14 @@ body {
 
 `--grid-line` is `divider` at ~9–12% — derive it with `color-mix` from `divider` rather than restating the rgba per theme.
 
+### The home page (shipbench.dev/)
+
+The home page is the one surface a person reads before they've used anything, so it gets three exceptions. Everything else in this doctrine applies to it unchanged, including the palette, the lanes, geometry, and the ban on glow, shadow, and blur.
+
+- **Type scale.** Display runs `clamp(44px, 6.4vw, 80px)`, sans 600, with tight tracking. Section titles are `clamp(26px, 3vw, 34px)` and lead text is 17–20px. Body, captions, and labels stay on the product scale above.
+- **Section labels.** Sections carry a plain sans heading, without the uppercase mono eyebrow. Mono stays for identifiers: commands, paths, slugs.
+- **One ambient animation.** The hero may run a single abstract animation, with no UI mockup and no text. It must use neutral and accent only, stay flat, and move slowly enough that it doesn't compete with the headline. It pauses when it's off screen or the tab is hidden, and it's replaced by a static frame under `prefers-reduced-motion: reduce`. Movements inside it may run up to about 900ms. Everything else on the page keeps the 0.15–0.18s transition rule.
+
 ---
 
 ## Tailwind config

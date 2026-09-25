@@ -1,0 +1,132 @@
+---
+const LANES = 4;
+
+const initial = [
+  [0, 0, 62], [0, 1, 44], [0, 2, 70],
+  [1, 0, 52], [1, 1, 66],
+  [2, 0, 48],
+  [3, 0, 58], [3, 1, 40], [3, 2, 64],
+];
+---
+
+<div class="lanes" data-lanes aria-hidden="true">
+  {Array.from({ length: LANES }, () => <div class="lane" />)}
+  {initial.map(([col, row, width]) => (
+    <span
+      class:list={['lane-mark', col === LANES - 1 && 'is-done']}
+      style={`--col: ${col}; --row: ${row}; --bar: ${width / 100}`}
+    />
+  ))}
+</div>
+
+<script>
+  const LANES = 4;
+  const MAX_DONE = 5;
+  const STEP_MS = 2000;
+  const MOVE_MS = 900;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function setupLanes() {
+    const found = document.querySelector<HTMLElement>('[data-lanes]');
+    if (!found || found.dataset.lanesReady === 'true') return;
+    const root: HTMLElement = found;
+    root.dataset.lanesReady = 'true';
+
+    let timer: number | undefined;
+    let onScreen = true;
+
+    const columnOf = (mark: HTMLElement) =>
+      Number(mark.style.getPropertyValue('--col'));
+    const rowOf = (mark: HTMLElement) =>
+      Number(mark.style.getPropertyValue('--row'));
+    const place = (mark: HTMLElement, col: number, row: number) => {
+      mark.style.setProperty('--col', String(col));
+      mark.style.setProperty('--row', String(row));
+    };
+    const marksIn = (col: number) =>
+      [...root.querySelectorAll<HTMLElement>('.lane-mark')]
+        .filter(mark => columnOf(mark) === col)
+        .sort((a, b) => rowOf(a) - rowOf(b));
+
+    function compact(col: number) {
+      marksIn(col).forEach((mark, row) => place(mark, col, row));
+    }
+
+    // Cleared marks wait off the panel (column -1) and return one per step.
+    function clearDone() {
+      const done = marksIn(LANES - 1);
+      done.forEach(mark => mark.classList.add('is-leaving'));
+      window.setTimeout(() => {
+        done.forEach(mark => {
+          mark.classList.add('is-arriving');
+          mark.classList.remove('is-done');
+          place(mark, -1, 0);
+        });
+      }, MOVE_MS);
+    }
+
+    function returnOne(): boolean {
+      const parked = marksIn(-1)[0];
+      if (!parked || marksIn(0).length >= 4) return false;
+      parked.style.setProperty('--bar', (0.4 + Math.random() * 0.32).toFixed(2));
+      place(parked, 0, marksIn(0).length);
+      // Commit the jump with transitions off, so the mark fades in at its
+      // new place instead of sliding across the panel.
+      void root.offsetWidth;
+      parked.classList.remove('is-arriving', 'is-leaving');
+      return true;
+    }
+
+    function step() {
+      if (!root.isConnected) return stop();
+      if (marksIn(LANES - 1).length >= MAX_DONE) return clearDone();
+      if (returnOne()) return;
+
+      const candidates = [0, 1, 2].filter(col => marksIn(col).length > 0);
+      const from = candidates[Math.floor(Math.random() * candidates.length)];
+      if (from === undefined) return;
+
+      const mark = marksIn(from)[0];
+      if (!mark) return;
+      const to = from + 1;
+
+      mark.classList.add('is-moving');
+      place(mark, to, marksIn(to).length);
+      window.setTimeout(() => {
+        mark.classList.remove('is-moving');
+        if (to === LANES - 1) mark.classList.add('is-done');
+        compact(from);
+      }, MOVE_MS);
+    }
+
+    function start() {
+      if (timer !== undefined || reducedMotion.matches) return;
+      if (!onScreen || document.hidden) return;
+      timer = window.setInterval(step, STEP_MS);
+    }
+
+    function stop() {
+      window.clearInterval(timer);
+      timer = undefined;
+    }
+
+    new IntersectionObserver(entries => {
+      onScreen = entries.some(entry => entry.isIntersecting);
+      onScreen ? start() : stop();
+    }).observe(root);
+
+    document.addEventListener('visibilitychange', () =>
+      document.hidden ? stop() : start(),
+    );
+    reducedMotion.addEventListener('change', () =>
+      reducedMotion.matches ? stop() : start(),
+    );
+    document.addEventListener('astro:before-swap', stop, { once: true });
+
+    start();
+  }
+
+  setupLanes();
+  document.addEventListener('astro:page-load', setupLanes);
+</script>

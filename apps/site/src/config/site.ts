@@ -5,30 +5,18 @@ declare const __SHIPBENCH_VERSION__: string;
 export const SITE_CONFIG = {
   name: 'ShipBench',
   version: __SHIPBENCH_VERSION__,
-  // Tagline vs. descriptor (AGENTS.md › Naming and branding): `title` carries
-  // the descriptor because its job is search and categorization, in the
-  // descriptor's own sentence case — re-casing it would be a variant, and the
-  // lowercase form also renders narrower, which this string needs at 61
-  // characters. `description` carries the reason instead: it is the
-  // search-result snippet, and the title beside it has already said the shelf.
+  // See AGENTS.md › Naming and branding for what goes in each of these.
   title: 'ShipBench — Git-native project management for solo developers',
-  // States the problem as a mechanism, not a valuation, per the doctrine. The
-  // second half used to end on where tasks are stored, which the <title> beside
-  // it has already implied and which is not the reason anyone clicks; it now
-  // names both halves of what the page promises. 144 characters — under the
-  // ~155 where snippets get cut mid-word.
+  // Search results cut snippets at about 155 characters.
   description:
-    'Project trackers are built to coordinate people. ShipBench is built for one person with several repositories — what comes next, and why, in Git.',
+    'Keep each task as a Markdown file in the repository it belongs to, with a CLI and a local board on top. One command to set up, no account.',
   url: 'https://shipbench.dev',
-  // Mirrored onto SITE_CONFIG so the pages read one object; flags.ts owns it
-  // and carries the rationale.
   harborEnabled: HARBOR_ENABLED,
   harborUrl: 'https://harbor.shipbench.dev',
   githubUrl: 'https://github.com/gmmurray/shipbench',
   npmUrl: 'https://www.npmjs.com/package/shipbench',
   socialImage: '/opengraph.png',
-  // Describes what public/opengraph.png actually renders — keep the two in
-  // step. The image is generated from scripts/og/cards.ts; change the headline
-  // there and this line has to follow.
+  // Must describe public/opengraph.png, generated from scripts/og/cards.ts.
+  // Change the headline there and update this too.
   socialImageAlt: 'ShipBench — Plans that ship with the work. shipbench.dev',
 } as const;

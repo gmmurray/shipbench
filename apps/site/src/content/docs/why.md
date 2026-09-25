@@ -1,84 +1,49 @@
 ---
 title: Why ShipBench
-description: Why ShipBench exists — the per-project overhead that makes hosted trackers a bad fit for solo developers, and the case for keeping the plan in the repository.
+description: Why ShipBench exists, what I tried before building it, and what it does instead.
 group: Getting Started
 order: 0
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
-## The friction
+I built ShipBench while trying to keep several of my own projects moving at a time when AI coding tools were changing every few months. Most of what I tried along the way was just the newest thing those tools made possible. Each one got me a little closer to what I wanted without quite getting there.
 
-You start a new project. Before writing a line of code, you go somewhere else to set it up: create the workspace, name the columns, invite yourself, wire up whatever integration lets your coding agent see any of it. Days later you start another project and do it all again.
+## What I tried first
 
-At team scale that setup cost is invisible. It amortizes across a year of work by a dozen people, and the tool earns its keep by coordinating them. Solo developers working with AI have inverted the ratio — many projects, short cycles, one person. The per-project overhead that used to round to zero becomes the dominant cost of tracking anything at all.
+The first attempt was Linear, connected to the Claude chat app. I knew I wanted AI to create tasks for me, so I'd set up a project and then work with the model on sample tasks and rules it should follow when it added new ones. It sort of worked. Plenty of operations were clumsy through the integration, especially early on, and setting up a Linear project took about as much effort as setting one up for a real project at work. That makes sense, because that's who Linear is for: teams of real people who need integrations, charts, roles, and permissions. I didn't need any of that and still had to configure around it. Linear was probably the closest fit anyway, since it's built with developers in mind. It just isn't built for one developer working with AI.
 
-So most projects get nothing. The plan lives in your head, or in a chat log, or in a `TODO.md` that stopped reflecting reality a week ago.
+The next step was more of a half step: the same setup, but with Claude Code and other coding agents reaching Linear over MCP. That put the tasks closer to the code, and the rules for how tasks should be written could live in the repository instead of somewhere in Linear. Otherwise it had the same problems.
 
-## What actually changed
+At the other end were plain task lists in the repository. Agents were creating these on their own at the time, and the nice side effect was that they lived in version control. But a list has no structure, and agents tended to write far more into it than a list can hold, because a real task needs more context than one line.
 
-A solo developer with AI now ships at the scale of a small team: several workstreams in flight, often across several repositories, with real sequencing between them. The output scaled. The management tooling didn't.
+Then there were spec and milestone documents, where you lay out the steps to build the whole project up front. That's waterfall to begin with, and once agents start adding their own context it turns into a thousand-line Markdown file that nobody, me included, is ever going to read.
 
-Three specific things got harder, and each one is a place todo lists break:
+## What ShipBench does instead
 
-- **Work runs in parallel.** Multiple workstreams mean ordering and dependencies matter. A flat list has no way to say _this before that_.
-- **Context dies between sessions.** When work resumes days later — or in a fresh agent session that remembers nothing — the plan has to have been written down, not remembered.
-- **Work spans repositories.** One person now maintains several projects at once. A single file in a single project isn't the shape of the problem.
+ShipBench gives each task its own Markdown file in the project's repository, inside a `.shipbench/` folder. The frontmatter holds what tools need to check and sort: status, priority, tags, dependencies. The body holds whatever the task needs, whether that's one sentence or a few pages. One file per task is big enough that a task's context has somewhere to go, and small enough that no single file grows into the spec nobody reads.
 
-## Why the two obvious answers don't fit
+Setting it up is [`shipbench init`](/docs/quickstart/), which I now run about as automatically as `git init` or `pnpm init`. Even a tiny project gets a board, because there's nothing to sign up for and nothing to host. The CLI and the local board read and write the same files, and so do agents, using the instructions `init` writes to `.shipbench/AGENTS.md`. None of that requires an agent. It works the same if you do everything by hand.
 
-**Hosted project management is overkill.** Tools like Linear and Jira are built to coordinate people, and coordination is most of what you pay for in setup cost and process surface. A solo developer has none of the problems that ceremony solves. Worse, the plan ends up on the far side of a network boundary from the code it describes — so when you want your coding agent to see it, you build a bridge. That bridge is the tell. Wiring an MCP server between an agent and a hosted tracker is a lot of machinery to carry context across a wall that didn't need to exist.
+It also fixed a smaller annoyance I hadn't thought of as a planning problem. I once tried to build a kind of command center to keep track of all the links for each of my projects, and a hosted board was one more link on that list. When the board lives in the repository, it's already where everything else is. And since tasks are documents, they're a reasonable place to keep those links too.
 
-**Todo lists are underkill.** They have the right access model — a file in the repository, readable by anything — and almost no structure. A checked box is state; it is just the only state there is. No status beyond done, no priority, no dependencies, no ordering, nothing a tool can validate, and nowhere to put the reasoning behind an item. Anything beyond done or not done has to live in your head.
+## What it doesn't decide
 
-## The premise
+ShipBench is opinionated about the file format and not much else. The required part is small: a `.shipbench/` directory, task files with frontmatter, and statuses that match the columns you configured. The rest is up to you.
 
-Your repository already contains your code, your documentation, and your architecture decisions. **ShipBench's premise is that your project plan belongs there too.**
+- **Columns are configuration.** Add a review gate, a backlog, or a triage column if you want one.
+- **`depends_on` is data.** It records order and never blocks a write or a move. What to do about a blocked task is your call.
+- **`assignee` is a label.** There's no claiming or locking, because one person doesn't need a permissions model.
+- **Unknown frontmatter fields are kept.** If you invent a field, ShipBench passes it through untouched.
+- **`AGENTS.md` is scaffolded, then yours.** The instructions your agents follow are a file you can rewrite.
 
-Not adjacent to the repository. Not synced with it. Inside it — a [`.shipbench/` directory](/docs/convention-spec/), versioned alongside everything else, structured enough to carry status, priority, and dependencies through an ambitious project, plain enough to stay Markdown in Git.
+The [workflow pages](/docs/workflows/) show what a few of those choices look like once you've made them.
 
-## What follows from that
+## Not only code
 
-**Context switching gets cheap.** This is the benefit that matters day to day when several projects are in flight at once. Open the repository and the plan is already there — what's in flight, what's blocked, what's next. There's no separate tool to open and no mental mapping between a workspace and a working directory, because the workspace is the working directory. The plan is still only as current as you kept it, the way it is in any tracker; what's gone is the second copy to reconcile it against. The repository is the context.
+A task is a Markdown file and the columns are whatever you name them, so nothing in ShipBench assumes the repository holds a program. I use it to track creative writing ideas and drafts, and the posts for a personal site move from idea to published on a board too. It's the same `shipbench init`, the same board, and the same CLI. The columns just have different names.
 
-**Agents read the plan with the access they already have.** No token, no MCP server, no round trip. The agent has the repository checked out, so it has the plan. This falls out of the premise rather than motivating it — the plan sits next to the code, and agents are already good at reading things next to the code. It is a consequence, and a real one, not the reason the system exists.
+## Something I didn't plan for
 
-**Git carries it.** History, branching, and portability come free because the plan is just files. Planning changes ride along with the branch that implements them. Every clone is complete. Nothing is stranded behind a service.
+The most useful thing ShipBench does for me now wasn't a reason I built it. When agents write tasks and [Task Updates](/docs/convention-spec/#task-updates), they're good about linking to related tasks and noting where a decision came from. Later I can ask an agent something like "how did we decide to build this in the first place?" It can use [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) and those links to walk back through the tasks that led there, going as deep as the question needs. What comes back is close to documentation of how the project got its shape.
 
-**Decisions can stay with the task that caused them.** A task is a Markdown file, so the reason for a choice can go in the file you were already working from, as a [timestamped update](/docs/convention-spec/#task-updates). Nothing captures it for you. When you or your agent do write it down, [`shipbench task search`](/docs/cli-reference/#shipbench-task-search) reaches it later across titles, tags, descriptions, and updates, live and archived — so a project's reasoning becomes something you look up rather than something you remember.
-
-**Multiple repositories work by default.** Each project carries its own plan, so there's no central system to keep in sync and nothing to set up per project beyond [`shipbench init`](/docs/quickstart/). Managing more projects costs proportionally more work, not exponentially more overhead.
-
-## What ShipBench declines to decide
-
-ShipBench mandates a format, not a process. The required core is deliberately small: a `.shipbench/` directory, task files with frontmatter, and statuses that match the columns you configured. That's most of it.
-
-Everything above that line is yours, and the system is built to stay out of the way:
-
-- **Columns are configuration**, not a fixed lifecycle. A review gate, a backlog, a triage column — add them if you want them.
-- **`depends_on` is data.** It records sequencing and never blocks a write or a move. You decide what to do about a blocked task.
-- **`assignee` is a label.** There's no claiming, no locking, no assignment workflow — just a string, because one person doesn't need a permissions model.
-- **Unknown frontmatter fields are preserved,** not stripped. If you invent a field, ShipBench passes it through untouched rather than deciding it's invalid.
-- **`AGENTS.md` is scaffolded, then yours.** The instructions your agents follow are a file in your repository that you can rewrite.
-
-This is a stance, not an omission. Structure is what todo lists lack; imposed process is what makes hosted tools expensive to adopt. ShipBench aims to supply the first without the second, and to be a foundation you build conventions on top of rather than a workflow you conform to.
-
-## Not only for code
-
-ShipBench doesn't assume a domain any more than it assumes a process. A task is a Markdown file with frontmatter, the columns are whatever you named them, and the repository around it doesn't have to contain a program.
-
-That's more useful than it sounds, because Markdown quietly became the default for everything else too. It was already the working format of technical writing and much of the web. It's what developers reach for when they'd rather stay in their editor than open someone's web app — drafts, notes, documentation. And it is now the native language of AI: the format models read best and produce by default.
-
-The rest follows on its own. Once your work is Markdown files, you want version control, because you want history and you don't want to lose any of it. Once it's in Git, you want to know what state each piece is in and what to pick up next. That's the same problem ShipBench already solves — so solve it in the same place, in the same format, with the same tools.
-
-ShipBench is already used this way. One repository holds creative writing and tracks drafts across states; another holds the posts for a personal site and moves them from idea to published. Same `shipbench init`, same board, same CLI. The only real difference is what the columns are called.
-
-Developers have interests outside of code, and they tend to pursue them with the tools that make them feel most capable — an editor, Git, Markdown, and now an agent. ShipBench works there because it never assumed otherwise.
-
-## Where this came from
-
-ShipBench began with a concrete frustration rather than a market thesis. Standing up a new hosted project for every new repository became cumbersome enough that most projects simply went untracked. Connecting coding agents to that tracker through MCP was inconsistent and disproportionate to the problem it solved. Todo lists were the obvious retreat, and too weak to hold a real project. What kept suggesting itself was portable project management — plans that travel with the work, useful to a developer context switching between repositories and legible to their agents for the same reason.
-
-## Next
-
-- [Overview](/docs/overview/) — what ShipBench is and how the project system, CLI, local board, and ShipBench Harbor fit together.
-- [Quickstart](/docs/quickstart/) — initialize a repository, create a task, and open the local board.
+That isn't really a feature. Nothing records it automatically, and it only works as well as what got written down. It comes from tasks being ordinary files with a few rails around them.

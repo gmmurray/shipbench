@@ -371,28 +371,24 @@ test('docs tables ship as accessible scroll regions before JavaScript runs', () 
 });
 
 test.describe('landing-page flow survives the build', () => {
-  test('keeps repository mechanics, the decision trace, and Harbor distinct', () => {
+  test('renders each section, with Harbor only behind its flag', () => {
     const home = html('');
 
-    expect(home).toContain('How It Works');
-    // The three-card interface grid became the task trace: the same surfaces,
-    // now as the steps one task passes through. Asserting the step headings
-    // rather than the old card titles is the point of the section - a page that
-    // lists surfaces and a page that follows a task through them are different
-    // arguments, and only the second one is here.
-    expect(home).toContain('One Task, Followed Through');
-    expect(home).toContain('Pick up what is actually ready');
-    expect(home).toContain('Record the decision where the work is');
-    expect(home).toContain('Find it again months later');
-    expect(home).toContain('ShipBench CLI');
-    expect(home).not.toContain('Three Local Interfaces');
-    expect(home).not.toContain('One System, Multiple Clients');
-    expect(home).not.toContain('Dual Control Model');
+    expect(home).toContain('Plans that ship with the work.');
+    for (const heading of [
+      'How it works',
+      'Ways to use it',
+      'Why it exists',
+      'Try it in a repository',
+    ]) {
+      expect(home).toContain(heading);
+    }
+    expect(home.match(/class="use"/g) ?? []).toHaveLength(8);
+    expect(home).not.toContain('One Task, Followed Through');
+    expect(home).not.toContain('visual-tabs');
 
-    // The teaser is the only part of this flow the Harbor flag moves. Asserted
-    // both ways: flagged off it has to be gone from the markup, not merely
-    // unlinked, since a section describing a client nobody can reach is the
-    // thing the flag exists to prevent.
+    // Flagged off, the Harbor section has to be gone from the markup, not
+    // just unlinked.
     if (HARBOR_ENABLED) {
       expect(home).toContain('ShipBench Harbor is the optional hosted client');
     } else {
@@ -411,19 +407,12 @@ test.describe('landing-page flow survives the build', () => {
     }
   });
 
-  // Five of the six, not all six. The hero panes are specimens - a task file
-  // and a CLI session - and the three decision-trace steps are transcripts
-  // naming a slug the reader does not have, so all five stay opted out. The
-  // quickstart block is the page's three real commands and copies. See the
-  // comments at both call sites.
-  test('opts the home-page specimens out of copying but not the quickstart', () => {
+  test('the home page has one code block, and it copies', () => {
     const home = html('');
     const codeBlocks = home.match(/<pre[^>]+data-code-block[^>]*>/g) ?? [];
 
-    expect(codeBlocks).toHaveLength(6);
-    expect(
-      codeBlocks.filter(block => block.includes('data-copy-disabled')),
-    ).toHaveLength(5);
+    expect(codeBlocks).toHaveLength(1);
+    expect(codeBlocks[0]).not.toContain('data-copy-disabled');
 
     // `data-copy-disabled` is CodeBlock.astro's opt-out and never appears in
     // Markdown; a fence opts out with ```bash no-copy, which the Shiki

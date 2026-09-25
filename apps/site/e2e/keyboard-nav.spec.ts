@@ -10,7 +10,7 @@
  * axe covers the static rules — these are the interactions axe cannot drive.
  */
 
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const LAYOUTS = [
   { name: 'landing', path: '/' },
@@ -62,109 +62,22 @@ test.describe('skip link', () => {
   });
 });
 
-test.describe('hero tablist', () => {
-  const board = '#btn-board';
-  const split = '#btn-split';
-
-  async function tabState(page: Page) {
-    return page.evaluate(() => {
-      const read = (id: string) => {
-        const tab = document.getElementById(id);
-        const panel = document.getElementById(
-          tab?.getAttribute('aria-controls') ?? '',
-        );
-        return {
-          selected: tab?.getAttribute('aria-selected'),
-          tabindex: tab?.getAttribute('tabindex'),
-          panelHidden: panel?.hasAttribute('hidden'),
-        };
-      };
-      return { board: read('btn-board'), split: read('btn-split') };
-    });
-  }
-
-  test('exposes one tab stop and hides the inactive panel', async ({
-    page,
-  }) => {
-    await page.goto('/');
-
-    expect(await tabState(page)).toEqual({
-      board: { selected: 'true', tabindex: '0', panelHidden: false },
-      split: { selected: 'false', tabindex: '-1', panelHidden: true },
-    });
-
-    // The hint is decorative and must not sit inside the tablist as a non-tab
-    // child, which would make the widget ill-formed.
-    await expect(page.locator('.visual-tabs .tab-hint')).toHaveCount(0);
-  });
-
-  test('arrow keys move and activate, wrapping at both ends', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await page.locator(board).focus();
-
-    await page.keyboard.press('ArrowRight');
-    await expect(page.locator(split)).toBeFocused();
-    expect((await tabState(page)).split).toEqual({
-      selected: 'true',
-      tabindex: '0',
-      panelHidden: false,
-    });
-    expect((await tabState(page)).board.panelHidden).toBe(true);
-
-    // Wrap forward.
-    await page.keyboard.press('ArrowRight');
-    await expect(page.locator(board)).toBeFocused();
-
-    // Wrap backward.
-    await page.keyboard.press('ArrowLeft');
-    await expect(page.locator(split)).toBeFocused();
-
-    await page.keyboard.press('Home');
-    await expect(page.locator(board)).toBeFocused();
-
-    await page.keyboard.press('End');
-    await expect(page.locator(split)).toBeFocused();
-  });
-
-  test('Tab leaves the tablist rather than walking every tab', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await page.locator(board).focus();
-
-    // Roving tabindex means the unselected tab is not a tab stop. This is the
-    // APG pattern and the reason arrow keys exist for this widget.
-    await page.keyboard.press('Tab');
-    await expect(page.locator(split)).not.toBeFocused();
-  });
-
-  test('clicking a tab switches panels without stealing focus', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await page.locator(split).click();
-    expect((await tabState(page)).split.panelHidden).toBe(false);
-    expect((await tabState(page)).board.panelHidden).toBe(true);
-  });
-});
-
 test('focus rings are not clipped by an overflow-hidden ancestor', async ({
   page,
 }) => {
   await page.goto('/');
 
-  // .hero-visual sets overflow: hidden for its rounded corners, and the tab
-  // buttons live inside it. The global ring is 2px at 2px offset, so a control
-  // needs 4px of clearance or the ring is silently cut off — visible to nobody
-  // except the keyboard user relying on it.
+  // .code-block-shell sets overflow: hidden, and the quickstart's copy button
+  // lives inside it. The global ring is 2px at 2px offset, so the button needs
+  // 4px of clearance or the ring is cut off.
   const clearance = await page.evaluate(() => {
-    const tab = document.getElementById('btn-board');
-    const clipper = tab?.closest<HTMLElement>('.hero-visual');
-    if (!tab || !clipper) return null;
+    const button = document.querySelector<HTMLElement>(
+      '#start .code-copy-button',
+    );
+    const clipper = button?.closest<HTMLElement>('.code-block-shell');
+    if (!button || !clipper) return null;
 
-    const a = tab.getBoundingClientRect();
+    const a = button.getBoundingClientRect();
     const b = clipper.getBoundingClientRect();
     return {
       top: a.top - b.top,
@@ -176,12 +89,12 @@ test('focus rings are not clipped by an overflow-hidden ancestor', async ({
 
   expect(
     clearance,
-    'could not find the tab inside .hero-visual',
+    'could not find the copy button inside .code-block-shell',
   ).not.toBeNull();
   for (const [edge, value] of Object.entries(clearance ?? {})) {
     expect(
       value,
-      `only ${value}px between the tab and the clipping ancestor's ${edge} edge; the 2px ring at 2px offset needs 4px`,
+      `only ${value}px between the button and the clipping ancestor's ${edge} edge; the 2px ring at 2px offset needs 4px`,
     ).toBeGreaterThanOrEqual(4);
   }
 });

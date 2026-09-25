@@ -1,476 +1,345 @@
-/* Landing Page Hero Section */
-.hero {
-  padding-top: 76px;
-  padding-bottom: 64px;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-}
+/* Home page. Type sizes follow the home-page exception in
+   docs/design-doctrine.md; everything else follows the product scale. */
 
-.hero-badge {
-  display: inline-flex;
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  margin-bottom: 20px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: 20px;
-  font-family: var(--font-intel-mono), monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 64px;
+  padding-block: 88px 96px;
 }
 
 .hero h1 {
-  max-width: 840px;
-  margin: 0 auto 20px;
-  font-size: clamp(30px, 6vw, 74px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  margin: 0 0 28px;
+  font-size: clamp(44px, 6.4vw, 80px);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
   text-wrap: balance;
-  overflow-wrap: break-word;
-  word-break: break-word;
 }
 
-.hero h1 span {
-  color: var(--silver);
-  font-weight: 400;
+.hero-lead {
+  max-width: 34em;
+  margin: 0 0 12px;
+  color: var(--frosted);
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 1.6;
 }
 
-.hero p.subhead {
-  max-width: 660px;
-  margin: 0 auto 32px;
+.hero-note {
+  margin: 0 0 32px;
   color: var(--silver);
-  font-size: clamp(15px, 2.5vw, 18px);
-  line-height: 1.7;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .hero-cta {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
   gap: 12px;
-  width: 100%;
-  max-width: 100%;
 }
 
-/* Landing Section Common */
-.section-padding {
-  padding-block: 88px;
-  border-top: 1px solid var(--divider);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.section-head {
-  max-width: 720px;
-  margin-bottom: 48px;
-}
-
-.section-badge {
-  color: var(--silver);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  font-family: var(--font-intel-mono), monospace;
-}
-
-.section-head h2 {
-  margin: 0 0 16px;
-  font-size: clamp(24px, 4vw, 48px);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.section-head p {
-  margin: 0;
-  color: var(--silver);
-  font-size: clamp(14px, 2vw, 16px);
-  line-height: 1.75;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Why ShipBench — the one prose section on a page of containers. It carries no
-   border, fill, or grid on purpose: the surrounding sections are all boxes, and
-   the absence of chrome is what makes this one read rather than scan.
-   The width cap is not incidental. Past roughly 75 characters a line, the eye
-   loses its place on the return sweep, so full-bleed paragraphs would read worse
-   than the cards around them. 720px matches .section-head so the heading and the
-   prose form one column instead of two slightly different ones. */
-.why-shipbench .section-head {
-  margin-bottom: 28px;
-}
-
-.why-prose {
-  width: 100%;
-  max-width: 720px;
+.hero-visual {
   min-width: 0;
-  box-sizing: border-box;
 }
 
-.why-prose p {
-  margin: 0 0 20px;
-  color: var(--silver);
-  font-size: clamp(15px, 2vw, 17px);
-  line-height: 1.8;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.why-prose p:last-child {
-  margin-bottom: 0;
-}
-
-/* The premise is the sentence the rest of the section exists to earn, so it
-   steps up in size and contrast rather than being pulled out into a callout. */
-.why-prose .why-premise {
-  margin-bottom: 24px;
-  color: var(--frosted);
-  font-size: clamp(17px, 2.4vw, 20px);
-  font-weight: 500;
-  line-height: 1.6;
-}
-
-.why-prose .why-proof {
-  margin-top: 28px;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.why-prose .why-proof a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.why-prose .why-proof a:hover {
-  text-decoration: underline;
-}
-
-/* How It Works */
-.how-it-works .section-head {
-  margin-bottom: 32px;
-}
-
-.system-facts {
+/* Hero lanes: abstract tasks moving through states to done. */
+.lanes {
+  --pad: 12px;
+  --pitch: 42px;
+  --mark-height: 30px;
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  background: var(--surface);
-  border: 1px solid var(--iron);
-  box-sizing: border-box;
-}
-
-.system-fact {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  padding: 24px;
-  border-left: 1px solid var(--divider);
-  box-sizing: border-box;
-}
-
-.system-fact:first-child {
-  border-left: 0;
-}
-
-.system-fact-label {
-  display: block;
-  margin-bottom: 12px;
-  color: var(--silver);
-  font-family: var(--font-intel-mono), monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.system-fact h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
-  font-weight: 600;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.system-fact p {
-  margin: 0;
-  color: var(--silver);
-  font-size: 13px;
-  line-height: 1.7;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* One Task, Followed Through — the page's one demonstration.
-   One container with internal dividers, the same shape as .system-facts, so the
-   three steps read as a single sequence rather than three cards that happen to
-   sit near each other. It replaced a .local-interface-card grid, and the mono
-   index carries what that grid could not: the order. No icon set here on
-   purpose — the steps are numbered, and a glyph beside a number says nothing
-   the number has not already said. */
-.decision-trace {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  background: var(--surface);
-  border: 1px solid var(--iron);
-  box-sizing: border-box;
-}
-
-.trace-step {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  padding: 24px;
-  border-top: 1px solid var(--divider);
-  box-sizing: border-box;
-}
-
-.trace-step:first-child {
-  border-top: 0;
-}
-
-.trace-step-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-family: var(--font-intel-mono), monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.trace-step-index {
-  color: var(--accent);
-}
-
-.trace-step-surface {
-  color: var(--silver);
-}
-
-.trace-step h3 {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 600;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.trace-step > p {
-  margin: 0 0 16px;
-  max-width: 68ch;
-  color: var(--silver);
-  font-size: 14px;
-  line-height: 1.75;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Scrolls rather than wraps, for the reason .quickstart-code does: these are
-   transcripts, and a rewrapped CLI line stops being a faithful specimen. */
-.trace-code {
-  margin: 0;
-  padding: 18px 20px;
-  background: var(--canvas);
-  border: 1px solid var(--iron);
-  border-radius: 3px;
-  color: var(--frosted);
-  font-size: 12.5px;
-  line-height: 1.9;
-  overflow-x: auto;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-  white-space: pre;
-  word-break: normal;
-}
-
-.trace-code code {
-  white-space: pre;
-  word-break: normal;
-  display: block;
-  min-width: max-content;
-}
-
-.trace-note {
-  margin: 20px 0 0;
-  max-width: 720px;
-  color: var(--silver);
-  font-size: 14px;
-  line-height: 1.75;
-}
-
-.quickstart-code code {
-  white-space: pre;
-  word-break: normal;
-  display: block;
-  min-width: max-content;
-}
-
-/* Quickstart Section */
-.quickstart-box {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 236px;
   background: var(--surface);
   border: 1px solid var(--iron);
   border-radius: 3px;
   overflow: hidden;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
 }
 
-.quickstart-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
+.lane {
+  border-left: 1px solid var(--divider);
+}
+
+.lane:first-child {
+  border-left: 0;
+}
+
+.lane-mark {
+  position: absolute;
+  top: calc(18px + var(--row) * var(--pitch));
+  left: calc(var(--col) * 25% + var(--pad));
+  width: calc(25% - 2 * var(--pad));
+  height: var(--mark-height);
+  box-sizing: border-box;
   background: var(--surface2);
-  border-bottom: 1px solid var(--iron);
-  font-family: var(--font-intel-mono), monospace;
-  font-size: 11px;
-  color: var(--silver);
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.quickstart-more-link {
-  display: inline-flex;
-  margin-top: 16px;
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.quickstart-more-link:hover {
-  text-decoration: underline;
-}
-
-.quickstart-code {
-  margin: 0;
-  padding: 28px 32px;
-  background: var(--canvas);
-  color: var(--frosted);
-  font-size: 13px;
-  line-height: 2.15;
-  overflow-x: auto;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-  white-space: pre;
-  word-break: normal;
-}
-
-/* Harbor Teaser */
-.harbor-banner {
-  padding: 44px;
-  background: var(--surface);
   border: 1px solid var(--iron);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 40px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  border-radius: 2px;
+  transition:
+    top 900ms cubic-bezier(0.4, 0, 0.2, 1),
+    left 900ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.6s ease;
+}
+
+.lane-mark::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: calc((100% - 20px) * var(--bar));
+  height: 4px;
+  background: var(--iron);
+  border-radius: 1px;
+  opacity: 0.55;
+  transform: translateY(-50%);
+}
+
+.lane-mark.is-moving {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.lane-mark.is-moving::before {
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.lane-mark.is-done {
+  background: transparent;
+  border-color: var(--divider);
+}
+
+.lane-mark.is-done::before {
+  opacity: 0.3;
+}
+
+.lane-mark.is-leaving,
+.lane-mark.is-arriving {
+  opacity: 0;
+}
+
+.lane-mark.is-arriving {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lane-mark {
+    transition: none;
+  }
+}
+
+/* Every section below the hero: heading on the left, content on the right. */
+.band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  gap: 48px;
+  padding-block: 88px;
+  border-top: 1px solid var(--divider);
+}
+
+.band h2 {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.band-body {
   min-width: 0;
 }
 
-.harbor-info {
-  max-width: 620px;
+.band h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-.harbor-info h2 {
-  margin: 0 0 12px;
-  font-size: 24px;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.harbor-info p {
+.band p {
   margin: 0;
   color: var(--silver);
   font-size: 15px;
   line-height: 1.7;
-  overflow-wrap: break-word;
-  word-break: break-word;
 }
 
-/* Mobile Breakpoints */
-@media (max-width: 840px) {
-  .board-visual-body,
-  .split-visual-body,
-  .system-facts {
-    grid-template-columns: 1fr;
+.detail {
+  display: block;
+  margin-top: 16px;
+  color: var(--silver);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.parts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.part {
+  padding: 4px 28px 4px 28px;
+  border-left: 1px solid var(--divider);
+}
+
+.part:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.part:last-child {
+  padding-right: 0;
+}
+
+.uses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--divider);
+  border: 1px solid var(--divider);
+}
+
+.use {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  color: inherit;
+  text-decoration: none;
+  background: var(--canvas);
+  transition: background-color 0.15s ease;
+}
+
+.use p {
+  font-size: 14px;
+}
+
+.use .detail {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.use:hover {
+  background: var(--surface);
+}
+
+.use:hover h3 {
+  color: var(--accent);
+}
+
+.use:focus-visible {
+  outline-offset: -2px;
+}
+
+.why {
+  max-width: 64ch;
+}
+
+.why p {
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.why p + p {
+  margin-top: 20px;
+}
+
+.text-link {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.start > p {
+  margin-bottom: 24px;
+}
+
+.start .code-block-shell {
+  max-width: 100%;
+}
+
+.quickstart-code {
+  margin: 0;
+  padding: 24px 28px;
+  background: var(--canvas);
+  color: var(--frosted);
+  font-size: 13px;
+  line-height: 2.1;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: pre;
+  word-break: normal;
+}
+
+.quickstart-code code {
+  display: block;
+  min-width: max-content;
+  white-space: pre;
+}
+
+.band p code {
+  color: var(--frosted);
+  font-size: 0.9em;
+}
+
+.harbor p {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+    padding-block: 56px 64px;
   }
 
-  .system-fact {
-    border-top: 1px solid var(--divider);
+  .band {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding-block: 64px;
+  }
+}
+
+@media (max-width: 760px) {
+  .parts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .part,
+  .part:first-child,
+  .part:last-child {
+    padding: 20px 0;
     border-left: 0;
+    border-top: 1px solid var(--divider);
   }
 
-  .system-fact:first-child {
+  .part:first-child {
+    padding-top: 0;
     border-top: 0;
   }
 
-  .visual-sidebar,
-  .visual-pane {
-    border-right: 0;
-    border-bottom: 1px solid var(--iron);
+  .uses {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .harbor-banner {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 32px 24px;
+  .lanes {
+    --pad: 8px;
+    --pitch: 32px;
+    --mark-height: 24px;
+    height: 184px;
   }
 
-  .section-padding {
-    padding-block: 56px;
-  }
-}
-
-@media (max-width: 600px) {
-  .hero {
-    padding-top: 48px;
-    padding-bottom: 40px;
-  }
-
-  .hero-cta {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .hero-cta .button {
-    width: 100%;
-  }
-
-  .system-fact,
-  .trace-step {
-    padding: 16px;
-  }
-
-  .quickstart-code {
-    padding: 16px 16px;
-    font-size: 12px;
-  }
-
-  .harbor-banner {
-    padding: 24px 16px;
+  .lane-mark::before {
+    left: 7px;
+    width: calc((100% - 14px) * var(--bar));
   }
 }

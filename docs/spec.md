@@ -2,9 +2,9 @@
 
 ## Motivation
 
-Solo developers working with AI now ship at the scale of a small team — several workstreams in flight, often across several repositories — while the tools for managing that work still assume either one person with a checklist or an organization with a process. Hosted trackers charge a per-project setup cost that made sense when a team used one workspace for a year and does not when one person starts a project a month. Todo lists sit in the right place but carry no fields beyond a checkbox, so no tool can validate, sequence, or query them. ShipBench's premise is that the repository already contains the code, the documentation, and the architecture decisions, so the plan belongs there too.
+One developer working with AI agents often has several projects moving at once, and the usual ways of tracking that work each have a specific problem. Hosted trackers are built for teams. Every repository needs its own setup, agents reach the plan through an integration, and most of the configuration covers features one person doesn't use. Planning inside the repository fixes access, but a task list has no fields a tool can validate, sequence, or query, and a spec document grows past the point where anyone reads it.
 
-Everything below follows from that premise: tasks are files, Git carries the history, and every client is optional. The full argument — including what ShipBench deliberately declines to decide — is in [why.md](why.md).
+ShipBench uses one Markdown file per task, in a `.shipbench/` directory in the repository. Frontmatter carries the structured fields (status, priority, tags, dependencies), and the body carries whatever context the task needs. Git carries the history, and every client is optional. [Why ShipBench](https://shipbench.dev/docs/why/) has the longer story.
 
 ## Overview
 
@@ -16,7 +16,7 @@ ShipBench is a Git-native project management system for solo developers. It cons
 
 The two products share a common core library (`@shipbench/core`) for task file manipulation, ensuring format consistency regardless of where edits originate.
 
-User-facing surfaces are always prefixed with the umbrella name: **ShipBench CLI** and **ShipBench Harbor**. The package namespace `@shipbench/*` mirrors this. Full naming and branding doctrine lives in [CLAUDE.md](../CLAUDE.md) under "Naming and branding."
+User-facing surfaces are always prefixed with the umbrella name: **ShipBench CLI** and **ShipBench Harbor**. The package namespace `@shipbench/*` mirrors this. The naming rules live in [AGENTS.md](../AGENTS.md) under "Naming and branding."
 
 **Domain:** `shipbench.dev` is the official, owned domain. Harbor lives under it (e.g. `harbor.shipbench.dev` — exact subdomain TBD), never on its own apex.
 

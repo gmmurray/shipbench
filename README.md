@@ -2,17 +2,13 @@
 
 **Plans that ship with the work.**
 
-Git-native project management for solo developers. Your project plan lives inside your repository as plain Markdown, so Git, your editor, the ShipBench CLI, the local board, and your coding agents all work from one source of truth. The same files that say what's next can hold why you chose it, so a project you come back to can answer both.
+Git-native project management for solo developers.
 
-## Why
+ShipBench keeps each task as a Markdown file in the repository it belongs to, inside a `.shipbench/` folder. The ShipBench CLI and a local board read and write those files, and so can your editor and your coding agents. There's no account and nothing to host.
 
-Every new repository starts with the same setup before a line of code exists: create a workspace, name the columns, wire up an integration. Most projects skip it, and the plan ends up in your head, in a chat log, or in a `TODO.md` that stopped reflecting reality a week ago.
+## Why I built it
 
-That overhead used to be invisible. A team amortizes one workspace across a year and a dozen people. A solo developer working with AI has inverted the ratio: many projects, short cycles, one person. Hosted trackers are built to coordinate people you don't have. Todo lists sit in the right place, but each line is only checked or unchecked, with nowhere to say what it waits on or why it's there.
-
-Your repository already contains your code, your documentation, and your architecture decisions. **ShipBench's premise is that your project plan belongs there too.**
-
-The full argument is in [docs/why.md](docs/why.md).
+I keep several projects going at once, usually with AI agents doing part of the work, and nothing I tried for tracking them fit. Linear worked, but it's built for teams and took real setup for every repository. Task lists and spec documents in the repository were easy for agents to reach, but they were either too thin to hold a task's context or so long that nobody read them. One Markdown file per task, kept in the repository, turned out to be the right size. The longer version is at [shipbench.dev/docs/why](https://shipbench.dev/docs/why/).
 
 ## Quickstart
 
@@ -24,15 +20,14 @@ shipbench task create "Build the API" # create your first task
 shipbench board                       # open the local Kanban board
 ```
 
-No account, no API key, no service. See the [quickstart guide](https://shipbench.dev/docs/quickstart) for the full walkthrough.
+No account or API key needed. The [quickstart guide](https://shipbench.dev/docs/quickstart) walks through the rest.
 
-## What's in the box
+## What's here
 
-ShipBench is one portable system with several clients. The system works on its own; every client is optional.
-
-- **The project system** — a `.shipbench/` directory of Markdown tasks with YAML frontmatter, governed by a local config. Any tool that can read a file can read the board. [Specification](https://shipbench.dev/docs/convention-spec).
-- **ShipBench CLI** — create, query, move, and validate tasks from a terminal or a coding agent, and host the local board. [Reference](https://shipbench.dev/docs/cli-reference).
-- **ShipBench Harbor** — the optional hosted client for shaping ideas before a repository exists and viewing public GitHub-backed boards read-only. Tasks never leave their repository. Not yet deployed; its page returns once it is.
+- **The convention.** A `.shipbench/` directory of Markdown tasks with YAML frontmatter and a small config file. Anything that can read a file can read the board. [Specification](https://shipbench.dev/docs/convention-spec).
+- **ShipBench CLI.** Create, list, search, move, and check tasks from a terminal or a coding agent. [Reference](https://shipbench.dev/docs/cli-reference).
+- **The local board.** `shipbench board` opens a Kanban board in the browser that updates when files change, and `shipbench board terminal` draws a read-only one in a terminal.
+- **ShipBench Harbor.** An optional hosted client for shaping ideas before a repository exists and viewing public GitHub-backed boards read-only. Tasks never leave their repository. Harbor isn't deployed yet.
 
 ## Repository layout
 
@@ -46,7 +41,7 @@ shipbench/
     └── site/     # shipbench.dev — Astro marketing site and docs
 ```
 
-pnpm workspace monorepo, TypeScript strict, ESM only. No Turborepo — use `pnpm --filter` for targeted work.
+pnpm workspace monorepo, TypeScript strict, ESM only. No Turborepo; use `pnpm --filter` for targeted work.
 
 ```bash
 pnpm install
@@ -56,10 +51,10 @@ pnpm typecheck
 
 ## Documentation
 
-- [shipbench.dev/docs](https://shipbench.dev/docs) — published overview, quickstart, and reference.
-- [docs/why.md](docs/why.md) — why ShipBench exists.
-- [docs/spec.md](docs/spec.md) — the full product spec.
-- [docs/design-doctrine.md](docs/design-doctrine.md) — the shared visual design doctrine.
-- [AGENTS.md](AGENTS.md) — architecture, conventions, and instructions for coding agents working in this repository.
+- [shipbench.dev/docs](https://shipbench.dev/docs): overview, quickstart, and reference.
+- [Why ShipBench](https://shipbench.dev/docs/why/): why it exists.
+- [docs/spec.md](docs/spec.md): the product spec.
+- [docs/design-doctrine.md](docs/design-doctrine.md): the shared visual design doctrine.
+- [AGENTS.md](AGENTS.md): architecture, conventions, and instructions for coding agents working in this repository.
 
 This repository uses its own [`.shipbench/`](.shipbench/) directory as its live project board.
