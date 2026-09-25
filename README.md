@@ -10,6 +10,8 @@ ShipBench keeps each task as a Markdown file in the repository it belongs to, in
 
 I keep several projects going at once, usually with AI agents doing part of the work, and nothing I tried for tracking them fit. Linear worked, but it's built for teams and took real setup for every repository. Task lists and spec documents in the repository were easy for agents to reach, but they were either too thin to hold a task's context or so long that nobody read them. One Markdown file per task, kept in the repository, turned out to be the right size. The longer version is at [shipbench.dev/docs/why](https://shipbench.dev/docs/why/).
 
+— Greg ([thedevelopergreg.com](https://thedevelopergreg.com))
+
 ## Quickstart
 
 ```bash

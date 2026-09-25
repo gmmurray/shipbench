@@ -3,7 +3,8 @@ title: Why ShipBench
 description: Why ShipBench exists, what I tried before building it, and what it does instead.
 group: Getting Started
 order: 0
-updated: 2026-09-24
+updated: 2026-09-25
+byline: true
 ---
 
 I built ShipBench while trying to keep several of my own projects moving at a time when AI coding tools were changing every few months. Most of what I tried along the way was just the newest thing those tools made possible. Each one got me a little closer to what I wanted without quite getting there.

@@ -408,6 +408,18 @@ test.describe('landing-page flow survives the build', () => {
     }
   });
 
+  test('credits the author on every page, and bylines only the why page', () => {
+    for (const route of ALL_PAGES) {
+      const page = html(route);
+      expect(page, `${route || '/'} footer credit`).toContain(
+        'href="https://thedevelopergreg.com"',
+      );
+      expect(page.includes('class="doc-byline"'), `${route || '/'} byline`).toBe(
+        route === 'docs/why',
+      );
+    }
+  });
+
   test('the home page has one code block, and it copies', () => {
     const home = html('');
     const codeBlocks = home.match(/<pre[^>]+data-code-block[^>]*>/g) ?? [];

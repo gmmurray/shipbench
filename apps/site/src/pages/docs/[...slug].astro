@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
 import DocsSearch from '../../components/DocsSearch.astro';
 import { SITE_CONFIG } from '../../config/site';
 import { formatDate, getReadingTime, visibleDocs } from '../../utils/docs';
@@ -146,6 +147,12 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
       <h1 class="doc-title">{doc.data.title}</h1>
 
       <div class="doc-meta" data-pagefind-ignore>
+        {doc.data.byline && (
+          <>
+            <span>By <a class="doc-byline" href={SITE_CONFIG.author.url} target="_blank" rel="noopener">{SITE_CONFIG.author.name}</a></span>
+            <span>•</span>
+          </>
+        )}
         {formattedDate && (
           <>
             <span>Updated {formattedDate}</span>
@@ -193,4 +200,6 @@ const nextDoc = currentIndex < flatDocs.length - 1 ? flatDocs[currentIndex + 1] 
       </div>
     </aside>
   </div>
+
+  <Footer wide />
 </BaseLayout>

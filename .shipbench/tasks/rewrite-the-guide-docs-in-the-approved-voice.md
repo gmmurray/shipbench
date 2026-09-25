@@ -8,7 +8,7 @@ tags:
 depends_on:
   - rewrite-shipbench-s-public-copy-from-an-outline-with-a-new-landing-page
 created: '2026-09-24T23:00:52.457Z'
-updated: '2026-09-25T04:19:00.116Z'
+updated: '2026-09-25T04:26:26.958Z'
 ---
 
 Rewrite the guide docs using the voice approved in [rewrite-shipbench-s-public-copy-from-an-outline-with-a-new-landing-page](rewrite-shipbench-s-public-copy-from-an-outline-with-a-new-landing-page.md). Where these pages explain how ShipBench is used, use plain product voice. Commands, flags, and examples stay exact. Run every one that changes.
@@ -58,3 +58,6 @@ I checked every behaviour against the real CLI and the board design:
 The landing page's "Finding out why" card now links to this guide. The overview and convention-spec link to it too, and it's in the e2e page list. I added a note on `make-task-descriptions-discoverable-through-board-search` to update the guide's titles-only line when that task lands.
 
 **Verification.** Typecheck, lint, 122 vitest tests, and Playwright (102 passed, 1 skipped as before) all pass. The docs-code-fences test caught the guide's commands marked `no-copy` without a placeholder, and they're copyable now. I reviewed the new page in the browser on desktop.
+
+### 2026-09-25T04:26:26.958Z
+Added owner attribution at the owner's request, since the why page and README are written in first person. The site footer now reads 'Built by Greg' and links to thedevelopergreg.com. That footer now appears on docs pages too, which had none, using a wider variant that matches the docs layout. The why page shows 'By Greg' in its meta line, switched on by a new optional byline frontmatter field. The README's first-person paragraph is signed. The name and URL live in SITE_CONFIG.author. built-output.spec checks that every page has the credit and only the why page has the byline. Typecheck, lint, 122 vitest tests, and Playwright (103 passed, 1 skipped) all pass.

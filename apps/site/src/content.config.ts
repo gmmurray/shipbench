@@ -13,6 +13,8 @@ const docs = defineCollection({
     group: z.string(),
     order: z.number().default(0),
     updated: z.coerce.date().optional(),
+    // Credits the site author in the meta line, for pages written in first person.
+    byline: z.boolean().default(false),
   }),
 });
 

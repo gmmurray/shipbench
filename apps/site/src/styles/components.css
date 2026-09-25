@@ -291,6 +291,16 @@
   box-sizing: border-box;
 }
 
+.footer-wide {
+  max-width: 1300px;
+}
+
+.footer-id {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .footer nav {
   display: flex;
   gap: 20px;

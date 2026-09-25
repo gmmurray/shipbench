@@ -15,6 +15,7 @@ export const SITE_CONFIG = {
   harborUrl: 'https://harbor.shipbench.dev',
   githubUrl: 'https://github.com/gmmurray/shipbench',
   npmUrl: 'https://www.npmjs.com/package/shipbench',
+  author: { name: 'Greg', url: 'https://thedevelopergreg.com' },
   socialImage: '/opengraph.png',
   // Must describe public/opengraph.png, generated from scripts/og/cards.ts.
   // Change the headline there and update this too.

@@ -1,9 +1,19 @@
 ---
 import { SITE_CONFIG } from '../config/site';
+
+interface Props {
+  /** Match the docs shell's wider max-width. */
+  wide?: boolean;
+}
+
+const { wide = false } = Astro.props;
 ---
 
-<footer class="footer page-width">
-  <span>SHIPBENCH — Plans that ship with the work</span>
+<footer class:list={['footer', 'page-width', wide && 'footer-wide']}>
+  <div class="footer-id">
+    <span>SHIPBENCH — Plans that ship with the work</span>
+    <a class="footer-credit" href={SITE_CONFIG.author.url} target="_blank" rel="noopener">Built by {SITE_CONFIG.author.name}</a>
+  </div>
   <nav aria-label="Footer links">
     <a href="/docs/overview/">Docs</a>
     <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>
