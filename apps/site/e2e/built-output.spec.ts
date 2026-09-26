@@ -408,6 +408,18 @@ test.describe('landing-page flow survives the build', () => {
     }
   });
 
+  // The docs source keeps Harbor passages in :::harbor blocks, which the build
+  // drops while the flag is off. This checks the rendered text, not the source.
+  test('no built page mentions Harbor while Harbor is disabled', () => {
+    test.skip(HARBOR_ENABLED, 'Harbor is enabled, so its passages render.');
+    for (const route of ALL_PAGES) {
+      const text = html(route)
+        .replace(/<(script|style)[\s\S]*?<\/\1>/g, '')
+        .replace(/<[^>]+>/g, ' ');
+      expect(text, `${route || '/'} mentions Harbor`).not.toMatch(/harbor/i);
+    }
+  });
+
   test('credits the author on every page, and bylines only the why page', () => {
     for (const route of ALL_PAGES) {
       const page = html(route);

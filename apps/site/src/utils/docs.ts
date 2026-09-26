@@ -50,6 +50,22 @@ export function isDocVisible(id: string): boolean {
   return GATED_DOCS[id] ?? true;
 }
 
+const HARBOR_BLOCK = /^:::harbor[^\n]*\n[\s\S]*?^:::[ \t]*$/gm;
+
+/**
+ * Remove `:::harbor` blocks from raw Markdown. The build does the same thing
+ * in `satteri-harbor-gate.mjs`; this is for code that reads the source
+ * directly, such as tests and the reading-time estimate.
+ */
+export function withoutHarborBlocks(source: string): string {
+  return source.replace(HARBOR_BLOCK, '');
+}
+
+/** The Markdown this build actually renders from a docs source file. */
+export function renderedMarkdown(source: string): string {
+  return HARBOR_ENABLED ? source : withoutHarborBlocks(source);
+}
+
 /**
  * Filter a docs collection down to the pages this build publishes. Every read
  * of the collection goes through here, so a gated page cannot come back in

@@ -28,5 +28,7 @@
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "gate-harbor-passages-in-the-docs-behind-the-harbor-flag"
+  ]
 }

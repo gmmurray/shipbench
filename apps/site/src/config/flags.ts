@@ -12,32 +12,22 @@
  */
 
 /**
- * ShipBench Harbor is built but not yet deployed. While this is false the site
- * makes no promise it cannot keep: nothing links to `harborUrl`, the landing
- * page's Harbor section does not render, and /docs/harbor/ is left out of the
- * build — and so out of the sidebar, the sitemap, and Pagefind's index with it.
- * Pagefind indexes `dist/`, so not building the page is what removes it from
- * search; there is no second switch to remember.
+ * ShipBench Harbor is built but not yet deployed. While this is false, the site
+ * doesn't describe or link to it:
  *
- * Harbor's other appearances in the docs stay either way. They explain the
- * system's shape rather than sending anyone anywhere: `init --harbor` and
- * `connect --harbor` are real commands today, and the reason to commit
- * layout.json is Harbor-shaped whether or not Harbor is reachable.
+ * - /docs/harbor/ is left out of the build, and so out of the sidebar, the
+ *   sitemap, and Pagefind's index.
+ * - `:::harbor` blocks in the docs are dropped at build time by
+ *   src/utils/satteri-harbor-gate.mjs, so no other page mentions Harbor.
+ * - The landing page's Harbor section and the footer's Harbor link don't
+ *   render, and nothing links to `harborUrl`.
  *
- * Flipping this to true is the launch step, and it takes two edits Markdown
- * cannot make for itself. Do both; the suite will not hold you to it.
+ * Flipping this to true is the launch step. The one place it can't reach is
+ * the root README, which GitHub renders directly: on Harbor's bullet, replace
+ * "Harbor isn't deployed yet." with a link to https://shipbench.dev/docs/harbor/.
  *
- *   1. src/content/docs/overview.md — restore the Harbor bullet at the foot of
- *      the Reference list, beside the convention-spec and cli-reference ones.
- *   2. The root README — on Harbor's bullet, *replace* the sentence "Not yet
- *      deployed; its page returns once it is." with the [Docs] link to
- *      https://shipbench.dev/docs/harbor. Restoring the link without deleting
- *      that sentence ships a live link next to a denial that the page exists.
- *
- * src/test/docs-routes.test.ts catches the damaging direction — a link to a
- * page this build omits — in every file it scans. The direction it checks back
- * the other way is reachability, not a checklist: one link anywhere satisfies
- * it, so doing step 2 alone turns the suite green with step 1 still undone.
- * Hence the list.
+ * src/test/harbor-gate.test.ts fails if a docs page mentions Harbor outside a
+ * `:::harbor` block, and src/test/docs-routes.test.ts fails on any link to a
+ * page this build leaves out.
  */
 export const HARBOR_ENABLED: boolean = false;

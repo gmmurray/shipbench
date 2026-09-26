@@ -9,7 +9,7 @@ tags:
   - product
   - templates
 created: '2026-09-08T22:34:56.625Z'
-updated: '2026-09-08T22:34:56.625Z'
+updated: '2026-09-26T20:45:01.005Z'
 ---
 
 ## Question
@@ -55,3 +55,30 @@ If a change is worthwhile, outline a useful next step and the decisions that rem
 - [Current convention and product spec](../../docs/spec.md)
 - [Dogfood agent guidance](../AGENTS.md)
 - [Project resumption and agent handoff walkthrough task](add-a-complete-project-resumption-and-agent-handoff-walkthrough.md)
+
+## Task Updates
+
+### 2026-09-26T20:45:01.005Z
+A discussion with the owner suggested a different route than the repo-local templates in the earlier proposal: **agent skills, tested by the owner across their own projects before anything is added to ShipBench.** This is a direction to test, not a conclusion.
+
+**The problem, as observed.** When asked to create a spike, agents often look at recent spikes to copy their format. Looking at related tasks is good behaviour, but taking the format from whatever they happen to read means a bad shape can become the standard by chance. The board already shows this. Early titles were lowercase chores or symptoms ("cleanup typecheck warnings", "updating shipbench init with new versions", "Playwright webServer aborts: astro preview now daemonizes"). Later titles describe the outcome ("Stop the Updates parser from rejecting…"). An agent that samples the early tasks copies the early style.
+
+**The proposed split between the project and the skill:**
+
+- The project's `.shipbench/AGENTS.md` and `config.json` stay the only source for mechanics: columns, the review gate, CLI usage, worktree rules. A skill starts by reading them and never restates them. Restating them would drift, and many rules are board-specific. For example, this board sends spikes to `backlog`, but other boards may not have a backlog column.
+- The skill owns what doesn't change between projects: judgment about what each kind of task needs (spike, bug, feature), with one written-out example per kind. Agents copy examples far more reliably than they follow rules. The examples should be chosen and edited from the best existing tasks, not taken from the whole board, or they would carry the same accidents.
+- The skill should say where the format comes from: read related tasks for context, decisions and `depends_on`, and take structure only from the skill.
+
+**Why test with the owner first.** Using the skills across the owner's own projects separates what is generic from what is the owner's taste before anything becomes a public example. It also produces the "observed improvement" evidence this spike asks for. It fits the spec's position that platform-specific agent tooling lives in this repository as reference files people copy, not in the `init` scaffold.
+
+**The planned test:** user-invoked skills (`disable-model-invocation`, so agents never file tasks unprompted) installed at user level, covering spike and bug creation plus a wrap-up step. The wrap-up step covers the Update-vs-description rule, recording decisions, filing follow-ups instead of expanding scope, and handing off to review. Feature creation, spike closure and review checking come later.
+
+**Tension to resolve.** This spike's questions ask for support that works without any particular agent. Skills are agent-specific, which works against that. Possible answers:
+
+- Skills are the right layer for authoring guidance, and the convention needs nothing new.
+- The examples the test settles on later move into the repo as templates or AGENTS.md guidance any agent can read, and skills become thin wrappers around them.
+- Both, in that order.
+
+The personal test should show which.
+
+Related: [spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects](spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects.md). A user-level bug skill that works from any project and files the task on this board is a candidate for the "smallest form that works" that spike asks about.

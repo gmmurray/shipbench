@@ -5,7 +5,7 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import DocsSearch from '../../components/DocsSearch.astro';
 import { SITE_CONFIG } from '../../config/site';
-import { formatDate, getReadingTime, visibleDocs } from '../../utils/docs';
+import { formatDate, getReadingTime, renderedMarkdown, visibleDocs } from '../../utils/docs';
 
 export async function getStaticPaths() {
   const docs = visibleDocs(await getCollection('docs'));
@@ -19,7 +19,7 @@ const { doc } = Astro.props;
 const { Content, headings } = await render(doc);
 
 // Dynamic reading time and date formatting
-const readTime = getReadingTime(doc.body || '');
+const readTime = getReadingTime(renderedMarkdown(doc.body || ''));
 const formattedDate = formatDate(doc.data.updated);
 
 // Fetch all docs for navigation and pagination. Same filter as the route

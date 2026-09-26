@@ -3,10 +3,10 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-09-24
+updated: 2026-09-26
 ---
 
-The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, local board, ShipBench Harbor, and coding agents are clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
+The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, the local board, and coding agents are all clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
 
 ## Directory structure
 
@@ -142,14 +142,18 @@ Editing preserves the entry's `###` timestamp; deleting removes the entry. Both 
 
 Choose whether manual board order belongs to the project or only to each checkout:
 
-- Commit `.shipbench/layout.json` when every clone and ShipBench Harbor should share the same drag-and-drop order.
+- Commit `.shipbench/layout.json` when every clone should share the same drag-and-drop order.
 - Add `.shipbench/layout.json` to `.gitignore` when each checkout should keep its own order.
 
-Both strategies are valid. A missing or gitignored `layout.json` makes ShipBench use deterministic timestamp ordering, so fresh clones and ShipBench Harbor still render a stable board. If the file is already tracked, remove it from Git's index after adding the ignore rule:
+Both strategies are valid. A missing or gitignored `layout.json` makes ShipBench use deterministic timestamp ordering, so a fresh clone still renders a stable board. If the file is already tracked, remove it from Git's index after adding the ignore rule:
 
 ```bash
 git rm --cached .shipbench/layout.json
 ```
+
+:::harbor
+ShipBench Harbor reads the repository through the GitHub API, so it sees only what is committed. Commit `layout.json` if you want your drag order to appear in Harbor.
+:::
 
 Tracked or ignored, `layout.json` stores a partial index of manual placements as a record of column IDs to task slugs:
 

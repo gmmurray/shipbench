@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { isDocVisible } from '../utils/docs';
+import { isDocVisible, renderedMarkdown } from '../utils/docs';
 
 // A docs page can be gated out of the build (SITE_CONFIG.harborEnabled is the
 // first one), and the links pointing at it live in Markdown, which cannot
@@ -75,8 +75,11 @@ function slugOf(route: string): string | null {
   return slug === '' || slug === 'X' ? null : slug;
 }
 
+// Markdown is read as the build renders it, so a link inside a `:::harbor`
+// block only counts when Harbor is enabled.
 function slugsLinkedIn(file: string): string[] {
-  return docRoutesIn(readFileSync(file, 'utf8'))
+  const source = readFileSync(file, 'utf8');
+  return docRoutesIn(file.endsWith('.md') ? renderedMarkdown(source) : source)
     .map(slugOf)
     .filter((slug): slug is string => slug !== null);
 }
