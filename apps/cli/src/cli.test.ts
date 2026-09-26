@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -2886,6 +2886,37 @@ describe('shipbench task delete', () => {
     expect(
       h.adapter.files.has('.shipbench/tasks/welcome-to-shipbench.md'),
     ).toBe(false);
+  });
+
+  it('refuses a slug that reaches outside the tasks directory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'shipbench-cli-slug-'));
+    const readme = join(root, 'README.md');
+    const program = createCli({
+      adapter: new FsAdapter(root),
+      defaultProjectName: 'slug-test',
+      cwd: root,
+      out: () => {},
+      err: () => {},
+      exitOverride: true,
+    });
+
+    try {
+      await program.parseAsync(['node', 'shipbench', 'init']);
+      await writeFile(readme, '# Keep me', 'utf-8');
+
+      await expect(
+        program.parseAsync([
+          'node',
+          'shipbench',
+          'task',
+          'delete',
+          '../../README',
+        ]),
+      ).rejects.toThrow(/Invalid task slug "..\/..\/README"/);
+      await expect(readFile(readme, 'utf-8')).resolves.toBe('# Keep me');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 

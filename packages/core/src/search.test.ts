@@ -250,9 +250,10 @@ describe('searchTasks', () => {
       task('both-terms', 'Handle oauth token', { body: 'unrelated' }),
     ];
 
-    expect(
-      searchTasks(tasks, 'oauth token').map(match => match.slug),
-    ).toEqual(['both-terms', 'one-term']);
+    expect(searchTasks(tasks, 'oauth token').map(match => match.slug)).toEqual([
+      'both-terms',
+      'one-term',
+    ]);
   });
 
   it('breaks a score tie toward the more recently updated task', () => {
@@ -324,9 +325,7 @@ describe('searchTasks', () => {
       expect(
         searchTasks(versioned, 'v2', { wholeWord: true }).map(m => m.slug),
       ).toEqual(['v2']);
-      expect(
-        searchTasks(versioned, 'v', { wholeWord: true }),
-      ).toEqual([]);
+      expect(searchTasks(versioned, 'v', { wholeWord: true })).toEqual([]);
     });
   });
 
@@ -348,13 +347,17 @@ describe('searchTasks', () => {
 
     it('still ANDs unquoted terms across the corpus', () => {
       expect(
-        searchTasks(tasks, 'token exchange').map(match => match.slug).sort(),
+        searchTasks(tasks, 'token exchange')
+          .map(match => match.slug)
+          .sort(),
       ).toEqual(['contiguous', 'scattered']);
     });
 
     it('matches a phrase that spans normalized whitespace', () => {
       const wrapped = [
-        task('wrapped', 'Notes', { body: 'the token\n   exchange happens here' }),
+        task('wrapped', 'Notes', {
+          body: 'the token\n   exchange happens here',
+        }),
       ];
       expect(
         searchTasks(wrapped, '"token exchange"').map(match => match.slug),
@@ -370,7 +373,9 @@ describe('searchTasks', () => {
     it('ignores an empty or dangling quote', () => {
       expect(searchTasks(tasks, '""')).toEqual([]);
       expect(
-        searchTasks(tasks, 'exchange "token').map(match => match.slug).sort(),
+        searchTasks(tasks, 'exchange "token')
+          .map(match => match.slug)
+          .sort(),
       ).toEqual(['contiguous', 'scattered']);
     });
 
@@ -379,9 +384,9 @@ describe('searchTasks', () => {
         task('dotted', 'Docs', { body: 'edit the docs/why.md file' }),
         task('spaced', 'Docs', { body: 'why a md file' }),
       ];
-      expect(
-        searchTasks(dotted, '"why.md"').map(match => match.slug),
-      ).toEqual(['dotted']);
+      expect(searchTasks(dotted, '"why.md"').map(match => match.slug)).toEqual([
+        'dotted',
+      ]);
     });
   });
 });

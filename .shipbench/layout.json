@@ -8,7 +8,6 @@
     "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it",
     "reject-cross-origin-and-rebound-requests-to-the-cli-board-server",
     "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
-    "confine-task-slugs-to-the-tasks-directory-in-core",
     "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "keep-board-drafts-intact-when-the-task-changes-on-disk",
     "let-host-apps-size-the-board-with-css-variables",
@@ -28,7 +27,5 @@
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory"
   ],
   "in-progress": [],
-  "review": [
-    "gate-harbor-passages-in-the-docs-behind-the-harbor-flag"
-  ]
+  "review": []
 }

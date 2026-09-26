@@ -1980,3 +1980,129 @@ describe('depends_on', () => {
     expect(updated.frontmatter.depends_on).toEqual(['api']);
   });
 });
+
+describe('slug confinement', () => {
+  const badSlugs = [
+    '../x',
+    'a/b',
+    'a\\b',
+    '..',
+    '.',
+    '',
+    'a\0b',
+    '../../README',
+  ];
+
+  // Every adapter method records its call, so a test can prove a rejected
+  // slug read, wrote, listed, and deleted nothing.
+  function recordingAdapter() {
+    const inner = memoryAdapter({
+      '.shipbench/tasks/real.md': taskFile({
+        title: 'Real',
+        status: 'todo',
+        created: '2026-01-01T00:00:00Z',
+        updated: '2026-01-01T00:00:00Z',
+      }),
+    });
+    const calls: string[] = [];
+    const record = <Args extends unknown[], Result>(
+      name: string,
+      method: (...args: Args) => Result,
+    ) => {
+      return (...args: Args): Result => {
+        calls.push(name);
+        return method(...args);
+      };
+    };
+    const adapter: StorageAdapter = {
+      readFile: record('readFile', inner.readFile),
+      readFileIfExists: record('readFileIfExists', inner.readFileIfExists),
+      writeFile: record('writeFile', inner.writeFile),
+      deleteFile: record('deleteFile', inner.deleteFile),
+      listFiles: record('listFiles', inner.listFiles),
+      readFiles: record('readFiles', inner.readFiles),
+      writeFiles: record('writeFiles', inner.writeFiles),
+    };
+    return { adapter, calls };
+  }
+
+  const operations: [
+    string,
+    (adapter: StorageAdapter, slug: string) => Promise<unknown>,
+  ][] = [
+    ['getTask', (a, slug) => getTask(a, DEFAULT_CONFIG, slug)],
+    [
+      'getTask (archived)',
+      (a, slug) => getTask(a, DEFAULT_CONFIG, slug, { archived: true }),
+    ],
+    [
+      'updateTask',
+      (a, slug) => updateTask(a, DEFAULT_CONFIG, slug, { priority: 'high' }),
+    ],
+    ['addComment', (a, slug) => addComment(a, DEFAULT_CONFIG, slug, 'Note.')],
+    [
+      'editComment',
+      (a, slug) => editComment(a, DEFAULT_CONFIG, slug, 0, 'Note.'),
+    ],
+    ['deleteComment', (a, slug) => deleteComment(a, DEFAULT_CONFIG, slug, 0)],
+    [
+      'reorderTask',
+      (a, slug) => reorderTask(a, DEFAULT_CONFIG, slug, 'todo', 0),
+    ],
+    ['moveTask', (a, slug) => moveTask(a, DEFAULT_CONFIG, slug, 'done')],
+    ['deleteTask', (a, slug) => deleteTask(a, DEFAULT_CONFIG, slug)],
+    [
+      'archiveTask',
+      (a, slug) => archiveTask(a, DEFAULT_CONFIG, slug, { force: true }),
+    ],
+    ['unarchiveTask', (a, slug) => unarchiveTask(a, DEFAULT_CONFIG, slug)],
+  ];
+
+  describe.each(operations)('%s', (_name, run) => {
+    it.each(badSlugs)('rejects %j before touching storage', async slug => {
+      const { adapter, calls } = recordingAdapter();
+      await expect(run(adapter, slug)).rejects.toThrow(/^Invalid task slug/);
+      expect(calls).toEqual([]);
+    });
+  });
+
+  it('keeps a hand-created task whose filename slugify would not produce usable', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/My_Task.md': taskFile({
+        title: 'My task',
+        status: 'todo',
+        created: '2026-01-01T00:00:00Z',
+        updated: '2026-01-01T00:00:00Z',
+      }),
+    });
+    const config = DEFAULT_CONFIG;
+
+    expect((await getTask(adapter, config, 'My_Task'))?.frontmatter.title).toBe(
+      'My task',
+    );
+    await updateTask(adapter, config, 'My_Task', { priority: 'high' });
+    await addComment(adapter, config, 'My_Task', 'First note.');
+    await editComment(adapter, config, 'My_Task', 0, 'Edited note.');
+    await deleteComment(adapter, config, 'My_Task', 0);
+    await moveTask(adapter, config, 'My_Task', 'in-progress');
+    await reorderTask(adapter, config, 'My_Task', 'in-progress', 0);
+
+    const moved = await getTask(adapter, config, 'My_Task');
+    expect(moved?.frontmatter).toMatchObject({
+      status: 'in-progress',
+      priority: 'high',
+    });
+
+    await archiveTask(adapter, config, 'My_Task', { force: true });
+    expect(adapter.files.has('.shipbench/tasks/archive/My_Task.md')).toBe(true);
+    expect(
+      (await getTask(adapter, config, 'My_Task', { archived: true }))?.slug,
+    ).toBe('My_Task');
+
+    await unarchiveTask(adapter, config, 'My_Task');
+    expect(adapter.files.has('.shipbench/tasks/My_Task.md')).toBe(true);
+
+    await deleteTask(adapter, config, 'My_Task');
+    expect(adapter.files.has('.shipbench/tasks/My_Task.md')).toBe(false);
+  });
+});

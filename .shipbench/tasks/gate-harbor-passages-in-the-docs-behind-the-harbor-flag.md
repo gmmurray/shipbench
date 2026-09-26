@@ -1,13 +1,13 @@
 ---
 title: Gate Harbor passages in the docs behind the Harbor flag
-status: review
+status: done
 priority: medium
 tags:
   - site
   - docs
   - harbor
 created: '2026-09-26T20:06:29.500Z'
-updated: '2026-09-26T20:13:42.459Z'
+updated: '2026-09-26T20:47:36.010Z'
 ---
 
 Put every Harbor passage in the docs behind the same `harborEnabled` flag that already hides the Harbor page and the landing section.

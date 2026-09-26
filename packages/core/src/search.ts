@@ -221,7 +221,9 @@ export function searchTasks(
       term.pattern.test(lowercaseBody),
     ).length;
     const updateTerms = terms.filter(term =>
-      normalizedUpdateSources.some(source => term.pattern.test(source.lowercase)),
+      normalizedUpdateSources.some(source =>
+        term.pattern.test(source.lowercase),
+      ),
     ).length;
 
     const matchedFields: TaskSearchField[] = [];
@@ -275,8 +277,7 @@ export function searchTasks(
   return scored
     .map((entry, index) => ({ ...entry, index }))
     .sort(
-      (a, b) =>
-        b.score - a.score || b.updated - a.updated || a.index - b.index,
+      (a, b) => b.score - a.score || b.updated - a.updated || a.index - b.index,
     )
     .map(entry => entry.match);
 }

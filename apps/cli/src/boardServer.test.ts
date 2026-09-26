@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -501,5 +501,27 @@ describe('board watcher SSE', () => {
     );
     expect(unarchived.status).toBe(200);
     await expect(unarchiveEvent).resolves.toBeUndefined();
+  });
+});
+
+describe('board task routes and slugs', () => {
+  // `%2F` decodes to a real separator after routing, so these slugs point at
+  // the project's README unless core refuses them.
+  it.each([
+    ['DELETE', '/api/tasks/..%2F..%2FREADME'],
+    ['POST', '/api/tasks/..%2F..%2FREADME/unarchive'],
+  ])('%s %s answers 400 and leaves the file in place', async (method, path) => {
+    const fixture = await makeFixture();
+    const readme = join(fixture.root, 'README.md');
+    await writeFile(readme, '# Keep me', 'utf-8');
+    const server = await startFixture(fixture);
+
+    const { response, body } = await json<{ error: string }>(server, path, {
+      method,
+    });
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/^Invalid task slug/);
+    await expect(readFile(readme, 'utf-8')).resolves.toBe('# Keep me');
   });
 });

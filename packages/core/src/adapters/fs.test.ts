@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -92,6 +92,65 @@ describe('FsAdapter', () => {
     await adapter.writeFile('x.txt', 'inside');
     const raw = await readFile(join(root, 'x.txt'), 'utf-8');
     expect(raw).toBe('inside');
+  });
+
+  describe('paths that escape the root', () => {
+    // The adapter's root sits one level down, so the escaping path points at a
+    // real file the test can check survives.
+    let project: string;
+    let confined: FsAdapter;
+    const outside = () => readFile(join(root, 'outside.md'), 'utf-8');
+
+    beforeEach(async () => {
+      project = join(root, 'project');
+      await mkdir(join(project, '.shipbench', 'tasks'), { recursive: true });
+      await writeFile(join(root, 'outside.md'), 'keep me');
+      confined = new FsAdapter(project);
+    });
+
+    const escapes = ['../outside.md', '.shipbench/tasks/../../../outside.md'];
+
+    it.each(escapes)('readFile rejects %s', async path => {
+      await expect(confined.readFile(path)).rejects.toThrow(/^Invalid path/);
+    });
+
+    it.each(escapes)('readFileIfExists rejects %s', async path => {
+      await expect(confined.readFileIfExists(path)).rejects.toThrow(
+        /^Invalid path/,
+      );
+    });
+
+    it.each(escapes)('writeFile rejects %s', async path => {
+      await expect(confined.writeFile(path, 'overwritten')).rejects.toThrow(
+        /^Invalid path/,
+      );
+      expect(await outside()).toBe('keep me');
+    });
+
+    it.each(escapes)('writeFiles rejects %s', async path => {
+      await expect(
+        confined.writeFiles(new Map([[path, 'overwritten']])),
+      ).rejects.toThrow(/^Invalid path/);
+      expect(await outside()).toBe('keep me');
+    });
+
+    it.each(escapes)('deleteFile rejects %s', async path => {
+      await expect(confined.deleteFile(path)).rejects.toThrow(/^Invalid path/);
+      expect(await outside()).toBe('keep me');
+    });
+
+    it('listFiles rejects a directory outside the root rather than listing it', async () => {
+      await expect(confined.listFiles('..')).rejects.toThrow(/^Invalid path/);
+      await expect(confined.listFiles('.shipbench/../..')).rejects.toThrow(
+        /^Invalid path/,
+      );
+    });
+
+    it('still allows paths that step out and back in', async () => {
+      await confined.writeFile('.shipbench/tasks/../README.md', 'inside');
+      expect(await confined.readFile('.shipbench/README.md')).toBe('inside');
+      expect(await confined.listFiles('.')).toContain('.shipbench');
+    });
   });
 
   it('overwrites existing files', async () => {

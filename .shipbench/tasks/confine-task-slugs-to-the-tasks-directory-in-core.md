@@ -1,12 +1,12 @@
 ---
 title: Confine task slugs to the tasks directory in core
-status: todo
+status: done
 priority: high
 tags:
   - core
   - security
 created: '2026-09-23T19:28:44.468Z'
-updated: '2026-09-23T19:28:44.468Z'
+updated: '2026-09-26T20:55:24.304Z'
 ---
 
 Core builds every task path by pasting the slug in: `` `${TASKS_DIR}/${slug}.md` ``

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSlugCollision, slugify } from './slug.js';
+import { assertTaskSlug, resolveSlugCollision, slugify } from './slug.js';
 
 describe('slugify', () => {
   describe('basic transformations', () => {
@@ -111,5 +111,33 @@ describe('resolveSlugCollision', () => {
     expect(resolveSlugCollision('my-task', new Set(['my-task-2']))).toBe(
       'my-task',
     );
+  });
+});
+
+describe('assertTaskSlug', () => {
+  it.each([
+    '',
+    '.',
+    '..',
+    '../x',
+    'a/b',
+    'a\\b',
+    'a\0b',
+    '/abs',
+    'x/..',
+  ])('rejects %j', slug => {
+    expect(() => assertTaskSlug(slug)).toThrow(/^Invalid task slug/);
+  });
+
+  it.each([
+    'my-task',
+    'My_Task',
+    'v1.2-release',
+    'task-0',
+    '..hidden',
+    'a..b',
+    'café',
+  ])('accepts the single segment %j', slug => {
+    expect(() => assertTaskSlug(slug)).not.toThrow();
   });
 });

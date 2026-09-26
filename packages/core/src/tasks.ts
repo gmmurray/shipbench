@@ -1,6 +1,6 @@
 import matter from 'gray-matter';
 import { layoutAfterMove, layoutWithoutTask } from './layout.js';
-import { resolveSlugCollision, slugify } from './slug.js';
+import { assertTaskSlug, resolveSlugCollision, slugify } from './slug.js';
 import type {
   BoardLayout,
   ReadableStorageAdapter,
@@ -34,6 +34,16 @@ const ATX_HEADING = /^(#{1,6})\s+(.+?)\s*$/;
  */
 const ENTRY_HEADING_TEXT = /^\d{4}-\d{2}-\d{2}/;
 type Awaitable<T> = T | PromiseLike<T>;
+
+/**
+ * The storage path of a task file. Every exported function that turns a
+ * caller's slug into a path goes through here, so a slug like `../../README`
+ * is rejected before it reaches the adapter.
+ */
+function taskPath(slug: string, directory = TASKS_DIR): string {
+  assertTaskSlug(slug);
+  return `${directory}/${slug}.md`;
+}
 
 export interface GetTaskOptions {
   archived?: boolean;
@@ -591,7 +601,7 @@ export async function getTask(
   // primitives. Parsing itself is intentionally config-independent.
   void config;
   const directory = options.archived ? ARCHIVE_DIR : TASKS_DIR;
-  const content = await adapter.readFileIfExists(`${directory}/${slug}.md`);
+  const content = await adapter.readFileIfExists(taskPath(slug, directory));
   return content === null ? null : parseTaskFile(slug, content);
 }
 
@@ -672,7 +682,7 @@ export async function createTask(
     comments: [],
   };
 
-  await adapter.writeFile(`${TASKS_DIR}/${slug}.md`, serializeTask(task));
+  await adapter.writeFile(taskPath(slug), serializeTask(task));
 
   // Append the new slug to layout[status] so a task created in a regular
   // column has a stable position from the moment it exists. The done column
@@ -700,7 +710,7 @@ export async function updateTask(
 ): Promise<{ task: Task; layout?: BoardLayout }> {
   if (body !== undefined) assertBodyWithoutUpdatesMarker(body);
 
-  const path = `${TASKS_DIR}/${slug}.md`;
+  const path = taskPath(slug);
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
 
@@ -776,7 +786,7 @@ export async function addComment(
   }
   assertCommentTextIsParsable(normalizedText);
 
-  const path = `${TASKS_DIR}/${slug}.md`;
+  const path = taskPath(slug);
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
   if (task.unreadableUpdates) {
@@ -830,7 +840,7 @@ export async function editComment(
   }
   assertCommentTextIsParsable(normalizedText);
 
-  const path = `${TASKS_DIR}/${slug}.md`;
+  const path = taskPath(slug);
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
   assertMutableComments(task, slug, 'edit');
@@ -850,7 +860,7 @@ export async function deleteComment(
   index: number,
 ): Promise<Task> {
   void config;
-  const path = `${TASKS_DIR}/${slug}.md`;
+  const path = taskPath(slug);
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
   assertMutableComments(task, slug, 'delete');
@@ -920,7 +930,7 @@ export async function reorderTask(
 ): Promise<{ task: Task; layout: BoardLayout }> {
   assertValidStatus(toStatus, config);
 
-  const path = `${TASKS_DIR}/${slug}.md`;
+  const path = taskPath(slug);
   const content = await adapter.readFile(path);
   const task = parseTaskFile(slug, content);
 
@@ -986,7 +996,7 @@ export async function deleteTask(
   config: ShipbenchConfig,
   slug: string,
 ): Promise<void> {
-  await adapter.deleteFile(`${TASKS_DIR}/${slug}.md`);
+  await adapter.deleteFile(taskPath(slug));
   const existingSlugs = await listExistingSlugs(adapter);
   const layout = layoutWithoutTask(config.layout ?? {}, slug, existingSlugs);
   await writeLayout(adapter, config, layout);
@@ -998,7 +1008,7 @@ export async function archiveTask(
   slug: string,
   options?: { force?: boolean },
 ): Promise<Task> {
-  const livePath = `${TASKS_DIR}/${slug}.md`;
+  const livePath = taskPath(slug);
   const content = await adapter.readFile(livePath);
   const task = parseTaskFile(slug, content);
 
@@ -1018,7 +1028,7 @@ export async function archiveTask(
     }
   }
 
-  await adapter.writeFile(`${ARCHIVE_DIR}/${slug}.md`, content);
+  await adapter.writeFile(taskPath(slug, ARCHIVE_DIR), content);
   await adapter.deleteFile(livePath);
 
   const existingSlugs = await listExistingSlugs(adapter);
@@ -1039,11 +1049,11 @@ export async function unarchiveTask(
   config: ShipbenchConfig,
   slug: string,
 ): Promise<Task> {
-  const archivedPath = `${ARCHIVE_DIR}/${slug}.md`;
+  const archivedPath = taskPath(slug, ARCHIVE_DIR);
   const content = await adapter.readFile(archivedPath);
   const task = parseTaskFile(slug, content);
 
-  await adapter.writeFile(`${TASKS_DIR}/${slug}.md`, content);
+  await adapter.writeFile(taskPath(slug), content);
   await adapter.deleteFile(archivedPath);
 
   const status = task.frontmatter.status;
