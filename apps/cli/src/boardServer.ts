@@ -202,6 +202,44 @@ async function serveStatic(
   }
 }
 
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Refuses a request a web page could have sent on the user's behalf, returning
+ * the reason, or `undefined` when the request may proceed.
+ *
+ * Binding 127.0.0.1 keeps other machines out, not other origins in the same
+ * browser. A `Host` naming anything but this server means DNS rebinding, and a
+ * foreign `Origin` on a write means a cross-site request the browser sent
+ * without a preflight. A missing `Origin` is not a browser, so curl and tests
+ * still work. The port comes from the socket because the server may bind a
+ * port other than the one requested.
+ */
+function foreignRequestReason(req: IncomingMessage): string | undefined {
+  const port = req.socket.localPort;
+  const authorities = new Set([`${DEFAULT_HOST}:${port}`, `localhost:${port}`]);
+  if (port === 80) {
+    authorities.add(DEFAULT_HOST);
+    authorities.add('localhost');
+  }
+
+  const host = req.headers.host?.toLowerCase();
+  if (host === undefined || !authorities.has(host)) {
+    return `Forbidden: the board only answers requests addressed to ${DEFAULT_HOST}:${port} or localhost:${port}.`;
+  }
+
+  const origin = req.headers.origin?.toLowerCase();
+  if (
+    STATE_CHANGING_METHODS.has(req.method ?? '') &&
+    origin !== undefined &&
+    ![...authorities].some(authority => origin === `http://${authority}`)
+  ) {
+    return 'Forbidden: requests from other origins cannot change the board.';
+  }
+
+  return undefined;
+}
+
 export function createBoardRequestHandler(
   adapter: StorageAdapter,
   bundleDir: string,
@@ -413,6 +451,11 @@ export function createBoardRequestHandler(
   return {
     async handle(req, res) {
       const url = new URL(req.url ?? '/', 'http://localhost');
+      const forbidden = foreignRequestReason(req);
+      if (forbidden !== undefined) {
+        sendError(res, 403, forbidden);
+        return;
+      }
 
       try {
         if (url.pathname.startsWith('/api/')) {

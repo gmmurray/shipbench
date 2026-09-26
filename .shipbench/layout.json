@@ -6,7 +6,6 @@
     "expose-a-consistent-cli-project-validation-report",
     "let-tasks-reference-related-work-without-implying-a-dependency",
     "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it",
-    "reject-cross-origin-and-rebound-requests-to-the-cli-board-server",
     "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
     "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "keep-board-drafts-intact-when-the-task-changes-on-disk",
@@ -14,7 +13,8 @@
     "show-a-task-update-in-the-welcome-task-shipbench-init-scaffolds",
     "strip-rationale-comments-from-the-rest-of-the-site",
     "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
-    "document-running-several-shipbench-boards-in-one-repository"
+    "document-running-several-shipbench-boards-in-one-repository",
+    "add-clear-button-to-the-search-tasks-bar-on-board"
   ],
   "backlog": [
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
@@ -27,5 +27,7 @@
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "reject-cross-origin-and-rebound-requests-to-the-cli-board-server"
+  ]
 }

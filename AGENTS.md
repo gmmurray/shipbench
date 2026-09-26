@@ -156,6 +156,15 @@ Two things are repo-specific because this repo is also where the `shipbench` CLI
 
 - **Avoid `pnpm --filter shipbench exec shipbench ...`** for dogfood task operations. Both the workspace root and `apps/cli` are named `shipbench`, so that command can run in multiple package contexts and fail from `apps/cli`, where no `.shipbench/config.json` exists.
 
+**Expect board changes you didn't make.** This board is live while you work. The owner moves tasks in the Board UI, other agents claim and finish tasks, and your own `task move` rewrites `layout.json`. So `git status` will often show task files and `layout.json` that changed while you were working, including other tasks' files.
+
+- **Look before you act.** Diff an unexpected change to see what it is (a status move, a new Update, a reordered column), so you know it isn't yours.
+- **Never undo it.** Don't `git checkout`, `git restore`, `git stash`, or re-edit a file to put it back the way it was. A change you didn't make is someone else's work, and reverting it quietly loses a decision the owner or another agent made.
+- **Leave it out of your work.** Stage only the files your task changed. `layout.json` is the exception when your own `task move` touched it; stage it with your task file. If it also holds someone else's change, such as a new task's entry, leave it unstaged and say so, because staging it would commit half of their change.
+- **Report it.** When you hand back your work, name the files that changed outside your work and say you left them alone.
+
+The same applies to any other file that changed without you: check it, leave it as it is, and mention it. If you changed a file by accident (a formatter run over a whole directory, say), say so and let the owner decide whether to discard it.
+
 `.shipbench/AGENTS.md` is deliberately kept close to what `shipbench init` scaffolds, customized only where this board's contract differs (backlog column, review gate, worktree rules). If work in this repo seems to require deviating from it, that is a signal — either the rule is build-specific and belongs in this file, or the shipped convention is missing something. Say so instead of silently deviating.
 
 ### ShipBench Harbor — a consumer, not a package here

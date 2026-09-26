@@ -1,7 +1,17 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  addComment,
+  archiveTask,
   createTask,
   FsAdapter,
   initProject,
@@ -523,5 +533,221 @@ describe('board task routes and slugs', () => {
     expect(response.status).toBe(400);
     expect(body.error).toMatch(/^Invalid task slug/);
     await expect(readFile(readme, 'utf-8')).resolves.toBe('# Keep me');
+  });
+});
+
+describe('board server origin and host checks', () => {
+  // undici treats `Host` as a forbidden header, so these requests go through
+  // node:http, which sends whatever headers it is given.
+  function rawRequest(
+    server: BoardServer,
+    method: string,
+    path: string,
+    headers: Record<string, string> = {},
+    body?: string,
+  ): Promise<{ status: number; body: string }> {
+    return new Promise((resolveRequest, reject) => {
+      const req = request(
+        { host: '127.0.0.1', port: server.port, method, path, headers },
+        res => {
+          let text = '';
+          res.setEncoding('utf-8');
+          res.on('data', chunk => {
+            text += chunk;
+          });
+          res.on('end', () =>
+            resolveRequest({ status: res.statusCode ?? 0, body: text }),
+          );
+        },
+      );
+      req.on('error', reject);
+      req.end(body);
+    });
+  }
+
+  async function snapshot(root: string): Promise<Map<string, string>> {
+    const files = new Map<string, string>();
+    const entries = await readdir(join(root, '.shipbench'), {
+      recursive: true,
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const path = join(entry.parentPath, entry.name);
+      files.set(path, await readFile(path, 'utf-8'));
+    }
+    return files;
+  }
+
+  // A board with a commented live task and an archived one, so every
+  // mutating route has something it would change if it ran.
+  async function seededServer() {
+    const fixture = await makeFixture();
+    const config = await loadConfig(fixture.adapter);
+    await createTask(fixture.adapter, config, 'Target');
+    await addComment(fixture.adapter, config, 'target', 'First note.');
+    await createTask(fixture.adapter, config, 'Stored');
+    await archiveTask(fixture.adapter, config, 'stored', { force: true });
+    const server = await startFixture(fixture);
+    return { fixture, server };
+  }
+
+  const mutatingRoutes: [string, string, string?][] = [
+    ['POST', '/api/tasks', '{"title":"Injected"}'],
+    ['POST', '/api/tasks/target/reorder', '{"toStatus":"done","position":0}'],
+    ['POST', '/api/tasks/target/comments', '{"text":"Injected."}'],
+    ['POST', '/api/tasks/target/archive', '{"force":true}'],
+    ['POST', '/api/tasks/stored/unarchive'],
+    ['PATCH', '/api/tasks/target', '{"fields":{"title":"Injected"}}'],
+    ['PATCH', '/api/tasks/target/comments/0', '{"text":"Injected."}'],
+    ['DELETE', '/api/tasks/target/comments/0'],
+    ['DELETE', '/api/tasks/target'],
+  ];
+
+  it.each(
+    mutatingRoutes,
+  )('rejects a cross-origin text/plain %s %s and writes nothing', async (method, path, body) => {
+    const { fixture, server } = await seededServer();
+    const before = await snapshot(fixture.root);
+
+    const response = await rawRequest(
+      server,
+      method,
+      path,
+      { origin: 'https://attacker.example', 'content-type': 'text/plain' },
+      body,
+    );
+
+    expect(response.status).toBe(403);
+    expect(JSON.parse(response.body).error).toMatch(/other origins/);
+    expect(await snapshot(fixture.root)).toEqual(before);
+  });
+
+  it.each([
+    'null',
+    'http://127.0.0.1:1',
+    'http://localhost.attacker.example',
+  ])('rejects a write whose Origin is %s', async origin => {
+    const { fixture, server } = await seededServer();
+    const before = await snapshot(fixture.root);
+
+    const response = await rawRequest(
+      server,
+      'POST',
+      '/api/tasks/stored/unarchive',
+      { origin },
+    );
+
+    expect(response.status).toBe(403);
+    expect(await snapshot(fixture.root)).toEqual(before);
+  });
+
+  it.each([
+    ['an API route', '/api/tasks'],
+    ['the event stream', '/api/events'],
+    ['a static file', '/standalone.html'],
+    ['the board page', '/'],
+  ])('rejects a foreign Host on %s', async (_name, path) => {
+    const { server } = await seededServer();
+
+    for (const host of [
+      `attacker.example:${server.port}`,
+      `localhost.attacker.example:${server.port}`,
+      `127.0.0.1:${server.port + 1}`,
+    ]) {
+      const response = await rawRequest(server, 'GET', path, { host });
+      expect(response.status).toBe(403);
+      expect(JSON.parse(response.body).error).toMatch(/only answers/);
+    }
+  });
+
+  it('rejects a foreign Host on a write even when Origin matches it', async () => {
+    const { fixture, server } = await seededServer();
+    const before = await snapshot(fixture.root);
+    const host = `attacker.example:${server.port}`;
+
+    const response = await rawRequest(
+      server,
+      'POST',
+      '/api/tasks',
+      { host, origin: `http://${host}`, 'content-type': 'application/json' },
+      '{"title":"Injected"}',
+    );
+
+    expect(response.status).toBe(403);
+    expect(await snapshot(fixture.root)).toEqual(before);
+  });
+
+  it.each([
+    '127.0.0.1',
+    'localhost',
+    'LOCALHOST',
+  ])('accepts reads and same-origin writes addressed to %s', async hostname => {
+    const { server } = await seededServer();
+    const host = `${hostname}:${server.port}`;
+
+    const read = await rawRequest(server, 'GET', '/api/tasks', { host });
+    expect(read.status).toBe(200);
+
+    const write = await rawRequest(
+      server,
+      'POST',
+      '/api/tasks',
+      {
+        host,
+        origin: `http://${host}`,
+        'content-type': 'application/json',
+      },
+      '{"title":"Allowed"}',
+    );
+    expect(write.status).toBe(200);
+  });
+
+  it('accepts a write with no Origin, as curl sends', async () => {
+    const { server } = await seededServer();
+
+    const response = await rawRequest(
+      server,
+      'POST',
+      '/api/tasks/stored/unarchive',
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body).slug).toBe('stored');
+  });
+
+  // The standalone board's own requests: relative fetches, so the browser
+  // sends the board's origin on every write, and unarchive and deletes carry
+  // no body or content type.
+  it('accepts every board action from the board origin', async () => {
+    const { server } = await seededServer();
+    const origin = `http://127.0.0.1:${server.port}`;
+    const json = { origin, 'content-type': 'application/json' };
+
+    const steps: [string, string, Record<string, string>, string?][] = [
+      ['POST', '/api/tasks', json, '{"title":"Created"}'],
+      ['PATCH', '/api/tasks/created', json, '{"fields":{"title":"Edited"}}'],
+      [
+        'POST',
+        '/api/tasks/created/reorder',
+        json,
+        '{"toStatus":"in-progress","position":0}',
+      ],
+      ['POST', '/api/tasks/created/comments', json, '{"text":"Note."}'],
+      [
+        'PATCH',
+        '/api/tasks/created/comments/0',
+        json,
+        '{"text":"Edited note."}',
+      ],
+      ['DELETE', '/api/tasks/created/comments/0', { origin }],
+      ['POST', '/api/tasks/created/archive', json, '{"force":true}'],
+      ['POST', '/api/tasks/created/unarchive', { origin }],
+      ['DELETE', '/api/tasks/created', { origin }],
+    ];
+    for (const [method, path, headers, body] of steps) {
+      const response = await rawRequest(server, method, path, headers, body);
+      expect(response.status, `${method} ${path}`).toBeLessThan(300);
+    }
   });
 });

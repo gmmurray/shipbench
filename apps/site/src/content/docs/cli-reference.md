@@ -544,7 +544,7 @@ Starts the local Board UI with real-time file watching.
 | `--port <number>` | Preferred port, from `1` through `65535`; defaults to `4321`. |
 | `--no-open` | Start the server without opening a browser. |
 
-The server binds to `127.0.0.1`. If the preferred port is occupied, it tries the next nine ports and prints the selected URL.
+The server binds to `127.0.0.1`. If the preferred port is occupied, it tries the next nine ports and prints the selected URL. It only answers requests addressed to `127.0.0.1` or `localhost` on that port, and it refuses changes sent from any other origin, so a web page open in the same browser can't read or write your board.
 
 #### `shipbench board terminal`
 
