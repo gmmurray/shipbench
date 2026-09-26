@@ -1,8 +1,8 @@
 # @shipbench/core
 
-The headless library behind [ShipBench](https://github.com/gmmurray/shipbench) —
-Git-native project management where the task board lives in the repository as
-plain Markdown.
+The headless library behind [ShipBench](https://github.com/gmmurray/shipbench),
+Git-native project management for solo developers. ShipBench keeps each task as
+a Markdown file in the repository it belongs to.
 
 This package parses, validates, and writes that board. It has **no filesystem
 access, no UI, and no network calls of its own**: every read and write goes
@@ -80,8 +80,8 @@ turns an accidental write into a compile error.
 
 **Strict on write, graceful on read.** Invalid statuses and priorities are
 rejected on write. On read, a task with an unrecognized status comes back with a
-validation warning rather than being dropped — the board never silently loses
-work.
+validation warning instead of being dropped, so a typo in a hand-edited file
+doesn't make a task disappear.
 
 **Unknown frontmatter is preserved.** Core passes through fields it does not own,
 with a warning. It never strips data it did not write.

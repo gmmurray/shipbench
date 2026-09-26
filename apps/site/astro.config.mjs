@@ -17,6 +17,20 @@ const shipbenchVersion = /** @type {{ version: string }} */ (
   )
 ).version;
 
+// Server deps the Cloudflare adapter's pre-bundle list misses, so Vite finds
+// them only when the dev worker first loads. Each late find re-optimizes
+// deps_ssr and renames its shared chunks under an in-flight reload, which then
+// fails with "The file does not exist ... in the optimize deps directory".
+// Listing them here makes the cold-start pass complete. `astro/logger/json`
+// loads only when `astro dev` runs in the background (any non-TTY start). If
+// that error returns, the `dependency optimized: <id>` line just above it names
+// the entry to add.
+const ssrLateDeps = [
+  'astro/app/manifest',
+  'astro/logger/json',
+  '@astrojs/svelte/server.js',
+];
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://shipbench.dev',
@@ -26,6 +40,13 @@ export default defineConfig({
   vite: {
     define: {
       __SHIPBENCH_VERSION__: JSON.stringify(shipbenchVersion),
+    },
+    // Only the ssr environment: the top-level `optimizeDeps` the adapter also
+    // reads would make the client environment bundle the server renderer.
+    ssr: {
+      optimizeDeps: {
+        include: ssrLateDeps,
+      },
     },
   },
 

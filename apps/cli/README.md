@@ -1,10 +1,12 @@
 # shipbench
 
-**Git-native project management for solo developers.**
+**Plans that ship with the work.**
 
-Your project plan lives inside your repository as plain Markdown, so Git, your
-editor, this CLI, the local board, and your coding agents all work from one
-source of truth. No account, no API key, no service.
+Git-native project management for solo developers. ShipBench keeps each task as
+a Markdown file in the repository it belongs to, inside a `.shipbench/` folder.
+This CLI creates, lists, searches, and moves those tasks, and opens a local
+board over the same files. Your editor and your coding agents work from the
+files too. There's no account and nothing to host.
 
 ## Install
 
@@ -49,7 +51,7 @@ it byte-for-byte unchanged.
 | `shipbench task archive <slug>` | Move a task to `tasks/archive/`, byte-identical and restorable. `--done [--keep=N]` bulk-archives completed tasks. |
 | `shipbench task unarchive <slug>` | Restore an archived task exactly as it was. |
 | `shipbench task delete <slug>` | Delete a task file and prune it from the layout. |
-| `shipbench board` | Serve the Kanban board locally, with file watching for live updates. |
+| `shipbench board` | Serve the Kanban board locally in your browser, with file watching for live updates. `shipbench board terminal` draws a live, read-only board in the terminal instead. |
 
 Global options: `-C <path>` runs any command against another directory,
 `-v, --version`, `-h, --help`.
@@ -92,6 +94,8 @@ Columns, priorities, and the completion column are configured per project in
 ## Documentation
 
 - [shipbench.dev/docs](https://shipbench.dev/docs) — quickstart, CLI reference, and recipes
+- [Why ShipBench](https://shipbench.dev/docs/why/) — where it came from and what it does differently
+- [Tracing a Decision](https://shipbench.dev/docs/decision-trail/) — link tasks and record decisions so you can find out later why something was built
 - [Repository](https://github.com/gmmurray/shipbench)
 
 ## License

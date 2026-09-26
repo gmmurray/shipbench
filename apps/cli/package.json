@@ -1,7 +1,7 @@
 {
   "name": "shipbench",
   "version": "0.4.0",
-  "description": "Git-native project management for solo developers. Your task board lives in your repository as Markdown.",
+  "description": "Git-native project management for solo developers. Each task is a Markdown file in your repository, with a CLI and a local board on top.",
   "license": "MIT",
   "repository": {
     "type": "git",
