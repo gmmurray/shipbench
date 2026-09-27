@@ -3,6 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import type { BoardAPI, ShipbenchConfig, Task } from '@shipbench/core';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -1834,6 +1835,331 @@ describe('Board', () => {
         name: 'Add task to Uncategorized from column bottom',
       }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('Board detail drafts when the task changes on disk', () => {
+  const threeUpdates: Task = {
+    ...tasks[0]!,
+    comments: [
+      { timestamp: '2026-06-01T12:00:00.000Z', text: 'First update.' },
+      { timestamp: '2026-06-01T13:00:00.000Z', text: 'Second update.' },
+      { timestamp: '2026-06-01T14:00:00.000Z', text: 'Third update.' },
+    ],
+  };
+
+  /** A board whose task files can change "on disk" mid-test. */
+  function liveBoard(initial: Task[], overrides: Partial<BoardAPI> = {}) {
+    let current = initial;
+    let notify: (() => void) | undefined;
+    const boardApi = api({
+      listTasks: vi.fn(async () => ({
+        tasks: current,
+        warnings: [],
+        unreadable: [],
+      })),
+      onTasksChanged: callback => {
+        notify = callback;
+        return () => {
+          notify = undefined;
+        };
+      },
+      ...overrides,
+    });
+
+    return {
+      api: boardApi,
+      async changeOnDisk(slug: string, change: (task: Task) => Task) {
+        current = current.map(task =>
+          task.slug === slug ? change(task) : task,
+        );
+        await act(async () => {
+          notify?.();
+        });
+      },
+    };
+  }
+
+  const withBody = (body: string) => (task: Task) => ({ ...task, body });
+  const withoutUpdate = (index: number) => (task: Task) => ({
+    ...task,
+    comments: task.comments.filter((_, i) => i !== index),
+  });
+
+  it('keeps an unsaved description draft and says the task changed', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: tasks[0] as Task }));
+    const board = liveBoard(tasks, { updateTask });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const editor = screen.getByRole('textbox', { name: 'Task description' });
+    await user.clear(editor);
+    await user.type(editor, 'My rewrite.');
+
+    await board.changeOnDisk('setup-auth', withBody('An agent rewrite.'));
+
+    expect(editor).toHaveValue('My rewrite.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The description changed on disk since you started editing.',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Load new version' }));
+    expect(editor).toHaveValue('An agent rewrite.');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(updateTask).not.toHaveBeenCalled();
+  });
+
+  it('saves the kept draft once the user chooses to keep it', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: tasks[0] as Task }));
+    const board = liveBoard(tasks, { updateTask });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const editor = screen.getByRole('textbox', { name: 'Task description' });
+    await user.clear(editor);
+    await user.type(editor, 'My rewrite.');
+    await board.changeOnDisk('setup-auth', withBody('An agent rewrite.'));
+
+    await user.click(screen.getByRole('button', { name: 'Keep mine' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(editor).toHaveValue('My rewrite.');
+
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(updateTask).toHaveBeenCalledWith('setup-auth', {}, 'My rewrite.');
+  });
+
+  it('shows the new description when the draft has no unsaved changes', async () => {
+    const user = userEvent.setup();
+    const board = liveBoard(tasks);
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await board.changeOnDisk('setup-auth', withBody('An agent rewrite.'));
+
+    expect(
+      screen.getByRole('textbox', { name: 'Task description' }),
+    ).toHaveValue('An agent rewrite.');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('does not carry a description draft to the next task', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Task description' }),
+      ' More.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Next task in column' }),
+    );
+
+    expect(screen.getByDisplayValue('Write tests')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Task description' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Cover the detail nav.')).toBeInTheDocument();
+  });
+
+  it('keeps editing the same update when an earlier one is deleted on disk', async () => {
+    const user = userEvent.setup();
+    const editComment = vi.fn(async () => threeUpdates);
+    const board = liveBoard([threeUpdates], { editComment });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 2' }),
+    );
+    const editor = screen.getByRole('textbox', { name: 'Task update 2 text' });
+    await user.clear(editor);
+    await user.type(editor, 'Corrected second update.');
+
+    await board.changeOnDisk('setup-auth', withoutUpdate(0));
+
+    // The entry is #1 now, and the draft moved with it.
+    expect(
+      screen.getByRole('textbox', { name: 'Task update 1 text' }),
+    ).toHaveValue('Corrected second update.');
+    expect(screen.getByText('Third update.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save update' }));
+    expect(editComment).toHaveBeenCalledWith(
+      'setup-auth',
+      0,
+      'Corrected second update.',
+    );
+  });
+
+  it('keeps the draft and refuses to save when the edited update is deleted on disk', async () => {
+    const user = userEvent.setup();
+    const editComment = vi.fn(async () => threeUpdates);
+    const board = liveBoard([threeUpdates], { editComment });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 2' }),
+    );
+    const editor = screen.getByRole('textbox', { name: 'Task update 2 text' });
+    await user.clear(editor);
+    await user.type(editor, 'Corrected second update.');
+
+    await board.changeOnDisk('setup-auth', withoutUpdate(1));
+
+    expect(
+      screen.getByRole('textbox', { name: 'Deleted task update text' }),
+    ).toHaveValue('Corrected second update.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The update you were editing was deleted on disk',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Save update' }),
+    ).not.toBeInTheDocument();
+    // No surviving entry picked up the editor.
+    expect(
+      screen.queryByRole('textbox', { name: /^Task update \d text$/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Third update.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(
+      screen.queryByRole('textbox', { name: 'Deleted task update text' }),
+    ).not.toBeInTheDocument();
+    expect(editComment).not.toHaveBeenCalled();
+  });
+
+  it('closes an untouched update editor when its entry is deleted on disk', async () => {
+    const user = userEvent.setup();
+    const board = liveBoard([threeUpdates]);
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 2' }),
+    );
+    await board.changeOnDisk('setup-auth', withoutUpdate(1));
+
+    expect(
+      screen.queryByRole('textbox', { name: /^Task update \d text$/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Deleted task update text' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps an unsaved update edit when that entry changes on disk', async () => {
+    const user = userEvent.setup();
+    const board = liveBoard([threeUpdates]);
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 2' }),
+    );
+    const editor = screen.getByRole('textbox', { name: 'Task update 2 text' });
+    await user.type(editor, ' Mine.');
+
+    await board.changeOnDisk('setup-auth', task => ({
+      ...task,
+      comments: task.comments.map((comment, i) =>
+        i === 1 ? { ...comment, text: 'Agent correction.' } : comment,
+      ),
+    }));
+
+    expect(editor).toHaveValue('Second update. Mine.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This update changed on disk since you started editing.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Load new version' }));
+    expect(editor).toHaveValue('Agent correction.');
+  });
+
+  it('confirms deleting the entry the user picked after an earlier one is deleted on disk', async () => {
+    const user = userEvent.setup();
+    const deleteComment = vi.fn(async () => threeUpdates);
+    const board = liveBoard([threeUpdates], { deleteComment });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Delete task update 2' }),
+    );
+    await board.changeOnDisk('setup-auth', withoutUpdate(0));
+
+    // Still offered on "Second update.", which is #1 now.
+    await user.click(
+      screen.getByRole('button', { name: 'Confirm delete task update 1' }),
+    );
+    expect(deleteComment).toHaveBeenCalledWith('setup-auth', 0);
+  });
+
+  it('keeps a title being typed when the title changes on disk', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: tasks[0] as Task }));
+    const board = liveBoard(tasks, { updateTask });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const title = screen.getByRole('textbox', { name: 'Task title' });
+    await user.clear(title);
+    await user.type(title, 'Set up OAuth');
+
+    await board.changeOnDisk('setup-auth', task => ({
+      ...task,
+      frontmatter: { ...task.frontmatter, title: 'Setup GitHub auth' },
+    }));
+
+    expect(title).toHaveValue('Set up OAuth');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The title changed on disk to “Setup GitHub auth”',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Use new title' }));
+    expect(title).toHaveValue('Setup GitHub auth');
+    expect(title).toHaveFocus();
+    expect(updateTask).not.toHaveBeenCalled();
+  });
+
+  it('does not save a title by tabbing to the changed-on-disk notice', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: tasks[0] as Task }));
+    const board = liveBoard(tasks, { updateTask });
+    render(<Board api={board.api} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const title = screen.getByRole('textbox', { name: 'Task title' });
+    await user.type(title, ' flow');
+    await board.changeOnDisk('setup-auth', task => ({
+      ...task,
+      frontmatter: { ...task.frontmatter, title: 'Setup GitHub auth' },
+    }));
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Use new title' })).toHaveFocus();
+    expect(updateTask).not.toHaveBeenCalled();
+
+    // Either choice hands focus back to the title.
+    await user.tab();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(title).toHaveValue('Setup auth flow');
+    expect(title).toHaveFocus();
+
+    await user.tab();
+    expect(updateTask).toHaveBeenCalledWith(
+      'setup-auth',
+      { title: 'Setup auth flow' },
+      undefined,
+    );
   });
 });
 

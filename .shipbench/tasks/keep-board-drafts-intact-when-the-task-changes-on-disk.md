@@ -1,12 +1,12 @@
 ---
 title: Keep board drafts intact when the task changes on disk
-status: todo
+status: review
 priority: medium
 tags:
   - board
   - ui
 created: '2026-09-23T19:37:22.773Z'
-updated: '2026-09-23T19:37:22.773Z'
+updated: '2026-09-27T19:32:56.736Z'
 ---
 
 The CLI board refreshes whenever a task file changes on disk
@@ -72,3 +72,18 @@ one.
   entry and deleting the edited entry itself.
 - An on-disk title change doesn't wipe a title being typed.
 - Add a changeset, since this changes `@shipbench/board`.
+
+## Task Updates
+
+### 2026-09-27T19:32:56.642Z
+Landed first, so the shared dirty-draft tracking lives here: `useDraft` in [useDraft.ts](../../packages/board/src/ui/useDraft.ts) exposes `dirty` per editor. [ask-before-leaving-a-task-with-unsaved-edits-in-the-board](ask-before-leaving-a-task-with-unsaved-edits-in-the-board.md) can report that to the store instead of adding its own tracking. The composer is still plain `useState`, since nothing on disk feeds it.
+
+This also landed that task's first step. The title, description, and Updates editors are keyed by slug. Without the keys, keeping a dirty draft would have carried task A's description into task B on Previous/Next. Previously the draft was just replaced by B's body.
+
+Decisions:
+
+- Update identity is timestamp plus occurrence among entries sharing that timestamp. The occurrence only matters in hand-written files. The delete confirmation uses the same identity, because it had the same index bug.
+- If the edited entry is deleted and the draft is dirty, the editor moves above the list with the warning, a Discard button, and no Save. If the draft is clean, the editor just closes.
+- The title's notice buttons keep focus in the input on click. The input also skips its blur-save when focus moves into the notice, so neither choice saves the draft first.
+
+Not done: the assignee `MetaInput` still resets its draft on every refresh. It saves on blur like the title, so it is small and rare. The outgoing-direction optimistic concurrency is still unfiled, as the description suggests.

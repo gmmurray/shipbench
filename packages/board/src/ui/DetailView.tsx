@@ -14,6 +14,7 @@ import {
   RxArrowLeft,
   RxCheck,
   RxCopy,
+  RxExclamationTriangle,
   RxEyeOpen,
   RxPencil1,
   RxPlus,
@@ -28,6 +29,7 @@ import { Markdown } from './Markdown.js';
 import { DependencyMultiSelect, TagInput } from './MetadataInputs.js';
 import { Select, type SelectOption } from './Select.js';
 import { useAutosizeTextarea } from './useAutosizeTextarea.js';
+import { useDraft } from './useDraft.js';
 
 export function DetailView({ slug }: { slug: string }) {
   const config = useBoardStore(state => state.config);
@@ -181,7 +183,10 @@ export function DetailView({ slug }: { slug: string }) {
                 />
               ) : null}
             </div>
+            {/* The editors are keyed by slug so no draft carries over to
+                another task. */}
             <TitleInput
+              key={task.slug}
               readOnly={readOnly}
               value={task.frontmatter.title}
               onChange={value => void updateTask(task.slug, { title: value })}
@@ -190,11 +195,13 @@ export function DetailView({ slug }: { slug: string }) {
           </div>
 
           <TaskBodySection
+            key={`body:${task.slug}`}
             readOnly={readOnly}
             body={task.body}
             onSave={next => void updateTask(task.slug, {}, next)}
           />
           <TaskUpdatesSection
+            key={`updates:${task.slug}`}
             readOnly={readOnly}
             comments={task.comments ?? []}
             unreadableUpdates={task.unreadableUpdates}
@@ -456,13 +463,15 @@ function TaskBodySection({
   onSave: (next: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(body);
+  const {
+    value: draft,
+    setValue: setDraft,
+    changedOnDisk,
+    reset,
+    keepDraft,
+  } = useDraft(body);
   const showTextarea = isEditing && !readOnly;
   const textareaRef = useAutosizeTextarea(draft, showTextarea);
-
-  useEffect(() => {
-    setDraft(body);
-  }, [body]);
 
   const exitEditMode = () => {
     onSave(draft);
@@ -507,6 +516,15 @@ function TaskBodySection({
         )}
       </div>
 
+      {showTextarea && changedOnDisk ? (
+        <ChangedOnDiskNotice
+          message="The description changed on disk since you started editing. Saving replaces that change with your text."
+          loadLabel="Load new version"
+          onLoad={() => reset()}
+          onKeep={keepDraft}
+        />
+      ) : null}
+
       {showTextarea ? (
         <textarea
           aria-label="Task description"
@@ -549,13 +567,23 @@ function TaskUpdatesSection({
 }) {
   const [draft, setDraft] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState('');
+  // Entries are held by identity, not index: a refresh that removes an earlier
+  // entry shifts every index after it.
+  const [editing, setEditing] = useState<UpdateRef | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
-    null,
-  );
+  const [confirmDelete, setConfirmDelete] = useState<UpdateRef | null>(null);
   const canSubmit = draft.trim().length > 0 && !isSubmitting;
+
+  const editingIndex = editing ? findUpdate(comments, editing) : -1;
+  const editDraft = useDraft(
+    editingIndex === -1 ? '' : (comments[editingIndex]?.text ?? ''),
+  );
+  const editedEntryGone = editing !== null && editingIndex === -1;
+  // With nothing typed, there is nothing to keep once the entry is gone.
+  if (editedEntryGone && !editDraft.dirty) setEditing(null);
+  const confirmDeleteIndex = confirmDelete
+    ? findUpdate(comments, confirmDelete)
+    : -1;
 
   // A section that would not parse has no entries, so the read-only shortcut
   // would hide the one thing worth saying about this task. Harbor is read-only
@@ -575,33 +603,81 @@ function TaskUpdatesSection({
   };
 
   const beginEdit = (index: number) => {
-    setConfirmDeleteIndex(null);
-    setEditingIndex(index);
-    setEditDraft(comments[index]?.text ?? '');
+    setConfirmDelete(null);
+    setEditing(updateRef(comments, index));
+    editDraft.reset(comments[index]?.text ?? '');
   };
 
   const cancelEdit = () => {
-    setEditingIndex(null);
-    setEditDraft('');
+    setEditing(null);
+    editDraft.reset('');
   };
 
-  const handleEdit = async (
-    event: FormEvent<HTMLFormElement>,
-    index: number,
-  ) => {
+  const handleEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editDraft.trim() || isEditing) return;
+    // Resolved from the entries as they are now, so the save lands on the
+    // entry the user opened even if others moved around it.
+    if (editingIndex === -1 || !editDraft.value.trim() || isEditing) return;
 
     setIsEditing(true);
-    const saved = await onEditComment(index, editDraft);
+    const saved = await onEditComment(editingIndex, editDraft.value);
     if (saved) cancelEdit();
     setIsEditing(false);
   };
 
   const handleDelete = async (index: number) => {
-    setConfirmDeleteIndex(null);
+    setConfirmDelete(null);
     await onDeleteComment(index);
   };
+
+  const editForm = (label: string) => (
+    <form className="mt-2" onSubmit={event => void handleEdit(event)}>
+      {editedEntryGone ? (
+        <p
+          className="mb-2 font-mono text-[11px] leading-5 text-sb-warning"
+          role="alert"
+        >
+          The update you were editing was deleted on disk, so this text can no
+          longer be saved to it. Copy anything you want to keep before you
+          discard it.
+        </p>
+      ) : editDraft.changedOnDisk && !isEditing ? (
+        <ChangedOnDiskNotice
+          message="This update changed on disk since you started editing. Saving replaces that change with your text."
+          loadLabel="Load new version"
+          onLoad={() => editDraft.reset()}
+          onKeep={editDraft.keepDraft}
+        />
+      ) : null}
+      <textarea
+        aria-label={label}
+        className="min-h-24 w-full resize-y rounded border border-sb-iron bg-sb-surface2 px-3 py-2 font-sans text-[13px] leading-relaxed text-sb-frosted outline-none transition-colors hover:border-sb-ironlit focus-visible:border-sb-accent disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={isEditing}
+        value={editDraft.value}
+        onChange={event => editDraft.setValue(event.target.value)}
+      />
+      <div className="mt-2 flex justify-end gap-2">
+        <button
+          className="inline-flex min-h-9 items-center rounded border border-sb-iron px-3 text-[13px] font-medium text-sb-frosted transition-colors hover:border-sb-ironlit hover:bg-sb-surface2 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          disabled={isEditing}
+          onClick={cancelEdit}
+        >
+          {editedEntryGone ? 'Discard' : 'Cancel'}
+        </button>
+        {editedEntryGone ? null : (
+          <button
+            className="inline-flex min-h-9 items-center gap-2 rounded bg-sb-accent px-3 text-[13px] font-semibold text-sb-canvas transition-colors hover:bg-sb-accent-hover active:bg-sb-accent-pressed disabled:cursor-not-allowed disabled:opacity-40"
+            type="submit"
+            disabled={!editDraft.value.trim() || isEditing}
+          >
+            <RxCheck aria-hidden="true" className="h-3.5 w-3.5" />
+            {isEditing ? 'Saving…' : 'Save update'}
+          </button>
+        )}
+      </div>
+    </form>
+  );
 
   return (
     <section
@@ -621,6 +697,9 @@ function TaskUpdatesSection({
           {unreadableUpdates ? 'unreadable' : comments.length}
         </span>
       </div>
+      {editedEntryGone ? (
+        <div className="mb-5">{editForm('Deleted task update text')}</div>
+      ) : null}
       {unreadableUpdates ? (
         <div className="grid gap-3">
           <p
@@ -644,7 +723,7 @@ function TaskUpdatesSection({
           {comments.map((comment, index) => (
             <li
               className="border-t border-sb-divider pt-5 first:border-t-0 first:pt-0"
-              key={`${comment.timestamp}-${index}`}
+              key={updateKey(updateRef(comments, index))}
             >
               <div className="flex min-h-9 items-center justify-between gap-3">
                 <time
@@ -661,7 +740,7 @@ function TaskUpdatesSection({
                         <button
                           className="inline-flex min-h-9 items-center rounded px-2 text-[13px] font-medium text-sb-silver transition-colors hover:text-sb-frosted"
                           type="button"
-                          onClick={() => setConfirmDeleteIndex(null)}
+                          onClick={() => setConfirmDelete(null)}
                         >
                           Cancel
                         </button>
@@ -693,8 +772,8 @@ function TaskUpdatesSection({
                           className="inline-flex h-9 w-9 items-center justify-center rounded text-sb-silver transition-colors hover:bg-sb-surface2 hover:text-sb-danger"
                           type="button"
                           onClick={() => {
-                            setEditingIndex(null);
-                            setConfirmDeleteIndex(index);
+                            cancelEdit();
+                            setConfirmDelete(updateRef(comments, index));
                           }}
                         >
                           <RxTrash aria-hidden="true" className="h-3.5 w-3.5" />
@@ -705,36 +784,7 @@ function TaskUpdatesSection({
                 )}
               </div>
               {editingIndex === index ? (
-                <form
-                  className="mt-2"
-                  onSubmit={event => void handleEdit(event, index)}
-                >
-                  <textarea
-                    aria-label={`Task update ${index + 1} text`}
-                    className="min-h-24 w-full resize-y rounded border border-sb-iron bg-sb-surface2 px-3 py-2 font-sans text-[13px] leading-relaxed text-sb-frosted outline-none transition-colors hover:border-sb-ironlit focus-visible:border-sb-accent disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={isEditing}
-                    value={editDraft}
-                    onChange={event => setEditDraft(event.target.value)}
-                  />
-                  <div className="mt-2 flex justify-end gap-2">
-                    <button
-                      className="inline-flex min-h-9 items-center rounded border border-sb-iron px-3 text-[13px] font-medium text-sb-frosted transition-colors hover:border-sb-ironlit hover:bg-sb-surface2 disabled:cursor-not-allowed disabled:opacity-40"
-                      type="button"
-                      disabled={isEditing}
-                      onClick={cancelEdit}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="inline-flex min-h-9 items-center gap-2 rounded bg-sb-accent px-3 text-[13px] font-semibold text-sb-canvas transition-colors hover:bg-sb-accent-hover active:bg-sb-accent-pressed disabled:cursor-not-allowed disabled:opacity-40"
-                      type="submit"
-                      disabled={!editDraft.trim() || isEditing}
-                    >
-                      <RxCheck aria-hidden="true" className="h-3.5 w-3.5" />
-                      {isEditing ? 'Saving…' : 'Save update'}
-                    </button>
-                  </div>
-                </form>
+                editForm(`Task update ${index + 1} text`)
               ) : (
                 <div className="sb-markdown mt-2 max-w-none">
                   <Markdown>{comment.text}</Markdown>
@@ -787,6 +837,35 @@ function TaskUpdatesSection({
       )}
     </section>
   );
+}
+
+/**
+ * A Task Update's identity. Core keeps an entry's timestamp across edits, so it
+ * outlives index shifts. `occurrence` separates entries that share a timestamp,
+ * which only a hand-written file produces.
+ */
+interface UpdateRef {
+  timestamp: string;
+  occurrence: number;
+}
+
+function updateRef(comments: TaskComment[], index: number): UpdateRef {
+  const timestamp = comments[index]?.timestamp ?? '';
+  const occurrence = comments
+    .slice(0, index)
+    .filter(comment => comment.timestamp === timestamp).length;
+  return { timestamp, occurrence };
+}
+
+function findUpdate(comments: TaskComment[], ref: UpdateRef): number {
+  let seen = 0;
+  return comments.findIndex(
+    comment => comment.timestamp === ref.timestamp && seen++ === ref.occurrence,
+  );
+}
+
+function updateKey(ref: UpdateRef): string {
+  return `${ref.timestamp}#${ref.occurrence}`;
 }
 
 function SelectField({
@@ -857,11 +936,14 @@ function TitleInput({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
+  const {
+    value: draft,
+    setValue: setDraft,
+    changedOnDisk,
+    reset,
+    keepDraft,
+  } = useDraft(value);
+  const noticeRef = useRef<HTMLDivElement>(null);
 
   if (readOnly) {
     return (
@@ -872,17 +954,111 @@ function TitleInput({
   }
 
   return (
-    <input
-      className="sb-editor w-full bg-transparent font-sans text-xl font-semibold text-sb-frosted outline-none placeholder:text-sb-silver"
-      aria-label="Task title"
-      value={draft}
-      onBlur={() => {
-        if (draft.trim() && draft !== value) {
-          onChange(draft.trim());
+    <>
+      <input
+        className="sb-editor w-full bg-transparent font-sans text-xl font-semibold text-sb-frosted outline-none placeholder:text-sb-silver"
+        aria-label="Task title"
+        value={draft}
+        onBlur={event => {
+          // The title saves on blur, so tabbing to the notice's buttons must
+          // not save the draft they are about to decide on.
+          if (
+            event.relatedTarget instanceof Node &&
+            noticeRef.current?.contains(event.relatedTarget)
+          ) {
+            return;
+          }
+          const next = draft.trim();
+          if (next && draft !== value) {
+            onChange(next);
+            reset(next);
+          }
+        }}
+        onChange={event => setDraft(event.target.value)}
+      />
+      {changedOnDisk ? (
+        <ChangedOnDiskNotice
+          ref={noticeRef}
+          className="mt-3"
+          message={`The title changed on disk to “${value}” while you were typing. Leaving the field saves yours.`}
+          loadLabel="Use new title"
+          onLoad={() => reset()}
+          onKeep={keepDraft}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function ChangedOnDiskNotice({
+  ref,
+  className = 'mb-3',
+  message,
+  loadLabel,
+  onLoad,
+  onKeep,
+}: {
+  ref?: React.Ref<HTMLDivElement>;
+  className?: string;
+  message: string;
+  loadLabel: string;
+  onLoad: () => void;
+  onKeep: () => void;
+}) {
+  const buttonClass =
+    'font-mono text-[12px] text-sb-silver transition-colors hover:text-sb-frosted focus-visible:text-sb-frosted';
+  // Keeps focus in the editor on click, so the title input's blur-to-save
+  // doesn't fire before the choice is made.
+  const keepFocus = (event: React.MouseEvent) => event.preventDefault();
+  // Either choice removes the notice, so a keyboard user who tabbed here goes
+  // back to the editor they came from rather than to the page body.
+  const editor = useRef<HTMLElement | null>(null);
+  const choose = (action: () => void) => () => {
+    action();
+    editor.current?.focus();
+  };
+
+  return (
+    <div
+      ref={ref}
+      role="alert"
+      onFocus={event => {
+        const from = event.relatedTarget;
+        if (
+          from instanceof HTMLElement &&
+          !event.currentTarget.contains(from)
+        ) {
+          editor.current = from;
         }
       }}
-      onChange={event => setDraft(event.target.value)}
-    />
+      className={`${className} flex flex-wrap items-start gap-x-3 gap-y-2 rounded-md border border-sb-iron border-l-2 border-l-sb-warning bg-sb-surface2 px-3.5 py-3`}
+    >
+      <RxExclamationTriangle
+        aria-hidden="true"
+        className="mt-0.5 h-4 w-4 shrink-0 text-sb-warning"
+      />
+      <p className="min-w-0 flex-1 font-mono text-[12px] leading-5 text-sb-frosted">
+        {message}
+      </p>
+      <div className="flex shrink-0 gap-3">
+        <button
+          className={buttonClass}
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={choose(onLoad)}
+        >
+          {loadLabel}
+        </button>
+        <button
+          className={buttonClass}
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={choose(onKeep)}
+        >
+          Keep mine
+        </button>
+      </div>
+    </div>
   );
 }
 

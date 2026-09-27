@@ -1,6 +1,5 @@
 {
   "todo": [
-    "keep-board-drafts-intact-when-the-task-changes-on-disk",
     "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
     "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "let-host-apps-size-the-board-with-css-variables",
@@ -22,5 +21,7 @@
     "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "keep-board-drafts-intact-when-the-task-changes-on-disk"
+  ]
 }
