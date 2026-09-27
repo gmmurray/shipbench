@@ -3,7 +3,7 @@ title: ShipBench Overview
 description: Learn how the ShipBench project files, the ShipBench CLI, and the local board work together.
 group: Getting Started
 order: 1
-updated: 2026-09-26
+updated: 2026-09-27
 ---
 
 ShipBench keeps a project's tasks as Markdown files in the project's own repository. These are the pieces.
@@ -23,7 +23,8 @@ New to ShipBench? Read these in order:
 
 1. [Why ShipBench](/docs/why/): where it came from and what it does differently.
 2. [Quickstart](/docs/quickstart/): install the CLI, set up a repository, create a task, and open the board.
-3. [Workflows](/docs/workflows/): pick a process, from working alone on `main` to running agents in parallel worktrees, and copy the conventions your agents need.
+3. [Resuming a Project](/docs/resuming-a-project/): come back after a break, hand the next task to a fresh agent, and find out why an earlier decision was made.
+4. [Workflows](/docs/workflows/): pick a process, from working alone on `main` to running agents in parallel worktrees, and copy the conventions your agents need.
 
 ## Reference
 

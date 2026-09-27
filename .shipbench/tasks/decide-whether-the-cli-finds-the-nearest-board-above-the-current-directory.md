@@ -1,13 +1,13 @@
 ---
 title: Decide whether the CLI finds the nearest board above the current directory
-status: backlog
+status: todo
 priority: medium
 tags:
   - cli
   - dx
   - decision
 created: '2026-09-26T19:44:04.679Z'
-updated: '2026-09-26T19:44:04.679Z'
+updated: '2026-09-27T19:05:07.710Z'
 ---
 
 The CLI looks for `.shipbench/` only in the current directory, or in the `-C`

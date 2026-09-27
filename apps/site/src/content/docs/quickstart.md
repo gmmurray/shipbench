@@ -3,7 +3,7 @@ title: Quickstart
 description: Install the ShipBench CLI, initialize a repository, create a task, open the local Kanban board, and record a decision you can search for later.
 group: Getting Started
 order: 2
-updated: 2026-09-24
+updated: 2026-09-27
 ---
 
 By the end of this page you'll have a repository with a `.shipbench/` folder, a first task, the board open in your browser, and a recorded decision you can search for. It takes a few minutes and works in any Git repository.
@@ -137,4 +137,4 @@ shipbench task list --available --json
 shipbench task get build-the-landing-page
 ```
 
-See the [ShipBench CLI Reference](/docs/cli-reference/) for every command and [Workflows](/docs/workflows/) for a branch-aware multi-agent flow.
+[Resuming a Project](/docs/resuming-a-project/) follows a small project through a break and a handoff to a fresh agent session. See the [ShipBench CLI Reference](/docs/cli-reference/) for every command and [Workflows](/docs/workflows/) for a branch-aware multi-agent flow.

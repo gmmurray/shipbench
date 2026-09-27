@@ -1,13 +1,13 @@
 {
   "todo": [
-    "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
+    "keep-board-drafts-intact-when-the-task-changes-on-disk",
+    "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
+    "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
+    "let-host-apps-size-the-board-with-css-variables",
+    "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "let-tasks-reference-related-work-without-implying-a-dependency",
-    "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
-    "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
-    "keep-board-drafts-intact-when-the-task-changes-on-disk",
-    "let-host-apps-size-the-board-with-css-variables",
     "strip-rationale-comments-from-the-rest-of-the-site",
     "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
     "document-running-several-shipbench-boards-in-one-repository"
@@ -19,8 +19,7 @@
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
     "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
-    "updating-shipbench-init-with-new-versions",
-    "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory"
+    "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
   "review": []
