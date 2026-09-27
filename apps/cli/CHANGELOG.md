@@ -1,5 +1,78 @@
 # shipbench
 
+## 0.5.0
+
+### Minor Changes
+
+- 2617c6b: Stop an unreadable Updates section from eating the description it sits under. When the trailing `## Task Updates` section did not parse, core returned the entire raw body as `Task.body` — the field documented as "Timeless task description, excluding the reserved trailing Task Updates section" — and every consumer that trusted that comment inherited the damage.
+  
+  The sharpest consequence was silent data loss: `task edit --body` on such a task succeeded, reported success, and deleted the whole section, good entries included, because the raw text lived in `body` and the write serialized an empty `comments` over it. The description guard could not catch it, since the incoming body was clean. Git was the only trail.
+  
+  Core now keeps the split it already computed. `Task.body` is the description above the marker; the section is quarantined verbatim on a new optional `Task.unreadableUpdates` (`{ text, reason }`) and written back byte-identical on every write. A frontmatter or description edit can no longer drop it, the Board's description editor holds a real description again, and `task search` stops matching broken entry text as if it were the description. Comment mutations still refuse a task in this state — appending to a section that cannot be read would leave it just as unreadable.
+  
+  The warning now names the line that broke the parse rather than only the rule, and `unreadableUpdatesWarning` builds it from a single task, so `shipbench task get` reports it too. That was the narrowest read — the one agents are told to prefer — and it used to say nothing at all, because validation ran only over a whole directory. `task get --json` carries the quarantined section as `unreadable_updates`.
+  
+  Consumers reading `Task.body` for a malformed task will see a shorter string than before: the description, without the section appended.
+- b1e6037: `task search` now ranks results by relevance instead of returning them in board order. `searchTasks` in `@shipbench/core` scores each match on which fields the query terms landed in — title outweighs tags, tags outweigh the description, the description outweighs Task Updates — scaled by how much of the query each field covers. A more recently `updated` task breaks a score tie, then the caller's input order. The ranking lives in `searchTasks` itself, so the Board inherits the same order when its description-search work adopts the shared function.
+  
+  `--limit` no longer truncates silently. The CLI's JSON output gains `total_matches` (the count before the limit), and text output ends with a `… N of M matches not shown (raise --limit)` line whenever the limit drops a match, including `--limit 0`.
+  
+  Still staged to follow-up tasks: metadata and availability filters on `task search`, whole-word and exact-phrase matching, semantic retrieval.
+- 50df087: `task search` now takes `task list`'s own filters: `--status`, `--assignee`, `--priority`, `--tag` (comma-separated or repeated, AND semantics), and `--available` / `--blocked`. They narrow the candidate set before the search runs, so "ready work that mentions X" is one command instead of a search whose output you filter by hand.
+  
+  The filters reuse `task list`'s predicate and the `listAvailableTasks` / `listBlockedTasks` helpers verbatim, so semantics match exactly — `--available` / `--blocked` rank on `config.default_column` unless `--status` overrides it, and an archived dependency counts as satisfied. `--available` excludes `--blocked`, and availability is a live-column concept that cannot combine with `--archived` / `--all`. Filtering never changes the relevance ordering; it only decides which tasks are searched.
+  
+  This completes the metadata/availability narrowing that `make-cli-search-retrieve-recorded-decisions-with-useful-context` deferred. Still staged: whole-word and exact-phrase matching, semantic retrieval.
+- d5ad53b: `task search` now retrieves recorded decisions. The search corpus gains **Task Updates**: every parsed entry, plus a quarantined unreadable section, alongside the title, tags, and description it already covered. A pivot or rationale recorded only in an Update — the place ShipBench tells you to record it — is now findable with the one command built for that.
+  
+  `searchTasks` in `@shipbench/core` is now the shared lexical retrieval contract; the Board implements the same semantics next. Each `TaskSearchMatch` carries more source context so a caller can act on a hit without loading the whole task:
+  
+  - `status` — the task's current column, so an Update match reads as a record, not a claim that the decision still stands.
+  - `matched_fields` may now include `"updates"` (additive to the `title` / `tags` / `body` set).
+  - `update_matches` — present when an Update matched. A readable entry gives its zero-based `index`, ISO `timestamp`, and an excerpt, so the source is retrievable exactly; an unreadable section gives `{ unreadable: true, snippet }`.
+  
+  The CLI adds `location` (`"live"` / `"archive"`) to every JSON match and prints `[live · in-progress]` and `↳ update N (timestamp): …` lines in text mode. `--include-body` now also attaches `comments` so an Update hit resolves in one call. Search output never labels a match "current" or "decided".
+  
+  Deliberately staged to follow-up tasks, not in this change: metadata and availability filters on `task search`; whole-word and exact-phrase matching; semantic retrieval.
+- ea2df5b: `task search` gains two opt-in precision controls. Both narrow how a term matches and leave the corpus, ranking, and result context untouched.
+  
+  - **Exact phrase.** A double-quoted run in the query — `"token exchange"` — is one term that must match contiguously. Internal whitespace matches any whitespace run, so a phrase still hits when it wraps across a line; an empty or unbalanced quote is dropped. The CLI reads the quote characters from the `<query>` argument literally, so protect them from the shell: `shipbench task search '"token exchange"'`.
+  - **`--whole-word`.** Matches every term — loose or quoted — on word boundaries, so `ci` stops matching `decision`, `explicit`, and `specific`.
+  
+  The grammar lives in `searchTasks` in `@shipbench/core`, which now takes an optional third `TaskSearchOptions` argument (`{ wholeWord?: boolean }`); the quote grammar is parsed from the query string. The Board inherits both when it adopts the shared function. Substring, whitespace-delimited matching stays the default.
+  
+  This completes the whole-word and exact-phrase matching staged by `make-cli-search-retrieve-recorded-decisions-with-useful-context`. Still staged: semantic retrieval.
+- 56be8c8: A task file whose frontmatter does not parse now shows up everywhere instead of disappearing. A hand edit that repeats a key, such as a second `depends_on:`, makes the YAML invalid. Until now, core dropped that file from every read and left a single warning behind. The Board showed nothing, and `task list --json` returned a `tasks` array that looked complete.
+  
+  Core now returns the file itself. `TaskReadResult` has a new required `unreadable` array of `UnreadableTaskFile` entries (`slug`, `path`, the whole file verbatim, and a `reason` that names the file line where it can, such as "Duplicated mapping key at line 5."). The `frontmatter` warning is still there. Frontmatter that parses to a list or a bare value, which used to come through as a task with fields named `0` and `1`, is treated the same way. `getTask` and every mutation now throw an exported `UnreadableTaskError` whose message names the task and the file and whose `file` carries the same record. Before, `getTask` threw the raw js-yaml message, which named neither. Hosts that build a `TaskReadResult` themselves must add `unreadable`.
+  
+  The Board shows these files in an Unreadable column at the leading edge of the board and in the archive view. Each read-only card shows the path, the reason, and the frontmatter exactly as written.
+  
+  `shipbench task list` and `task search` print each file as an `[unreadable]` line after the tasks, whatever the filters, and their JSON has an `unreadable` array (`--include-body` adds the raw `content`). Both still exit `0`, because the read succeeded and the file is in the output. `task get` on such a file fails with the new message. The terminal board shows an "N unreadable" alert, and the board server answers a write to the file with 422.
+- debafc0: `shipbench task edit` now revises validated task metadata, not just the description. New flags: `--title` (which never renames the file), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, and `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`. Array flags take comma-separated or repeated values; replacement and incremental forms are mutually exclusive, and clearing a field is always its own flag. Every requested change goes through one `updateTask` call, so core's validation runs before any write and a rejected value (an unconfigured priority, a `depends_on` slug with no task file) leaves the task exactly as it was. `status` and board placement stay with `task move`; the Updates section stays with `task comment`.
+  
+  `core`'s `updateTask` now rejects a `title` with no slug-able character, mirroring `createTask`, rather than writing a task with an empty title.
+  
+  `task list` and `task search` filters are now consistent: `--status`, `--assignee`, and `--priority` accept a comma-separated or repeated list and match a task whose value is any of the ones listed (`--tag` keeps AND). A `--status` or `--priority` value that is not configured is now an error that names the valid set — previously `task list --status backlog,todo` matched nothing and exited zero. `TaskAvailabilityOptions.status` accepts a list alongside a single id.
+  
+  Completes `complete-validated-task-metadata-editing-in-the-cli`, including the multi-value filter-flag defect folded into its scope during board review.
+
+### Patch Changes
+
+- dcf2a94: `shipbench board` now refuses requests that a web page could send on your behalf. The server binds `127.0.0.1`, which keeps other machines out, but it answered every request that reached it, including ones from other pages open in the same browser.
+  
+  Two attacks were possible. A page on any site could send a `no-cors` POST with a `text/plain` body, which the browser sends without a preflight, and create, reorder, comment on, archive, or unarchive tasks. The attacker could not read the response, but the write had already happened. And a page on a hostname that re-resolves to `127.0.0.1` (DNS rebinding) became same-origin with the board, so it could read the whole board and send any write.
+  
+  The server now answers with 403 when the `Host` header names anything other than `127.0.0.1` or `localhost` on the port it actually bound. This covers API routes, the event stream, and static files. It also returns 403 for a state-changing request whose `Origin` is not the board's own, including the literal `null` that sandboxed frames and `file:` pages send. Requests with no `Origin`, such as those from curl or scripts, are still accepted, and the standalone board's own requests are unchanged.
+- 0a42655: Confine task slugs to the tasks directory. Core built every task path by pasting the slug into `.shipbench/tasks/<slug>.md`, and nothing checked that the slug was a single path segment, so a slug containing `../` could reach any `.md` file relative to the tasks directory, inside the repository or outside it. `shipbench task delete ../../README` deleted the README, and the board server, which decodes `%2F` in its task routes, could be sent `POST /api/tasks/..%2F..%2FREADME/unarchive` to move it out of the repository.
+  
+  Every core function that turns a slug into a path (`getTask`, `updateTask`, `addComment`, `editComment`, `deleteComment`, `reorderTask`, `moveTask`, `deleteTask`, `archiveTask`, `unarchiveTask`) now rejects an empty slug, `.`, `..`, and anything containing `/`, `\`, or NUL before touching storage, with an error beginning `Invalid task slug`. The board server answers these with 400. A slug does not have to look like `slugify` output: a hand-created `My_Task.md` stays readable, movable, and deletable.
+  
+  `FsAdapter` also refuses a path that resolves outside its root, for reads, writes, deletes, and listings, as a second line of defense for anything that reaches the adapter without going through core's task functions.
+- Updated dependencies [e2d15c9]
+- Updated dependencies [56be8c8]
+  - @shipbench/board@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
