@@ -1,6 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   RxArchive,
+  RxCross2,
   RxLockClosed,
   RxMagnifyingGlass,
   RxUpdate,
@@ -19,6 +26,7 @@ export function BoardHeader({
   themeControl?: boolean;
 }) {
   const headerRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const config = useBoardStore(state => state.config);
   const selectedTaskSlug = useBoardStore(state => state.selectedTaskSlug);
   const archiveViewOpen = useBoardStore(state => state.archiveViewOpen);
@@ -72,6 +80,21 @@ export function BoardHeader({
     return () => window.clearTimeout(timeout);
   }, [draftSearch, setSearchQuery]);
 
+  // Clearing skips the debounce: the draft stays the only source of the query,
+  // and the pending effect re-applies the same empty string harmlessly.
+  const clearSearch = () => {
+    setDraftSearch('');
+    setSearchQuery('');
+    searchInputRef.current?.focus();
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Escape' || draftSearch === '') return;
+    // Stops the window listener that closes detail mode from also firing.
+    event.stopPropagation();
+    clearSearch();
+  };
+
   const projectName = config?.name ?? '';
 
   return (
@@ -117,18 +140,31 @@ export function BoardHeader({
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {archiveViewOpen ? null : (
-            <label className="relative block min-w-0 sm:w-80">
+            <div className="relative min-w-0 sm:w-80">
               <RxMagnifyingGlass
                 aria-hidden="true"
                 className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sb-silver"
               />
               <input
-                className="h-9 w-full rounded border border-sb-iron bg-sb-surface2 pl-9 pr-3 font-mono text-[12px] text-sb-frosted outline-none transition-colors placeholder:text-sb-silver hover:border-sb-silver focus:border-sb-silver"
+                ref={searchInputRef}
+                aria-label="Search tasks"
+                className="h-9 w-full rounded border border-sb-iron bg-sb-surface2 pl-9 pr-9 font-mono text-[12px] text-sb-frosted outline-none transition-colors placeholder:text-sb-silver hover:border-sb-silver focus:border-sb-silver"
                 placeholder="Search tasks"
                 value={draftSearch}
                 onChange={event => setDraftSearch(event.target.value)}
+                onKeyDown={onSearchKeyDown}
               />
-            </label>
+              {draftSearch ? (
+                <button
+                  aria-label="Clear search"
+                  className="absolute right-1 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-sb-silver transition-colors hover:text-sb-frosted focus-visible:text-sb-frosted"
+                  type="button"
+                  onClick={clearSearch}
+                >
+                  <RxCross2 aria-hidden="true" className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
           )}
 
           {readOnly ? (

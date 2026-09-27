@@ -1,9 +1,9 @@
 ---
 title: add clear button to the search tasks bar on board
-status: todo
+status: done
 priority: low
 created: '2026-09-26T20:56:45.819Z'
-updated: '2026-09-26T21:02:29.407Z'
+updated: '2026-09-27T18:55:43.333Z'
 ---
 
 The board's "Search tasks" input can only be emptied by selecting the text and deleting it. Add a clear control so a filtered board is one action away from the full board.
@@ -40,3 +40,8 @@ The board's "Search tasks" input can only be emptied by selecting the text and d
 
 - Should a native `type="search"` input's built-in clear be used instead? Recommendation: no. Its appearance varies by browser and cannot follow the design doctrine.
 - The debounce effect lives in the header's local `draftSearch` state. An immediate clear has to update the store's `searchQuery` directly as well as the draft; implementation should settle how, without a second source of truth.
+
+## Task Updates
+
+### 2026-09-27T18:54:56.145Z
+Implemented in BoardHeader. Open question settled: clearing sets both the header's draft and the store's searchQuery; the draft stays the only source, and the pending debounce re-applies the same empty string harmlessly. Escape calls stopPropagation on the input so BoardCanvas's window listener does not also close detail mode. The search wrapper changed from <label> to <div> because a button inside a label is invalid HTML; the input takes aria-label="Search tasks" instead. The native type=search clear was not used. Added a minor changeset for @shipbench/board and shipbench.

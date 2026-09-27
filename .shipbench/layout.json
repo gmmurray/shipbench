@@ -11,8 +11,7 @@
     "show-a-task-update-in-the-welcome-task-shipbench-init-scaffolds",
     "strip-rationale-comments-from-the-rest-of-the-site",
     "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
-    "document-running-several-shipbench-boards-in-one-repository",
-    "add-clear-button-to-the-search-tasks-bar-on-board"
+    "document-running-several-shipbench-boards-in-one-repository"
   ],
   "backlog": [
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",

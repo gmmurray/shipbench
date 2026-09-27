@@ -256,6 +256,72 @@ describe('Board', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a clear search button only while the search has text', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api({ readOnly: true })} />);
+
+    await screen.findByText('Setup auth');
+    const input = screen.getByRole('textbox', { name: 'Search tasks' });
+    expect(
+      screen.queryByRole('button', { name: 'Clear search' }),
+    ).not.toBeInTheDocument();
+
+    await user.type(input, 'lost');
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Clear search' })).toHaveFocus();
+
+    await user.clear(input);
+    expect(
+      screen.queryByRole('button', { name: 'Clear search' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears search immediately from the clear button and keeps focus in the input', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    const input = screen.getByRole('textbox', { name: 'Search tasks' });
+    await user.type(input, 'nowhere');
+    await screen.findByText(
+      'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    // No waitFor: the clear must not wait out the debounce.
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
+    expect(screen.getByText('Lost task')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears a non-empty search with Escape before closing detail mode', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    expect(screen.getByText('Description')).toBeInTheDocument();
+
+    const input = screen.getByRole('textbox', { name: 'Search tasks' });
+    await user.type(input, 'lost');
+    await user.keyboard('{Escape}');
+
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByText('Description')).not.toBeInTheDocument();
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
+    expect(screen.getByText('Lost task')).toBeInTheDocument();
+  });
+
   it('lazily opens, filters, and restores tasks from the archive view', async () => {
     const user = userEvent.setup();
     const archivedTask: Task = {
@@ -971,9 +1037,8 @@ describe('Board', () => {
     expect(container.querySelector('[aria-roledescription]')).not.toBeNull();
 
     const toolbarButtons = screen
-      .getByPlaceholderText('Search tasks')
-      .closest('div')
-      ?.querySelectorAll('button');
+      .getByRole('button', { name: 'Archive' })
+      .parentElement?.querySelectorAll(':scope > button');
     expect(
       Array.from(toolbarButtons ?? []).map(button => {
         const label = button.textContent?.trim() ?? '';
