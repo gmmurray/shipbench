@@ -31,6 +31,7 @@ import { Select, type SelectOption } from './Select.js';
 import { useAutosizeTextarea } from './useAutosizeTextarea.js';
 import { useBoardKeydown } from './useBoardKeydown.js';
 import { useDraft } from './useDraft.js';
+import { useUnsavedDraft } from './useUnsavedDraft.js';
 
 export function DetailView({ slug }: { slug: string }) {
   const config = useBoardStore(state => state.config);
@@ -441,11 +442,13 @@ function TaskBodySection({
   const {
     value: draft,
     setValue: setDraft,
+    dirty,
     changedOnDisk,
     reset,
     keepDraft,
   } = useDraft(body);
   const showTextarea = isEditing && !readOnly;
+  useUnsavedDraft('description', showTextarea && dirty);
   const textareaRef = useAutosizeTextarea(draft, showTextarea);
 
   const exitEditMode = () => {
@@ -559,6 +562,9 @@ function TaskUpdatesSection({
   const confirmDeleteIndex = confirmDelete
     ? findUpdate(comments, confirmDelete)
     : -1;
+  // Whitespace alone can't be submitted, so there is nothing to lose.
+  useUnsavedDraft('new-update', !readOnly && draft.trim() !== '');
+  useUnsavedDraft('edited-update', !readOnly && editDraft.dirty);
 
   // A section that would not parse has no entries, so the read-only shortcut
   // would hide the one thing worth saying about this task. Harbor is read-only

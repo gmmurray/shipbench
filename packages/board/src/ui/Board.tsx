@@ -9,6 +9,7 @@ import { BoardHeader } from './BoardHeader.js';
 import { BoardToaster } from './BoardToaster.js';
 import { ChevronDefs } from './Chevron.js';
 import { SyncEffects } from './SyncEffects.js';
+import { UnsavedChangesDialog } from './UnsavedChangesDialog.js';
 import { BoardRootContext } from './useBoardKeydown.js';
 import { useDocumentTitle } from './useDocumentTitle.js';
 
@@ -89,6 +90,7 @@ function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
         <SyncEffects api={api} />
         <BoardHeader themeControl={themeControl} />
         <BoardCanvas />
+        <UnsavedChangesDialog />
         <BoardToaster />
       </div>
     </BoardRootContext.Provider>

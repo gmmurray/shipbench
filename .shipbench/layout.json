@@ -1,6 +1,5 @@
 {
   "todo": [
-    "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "let-host-apps-size-the-board-with-css-variables",
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory",
     "add-focused-dependency-queries-for-a-single-task",

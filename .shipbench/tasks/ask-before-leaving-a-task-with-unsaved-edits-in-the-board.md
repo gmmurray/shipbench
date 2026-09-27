@@ -1,6 +1,6 @@
 ---
 title: Ask before leaving a task with unsaved edits in the board
-status: todo
+status: done
 priority: medium
 tags:
   - board
@@ -8,7 +8,7 @@ tags:
 depends_on:
   - stop-hidden-boards-from-handling-window-keyboard-shortcuts
 created: '2026-09-23T19:37:22.651Z'
-updated: '2026-09-23T19:37:22.651Z'
+updated: '2026-09-27T19:48:20.149Z'
 ---
 
 The board's detail view holds three kinds of unsaved text, and every way out
@@ -81,3 +81,12 @@ needs, so whichever lands second should reuse it.
 - The existing detail-view and navigation tests in
   [Board.test.tsx](../../packages/board/src/ui/Board.test.tsx) pass.
 - Add a changeset, since this changes `@shipbench/board`.
+
+## Task Updates
+
+### 2026-09-27T19:47:19.114Z
+Keying the per-task sections by slug had already landed with keep-board-drafts-intact-when-the-task-changes-on-disk, so the update misfile was fixed before this started. This task adds the dirty-draft tracking, the navigation guard, and the leave prompt.
+
+`closeArchive` is left unguarded. The archive view and the detail view never render together, so no draft can exist when it runs. While the dialog is open, further navigation requests (such as `j` pressed behind it) are ignored rather than replacing the one being asked about.
+
+One existing test changed: "does not carry a description draft to the next task" types a description and then clicks Next, which now opens the dialog. It clicks "Discard" before its original assertions, which still hold.

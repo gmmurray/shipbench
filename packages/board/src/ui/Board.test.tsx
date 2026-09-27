@@ -1961,6 +1961,7 @@ describe('Board detail drafts when the task changes on disk', () => {
     await user.click(
       screen.getByRole('button', { name: 'Next task in column' }),
     );
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
 
     expect(screen.getByDisplayValue('Write tests')).toBeInTheDocument();
     expect(
@@ -2388,5 +2389,262 @@ describe('Board window shortcuts', () => {
 
     expect(screen.queryByText('Archive is empty.')).not.toBeInTheDocument();
     expect(screen.getByText('Setup auth')).toBeInTheDocument();
+  });
+});
+
+describe('Board unsaved changes guard', () => {
+  const linkedTasks: Task[] = tasks.map(task =>
+    task.slug === 'setup-auth'
+      ? {
+          ...task,
+          comments: [
+            ...task.comments,
+            {
+              timestamp: '2026-06-01T13:00:00.000Z',
+              text: 'Waiting on [Write tests](./write-tests.md).',
+            },
+          ],
+        }
+      : task,
+  );
+
+  function guardedApi(overrides: Partial<BoardAPI> = {}) {
+    return api({
+      listTasks: vi.fn(async () => ({
+        tasks: linkedTasks,
+        warnings: [],
+        unreadable: [],
+      })),
+      ...overrides,
+    });
+  }
+
+  type User = ReturnType<typeof userEvent.setup>;
+
+  const drafts: {
+    name: string;
+    named: string;
+    write: (user: User) => Promise<HTMLElement>;
+  }[] = [
+    {
+      name: 'description',
+      named: 'the description',
+      write: async user => {
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        const editor = screen.getByRole('textbox', {
+          name: 'Task description',
+        });
+        await user.type(editor, ' Draft.');
+        return editor;
+      },
+    },
+    {
+      name: 'new update',
+      named: 'a new task update',
+      write: async user => {
+        const composer = screen.getByRole('textbox', {
+          name: 'Task update text',
+        });
+        await user.type(composer, 'Half an update');
+        return composer;
+      },
+    },
+    {
+      name: 'edited update',
+      named: 'an edited task update',
+      write: async user => {
+        await user.click(
+          screen.getByRole('button', { name: 'Edit task update 1' }),
+        );
+        const editor = screen.getByRole('textbox', {
+          name: 'Task update 1 text',
+        });
+        await user.type(editor, ' Revised.');
+        return editor;
+      },
+    },
+  ];
+
+  it.each(
+    drafts,
+  )('asks before leaving an unsaved $name and keeps it on Keep editing', async ({
+    named,
+    write,
+  }) => {
+    const user = userEvent.setup();
+    render(<Board api={guardedApi()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const editor = await write(user);
+    const typed = (editor as HTMLTextAreaElement).value;
+
+    await user.click(screen.getByRole('button', { name: 'Back to board' }));
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Discard unsaved changes?',
+    });
+    expect(dialog).toHaveTextContent(`unsaved changes to ${named}.`);
+    expect(screen.getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(editor).toHaveValue(typed);
+  });
+
+  it('names every kind of unsaved text at once', async () => {
+    const user = userEvent.setup();
+    render(<Board api={guardedApi()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    for (const draft of drafts) await draft.write(user);
+    await user.click(screen.getByRole('button', { name: 'Back to board' }));
+
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      'unsaved changes to the description, a new task update and an edited task update.',
+    );
+  });
+
+  it('keeps editing when Escape is pressed in the dialog', async () => {
+    const user = userEvent.setup();
+    render(<Board api={guardedApi()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const composer = await drafts[1]!.write(user);
+    await user.click(screen.getByRole('button', { name: 'Back to board' }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(composer).toHaveValue('Half an update');
+  });
+
+  const onBoard = () => {
+    expect(screen.queryByText('Description')).not.toBeInTheDocument();
+    expect(screen.getByText('Write tests')).toBeInTheDocument();
+  };
+  const onWriteTests = () => {
+    expect(screen.getByDisplayValue('Write tests')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Task update text' }),
+    ).toHaveValue('');
+  };
+  const onArchive = async () => {
+    expect(await screen.findByText('Archive is empty.')).toBeInTheDocument();
+  };
+  const blur = () => (document.activeElement as HTMLElement | null)?.blur();
+
+  const exits: {
+    name: string;
+    leave: (user: User) => Promise<void>;
+    arrived: () => void | Promise<void>;
+  }[] = [
+    {
+      name: 'the back button',
+      leave: user =>
+        user.click(screen.getByRole('button', { name: 'Back to board' })),
+      arrived: onBoard,
+    },
+    {
+      name: 'the breadcrumb',
+      leave: user => user.click(screen.getByRole('button', { name: 'Tasks' })),
+      arrived: onBoard,
+    },
+    {
+      name: 'Next',
+      leave: user =>
+        user.click(screen.getByRole('button', { name: 'Next task in column' })),
+      arrived: onWriteTests,
+    },
+    {
+      name: 'j',
+      leave: async user => {
+        blur();
+        await user.keyboard('j');
+      },
+      arrived: onWriteTests,
+    },
+    {
+      name: 'a Markdown task link',
+      leave: user =>
+        user.click(screen.getByRole('link', { name: 'Write tests' })),
+      arrived: onWriteTests,
+    },
+    {
+      name: 'the archive button',
+      leave: user =>
+        user.click(screen.getByRole('button', { name: 'Archive' })),
+      arrived: onArchive,
+    },
+    {
+      name: 'Escape outside a text field',
+      leave: async user => {
+        blur();
+        await user.keyboard('{Escape}');
+      },
+      arrived: onBoard,
+    },
+  ];
+
+  it.each(
+    exits,
+  )('asks on $name and completes that navigation on Discard', async ({
+    leave,
+    arrived,
+  }) => {
+    const user = userEvent.setup();
+    const addComment = vi.fn(async () => tasks[0] as Task);
+    render(<Board api={guardedApi({ addComment })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await drafts[1]!.write(user);
+    await leave(user);
+
+    expect(
+      screen.getByRole('dialog', { name: 'Discard unsaved changes?' }),
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Setup auth')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await arrived();
+    expect(addComment).not.toHaveBeenCalled();
+  });
+
+  it.each(exits)('leaves at once on $name with no unsaved text', async ({
+    leave,
+    arrived,
+  }) => {
+    const user = userEvent.setup();
+    render(<Board api={guardedApi()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    // An editor opened but left unchanged holds nothing to lose.
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await leave(user);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await arrived();
+  });
+
+  it('arms the browser leave prompt only while text is unsaved', async () => {
+    const user = userEvent.setup();
+    render(<Board api={guardedApi()} />);
+    const unload = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+
+    await user.click(await screen.findByText('Setup auth'));
+    expect(unload()).toBe(false);
+
+    const composer = await drafts[1]!.write(user);
+    expect(unload()).toBe(true);
+
+    await user.clear(composer);
+    expect(unload()).toBe(false);
   });
 });

@@ -21,6 +21,14 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 
 export const UNCATEGORIZED_STATUS = '__uncategorized__';
 
+/** Which editor holds text that leaving the task would discard. */
+export type UnsavedDraft = 'description' | 'new-update' | 'edited-update';
+
+/** A navigation the board holds back while there is unsaved text. */
+export type Navigation =
+  | { to: 'task'; slug: string | null }
+  | { to: 'archive' };
+
 export interface BoardState {
   /**
    * Snapshotted from `api.readOnly` at store creation. Swapping modes means
@@ -52,6 +60,14 @@ export interface BoardState {
   hasLoaded: boolean;
   initialLoadError: string | null;
   errorAtBySlug: Record<string, number>;
+  /** Editors holding unsaved text, keyed by an id each editor picks. */
+  dirtyDrafts: Record<string, UnsavedDraft>;
+  /**
+   * A navigation asked for while `dirtyDrafts` was not empty. It waits here
+   * until the user confirms it with `discardAndNavigate` or drops it with
+   * `keepEditing`.
+   */
+  pendingNavigation: Navigation | null;
   refresh: () => Promise<void>;
   moveTask: (slug: string, toStatus: string) => Promise<void>;
   reorderTask: (
@@ -79,6 +95,10 @@ export interface BoardState {
   deleteTask: (slug: string) => Promise<void>;
   selectTask: (slug: string | null) => void;
   setSearchQuery: (query: string) => void;
+  /** Reports an editor's unsaved text, or clears the report with `null`. */
+  setDraftDirty: (id: string, draft: UnsavedDraft | null) => void;
+  discardAndNavigate: () => void;
+  keepEditing: () => void;
 }
 
 export type BoardStore = StoreApi<BoardState>;
@@ -152,6 +172,8 @@ export function createBoardStore(api: BoardAPI): BoardStore {
     hasLoaded: false,
     initialLoadError: null,
     errorAtBySlug: {},
+    dirtyDrafts: {},
+    pendingNavigation: null,
 
     refresh: async () => {
       set({ isSyncing: true });
@@ -627,10 +649,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
 
     openArchive: () => {
       if (get().readOnly) return;
-      set({ archiveViewOpen: true, selectedTaskSlug: null });
-      if (get().archivedTasks === null && !get().isArchiveLoading) {
-        void get().loadArchivedTasks();
-      }
+      navigate({ to: 'archive' });
     },
 
     closeArchive: () => set({ archiveViewOpen: false }),
@@ -655,9 +674,59 @@ export function createBoardStore(api: BoardAPI): BoardStore {
       }
     },
 
-    selectTask: selectedTaskSlug => set({ selectedTaskSlug }),
+    selectTask: slug => {
+      if (slug === get().selectedTaskSlug) return;
+      navigate({ to: 'task', slug });
+    },
     setSearchQuery: searchQuery => set({ searchQuery }),
+
+    setDraftDirty: (id, draft) => {
+      const current = get().dirtyDrafts;
+      if ((current[id] ?? null) === draft) return;
+      const { [id]: _cleared, ...rest } = current;
+      set({ dirtyDrafts: draft ? { ...rest, [id]: draft } : rest });
+    },
+
+    discardAndNavigate: () => {
+      const navigation = get().pendingNavigation;
+      if (!navigation) return;
+      // The editors clear their own reports as they unmount; clearing here
+      // too means nothing can hold the navigation back a second time.
+      set({ pendingNavigation: null, dirtyDrafts: {} });
+      applyNavigation(navigation);
+    },
+
+    keepEditing: () => set({ pendingNavigation: null }),
   }));
+
+  /**
+   * Every in-app way out of a task comes through here. With unsaved text the
+   * navigation waits for the user's answer; while one is waiting, further
+   * requests (a `j` pressed behind the dialog, say) are ignored rather than
+   * replacing the one the user is being asked about.
+   */
+  function navigate(navigation: Navigation): void {
+    const state = store?.getState();
+    if (!state || state.pendingNavigation) return;
+    if (Object.keys(state.dirtyDrafts).length > 0) {
+      store?.setState({ pendingNavigation: navigation });
+      return;
+    }
+    applyNavigation(navigation);
+  }
+
+  function applyNavigation(navigation: Navigation): void {
+    if (!store) return;
+    if (navigation.to === 'task') {
+      store.setState({ selectedTaskSlug: navigation.slug });
+      return;
+    }
+    store.setState({ archiveViewOpen: true, selectedTaskSlug: null });
+    const state = store.getState();
+    if (state.archivedTasks === null && !state.isArchiveLoading) {
+      void state.loadArchivedTasks();
+    }
+  }
 
   return store;
 }
