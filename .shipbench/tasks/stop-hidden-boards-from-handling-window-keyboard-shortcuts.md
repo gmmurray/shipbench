@@ -1,12 +1,12 @@
 ---
 title: Keep the board's window shortcuts out of hidden boards and text fields
-status: todo
+status: done
 priority: medium
 tags:
   - board
   - ui
 created: '2026-09-23T19:18:26.591Z'
-updated: '2026-09-23T19:29:03.629Z'
+updated: '2026-09-27T19:40:49.540Z'
 ---
 
 Two board components listen for `keydown` on `window`:
@@ -108,3 +108,12 @@ Choose deliberately and record the reasoning in a comment on the hook.
   (Escape closes detail, `j`/`k` navigation) pass unmodified.
 - Add a changeset. Outside hosts only get this fix through an `@shipbench/board`
   release, and the fixed group releases core, board, and the CLI together.
+
+## Task Updates
+
+### 2026-09-27T19:39:50.675Z
+Implemented as a shared `useBoardKeydown` hook (packages/board/src/ui/useBoardKeydown.ts); `BoardShell` provides the root ref through `BoardRootContext`.
+
+"Hidden" is defined in terms jsdom can see: the root or an ancestor has the `hidden` attribute or a computed `display: none`, checked at keydown time. The hook comment records why the layout check was rejected.
+
+One consequence to review: the search box used to let Escape on an empty query fall through to the window listener to close the task. Text fields are now skipped, so `BoardHeader`'s search handler closes the task itself. The existing test for that passes unmodified. Escape in the archive filter no longer closes the archive view, which follows the task's "never navigates from a text field" rule.

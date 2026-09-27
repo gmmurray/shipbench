@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -2239,5 +2240,153 @@ describe('Board unreadable task files', () => {
       name: 'Unreadable archived task files',
     });
     expect(list).toHaveTextContent('.shipbench/tasks/archive/hand-edited.md');
+  });
+});
+
+describe('Board window shortcuts', () => {
+  function renderTwoBoards() {
+    // The hidden board mounts first, so its window listener runs first.
+    render(
+      <>
+        <div data-testid="hidden-host" hidden>
+          <Board api={api()} />
+        </div>
+        <div data-testid="visible-host">
+          <Board api={api()} />
+        </div>
+      </>,
+    );
+
+    return {
+      hidden: within(screen.getByTestId('hidden-host')),
+      visible: within(screen.getByTestId('visible-host')),
+    };
+  }
+
+  it('leaves a hidden board alone when Escape closes the visible one', async () => {
+    const user = userEvent.setup();
+    const { hidden, visible } = renderTwoBoards();
+
+    fireEvent.click(await hidden.findByText('Setup auth'));
+    await user.click(await visible.findByText('Setup auth'));
+
+    await user.keyboard('{Escape}');
+
+    expect(visible.queryByText('Description')).not.toBeInTheDocument();
+    expect(hidden.getByText('Description')).toBeInTheDocument();
+  });
+
+  it('keeps j/k working on the visible board when a hidden board mounted first', async () => {
+    const user = userEvent.setup();
+    const { hidden, visible } = renderTwoBoards();
+
+    fireEvent.click(await hidden.findByText('Setup auth'));
+    await user.click(await visible.findByText('Setup auth'));
+
+    await user.keyboard('j');
+
+    expect(visible.getByDisplayValue('Write tests')).toBeInTheDocument();
+    expect(hidden.getByDisplayValue('Setup auth')).toBeInTheDocument();
+  });
+
+  it('never calls preventDefault from a hidden board', async () => {
+    const { hidden, visible } = renderTwoBoards();
+
+    fireEvent.click(await hidden.findByText('Setup auth'));
+    await visible.findByText('Setup auth');
+
+    // fireEvent returns false when a listener called preventDefault.
+    expect(fireEvent.keyDown(document.body, { key: 'ArrowDown' })).toBe(true);
+    expect(hidden.getByDisplayValue('Setup auth')).toBeInTheDocument();
+  });
+
+  it('checks visibility when the key is pressed, not when the board mounts', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <div data-testid="first-host">
+          <Board api={api()} />
+        </div>
+        <div data-testid="second-host">
+          <Board api={api()} />
+        </div>
+      </>,
+    );
+    const firstHost = screen.getByTestId('first-host');
+    const first = within(firstHost);
+    const second = within(screen.getByTestId('second-host'));
+
+    await user.click(await first.findByText('Setup auth'));
+    await user.click(await second.findByText('Setup auth'));
+    firstHost.style.display = 'none';
+
+    await user.keyboard('{Escape}');
+
+    expect(first.getByText('Description')).toBeInTheDocument();
+    expect(second.queryByText('Description')).not.toBeInTheDocument();
+  });
+
+  it('keeps a description draft when Escape is pressed in the editor', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async () => ({ task: tasks[0] as Task }));
+    render(<Board api={api({ updateTask })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    const editor = screen.getByRole('textbox', { name: 'Task description' });
+    await user.type(editor, ' Draft.');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(editor).toHaveValue('## Notes\n\nUse OAuth. Draft.');
+    expect(updateTask).not.toHaveBeenCalled();
+  });
+
+  it('keeps a half-written update when Escape is pressed in the composer', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const composer = screen.getByRole('textbox', { name: 'Task update text' });
+    await user.type(composer, 'Half an update');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(composer).toHaveValue('Half an update');
+  });
+
+  it('keeps an update edit when Escape is pressed in its editor', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 1' }),
+    );
+    const editor = screen.getByRole('textbox', {
+      name: 'Task update 1 text',
+    });
+    await user.type(editor, ' Revised.');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(editor).toHaveValue(
+      'Switched to PKCE after the security review. Revised.',
+    );
+  });
+
+  it('closes the archive view with Escape when focus is outside a text field', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    await user.click(screen.getByRole('button', { name: 'Archive' }));
+    expect(await screen.findByText('Archive is empty.')).toBeInTheDocument();
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByText('Archive is empty.')).not.toBeInTheDocument();
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
   });
 });

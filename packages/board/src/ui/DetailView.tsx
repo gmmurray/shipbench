@@ -29,6 +29,7 @@ import { Markdown } from './Markdown.js';
 import { DependencyMultiSelect, TagInput } from './MetadataInputs.js';
 import { Select, type SelectOption } from './Select.js';
 import { useAutosizeTextarea } from './useAutosizeTextarea.js';
+import { useBoardKeydown } from './useBoardKeydown.js';
 import { useDraft } from './useDraft.js';
 
 export function DetailView({ slug }: { slug: string }) {
@@ -100,43 +101,27 @@ export function DetailView({ slug }: { slug: string }) {
     };
   }, [config, task, tasks]);
 
-  useEffect(() => {
-    if (!columnNavigation) {
+  useBoardKeydown(event => {
+    if (!columnNavigation || event.altKey || event.ctrlKey || event.metaKey) {
       return;
     }
 
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        isEditableTarget(event.target)
-      ) {
-        return;
-      }
-
-      const key = event.key.toLowerCase();
-      if (
-        (key === 'k' || event.key === 'ArrowUp') &&
-        columnNavigation.previousSlug
-      ) {
-        event.preventDefault();
-        selectTask(columnNavigation.previousSlug);
-      }
-      if (
-        (key === 'j' || event.key === 'ArrowDown') &&
-        columnNavigation.nextSlug
-      ) {
-        event.preventDefault();
-        selectTask(columnNavigation.nextSlug);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [columnNavigation, selectTask]);
+    const key = event.key.toLowerCase();
+    if (
+      (key === 'k' || event.key === 'ArrowUp') &&
+      columnNavigation.previousSlug
+    ) {
+      event.preventDefault();
+      selectTask(columnNavigation.previousSlug);
+    }
+    if (
+      (key === 'j' || event.key === 'ArrowDown') &&
+      columnNavigation.nextSlug
+    ) {
+      event.preventDefault();
+      selectTask(columnNavigation.nextSlug);
+    }
+  });
 
   if (!task || !config) {
     return (
@@ -389,16 +374,6 @@ function ColumnTaskNavigation({
         </button>
       </div>
     </div>
-  );
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  return Boolean(
-    target.closest('input, textarea, select, [contenteditable="true"]'),
   );
 }
 

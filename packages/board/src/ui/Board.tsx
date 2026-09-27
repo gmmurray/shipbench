@@ -1,5 +1,5 @@
 import type { BoardAPI } from '@shipbench/core';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   BoardStoreProvider,
   useBoardStore,
@@ -9,6 +9,7 @@ import { BoardHeader } from './BoardHeader.js';
 import { BoardToaster } from './BoardToaster.js';
 import { ChevronDefs } from './Chevron.js';
 import { SyncEffects } from './SyncEffects.js';
+import { BoardRootContext } from './useBoardKeydown.js';
 import { useDocumentTitle } from './useDocumentTitle.js';
 
 export interface BoardProps {
@@ -38,6 +39,7 @@ function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
   const hasLoaded = useBoardStore(state => state.hasLoaded);
   const initialLoadError = useBoardStore(state => state.initialLoadError);
   const isSyncing = useBoardStore(state => state.isSyncing);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useDocumentTitle(documentTitle);
 
@@ -78,12 +80,17 @@ function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
   }
 
   return (
-    <div className="sb-board-root sb-canvas-grid min-h-screen font-sans text-sb-frosted">
-      <ChevronDefs />
-      <SyncEffects api={api} />
-      <BoardHeader themeControl={themeControl} />
-      <BoardCanvas />
-      <BoardToaster />
-    </div>
+    <BoardRootContext.Provider value={rootRef}>
+      <div
+        ref={rootRef}
+        className="sb-board-root sb-canvas-grid min-h-screen font-sans text-sb-frosted"
+      >
+        <ChevronDefs />
+        <SyncEffects api={api} />
+        <BoardHeader themeControl={themeControl} />
+        <BoardCanvas />
+        <BoardToaster />
+      </div>
+    </BoardRootContext.Provider>
   );
 }

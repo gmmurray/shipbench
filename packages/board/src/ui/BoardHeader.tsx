@@ -88,11 +88,12 @@ export function BoardHeader({
     searchInputRef.current?.focus();
   };
 
+  // The board's window shortcuts skip text fields, so the search field handles
+  // its own Escape: the first clears the query, the next closes the open task.
   const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Escape' || draftSearch === '') return;
-    // Stops the window listener that closes detail mode from also firing.
-    event.stopPropagation();
-    clearSearch();
+    if (event.key !== 'Escape') return;
+    if (draftSearch !== '') clearSearch();
+    else selectTask(null);
   };
 
   const projectName = config?.name ?? '';
