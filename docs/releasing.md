@@ -38,24 +38,26 @@ pnpm changeset          # interactive: pick packages, pick a bump, write a summa
 pnpm changeset:status   # what would be released, and at what version
 ```
 
-The summary becomes the public changelog entry. Write it for someone deciding
-whether to upgrade, not for the commit log.
+The summary becomes the public changelog entry for each package you name.
+Before writing one, read
+[Writing a changeset](../.changeset/README.md#writing-a-changeset). It covers
+which packages to name, when to split a change into two changesets, how to
+choose the bump, and what the text should contain.
 
-If the interactive prompt is unavailable — an agent, a non-TTY shell — write the
+If the interactive prompt is unavailable (an agent, a non-TTY shell), write the
 file by hand. A changeset is just markdown in `.changeset/`:
 
 ```markdown
 ---
-'@shipbench/core': patch
-'@shipbench/board': patch
-'shipbench': patch
+'shipbench': minor
 ---
 
-What changed, and why a consumer would care.
+What changed, in terms of the command, flag, or output the reader uses.
 ```
 
-All three are a fixed group, so listing one bumps all of them. Listing all three
-explicitly is clearer about intent.
+The three packages are a fixed group, so naming one bumps all of them. Name the
+ones whose users will notice the change; the others get the bump with an
+"Updated dependencies" line.
 
 **2. Commit and push to `main`.** The version pull request opens within a minute.
 

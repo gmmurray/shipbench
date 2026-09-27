@@ -22,6 +22,74 @@ it changes a published artifact.
 
 When a change spans both categories, decide from the published part.
 
+## Writing a changeset
+
+The text you write is published as-is: it becomes the entry in each named package's `CHANGELOG.md`, on npm and GitHub. Write it for someone deciding whether to upgrade, not for the commit log or the task board.
+
+### Name the packages whose users will notice
+
+Naming a package puts the entry in that package's changelog. Packages you leave out still get the version bump, because the three are a fixed group (see below), but their changelog only says "Updated dependencies". So choose by reader:
+
+- **`shipbench`**: anything a CLI user sees. That includes a command, flag, or output, a file `shipbench init` scaffolds, and the board, which people mostly reach through `shipbench board`.
+- **`@shipbench/core`**: a change to the library's exported API or its behaviour for code that calls it.
+- **`@shipbench/board`**: a change to the embeddable component's props, exports, or behaviour for a host such as Harbor.
+
+A board behaviour change therefore usually names both `@shipbench/board` and `shipbench`.
+
+### Write one changeset per audience
+
+When one change affects CLI users and library consumers differently, write two changesets. One names `shipbench` and describes commands and output. The other names `@shipbench/core` (or `@shipbench/board`) and describes the API. Each changelog then reads for its own audience. A CLI user shouldn't have to read past `TaskReadResult` to find the flag that changed.
+
+### Choose the bump by what consumers have to do
+
+Before 1.0:
+
+- **`minor`**: a new capability, or anything that can break someone. That includes a renamed or removed flag or export, output a script might parse that now looks different, a changed meaning for an existing field, and a new required field on a type hosts construct.
+- **`patch`**: a fix or change that asks nothing of anyone.
+- **`major`**: not used before 1.0.
+
+If you're unsure between `patch` and `minor`, choose `minor`. An honest minor is cheaper than a patch that breaks someone.
+
+### Structure
+
+1. **Start with what changed**, in terms the reader uses: a command, flag, output, or export. No preamble.
+2. **Then what it means for them**: how to use it, and anything they now have to do differently.
+3. **Mark anything that can break them** with a paragraph that starts `**Breaking:**` and says what to change. Don't leave it at the end of a paragraph about something else.
+4. **Explain the cause only if it helps the reader judge the change**, in a sentence or two. Leave out the debugging story.
+
+Most entries fit in one to three short paragraphs, well under 150 words. Go longer only when a consumer has a migration to perform.
+
+### Keep it public
+
+- **No board material.** Leave out task slugs, task titles, review notes, and "staged for a follow-up task". The changelog records what shipped, not what's planned.
+- **No promises.** Don't describe what a later release will do.
+- **Only public names.** Name what a consumer can see or import, not internal files or helpers.
+- **Plain voice.** Short, specific sentences. Say what happened without dramatizing it.
+
+### Example
+
+One change, split for its two audiences:
+
+```markdown
+---
+'shipbench': minor
+---
+
+`shipbench task search` ranks results by relevance instead of board order. Title matches rank above tags, tags above the description, and the description above Task Updates.
+
+`--limit` no longer drops matches silently. Text output ends with `… N of M matches not shown`, and `--json` adds `total_matches`.
+```
+
+```markdown
+---
+'@shipbench/core': minor
+---
+
+`searchTasks` returns matches ranked by relevance instead of in input order. A more recently `updated` task wins a tie.
+
+**Breaking:** callers that relied on `searchTasks` preserving input order should sort the results themselves.
+```
+
 ## Fixed mode — read this before adding a package
 
 `@shipbench/core`, `@shipbench/board`, and `shipbench` are a **fixed group**:
