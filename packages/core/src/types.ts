@@ -141,9 +141,33 @@ export interface TaskValidationWarning {
 /** Diagnostics an initialization check can surface without rejecting a project. */
 export type ProjectWarning = ConfigLoadWarning | TaskValidationWarning;
 
+/**
+ * A task file whose frontmatter could not be parsed, kept verbatim.
+ *
+ * There is no `Task` to attach a warning to when the frontmatter itself fails,
+ * so a read returns the file as this instead of leaving it out. It has no
+ * title, status, or position; hosts render it on its own, read-only, until
+ * someone fixes the file.
+ */
+export interface UnreadableTaskFile {
+  /** The filename without `.md`, like any other task slug. */
+  slug: string;
+  /** Storage path of the file, e.g. `.shipbench/tasks/<slug>.md`. */
+  path: string;
+  /** The whole file, verbatim. */
+  content: string;
+  /** Why the frontmatter did not parse, naming the file line where it can. */
+  reason: string;
+}
+
 export interface TaskReadResult {
   tasks: Task[];
   warnings: TaskValidationWarning[];
+  /**
+   * Files in the directory whose frontmatter did not parse. Each also has a
+   * `frontmatter` entry in `warnings`, but only this carries the file itself.
+   */
+  unreadable: UnreadableTaskFile[];
 }
 
 // ── Board API (consumed by @shipbench/board) ────────────────────

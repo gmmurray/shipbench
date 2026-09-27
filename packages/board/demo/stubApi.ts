@@ -4,6 +4,7 @@ import type {
   ShipbenchConfig,
   Task,
   TaskFrontmatter,
+  UnreadableTaskFile,
 } from '@shipbench/core';
 
 /**
@@ -129,6 +130,26 @@ const seed: Task[] = [
   },
 ];
 
+// Demonstrates the Unreadable column: a hand edit left two `depends_on` keys.
+const unreadableSeed: UnreadableTaskFile[] = [
+  {
+    slug: 'hand-edited-task',
+    path: '.shipbench/tasks/hand-edited-task.md',
+    content: [
+      '---',
+      'title: Task whose frontmatter does not parse',
+      'status: todo',
+      'depends_on: [setup-auth]',
+      'depends_on: [build-api]',
+      '---',
+      '',
+      'A duplicate key makes the YAML invalid, so the file is not a task.',
+      '',
+    ].join('\n'),
+    reason: 'Duplicated mapping key at line 5.',
+  },
+];
+
 export function createStubBoardApi({
   readOnly = false,
 }: {
@@ -161,6 +182,7 @@ export function createStubBoardApi({
       return {
         tasks: [...tasks.values()].map(t => structuredClone(t)),
         warnings,
+        unreadable: structuredClone(unreadableSeed),
       };
     },
 
@@ -169,6 +191,7 @@ export function createStubBoardApi({
       return {
         tasks: [...archivedTasks.values()].map(task => structuredClone(task)),
         warnings: [],
+        unreadable: [],
       };
     },
 

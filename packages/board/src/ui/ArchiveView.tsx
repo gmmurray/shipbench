@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { RxArchive, RxMagnifyingGlass, RxReset } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { relativeTime } from '../utils/time.js';
+import { UnreadableTaskCard } from './UnreadableTaskCard.js';
 
 export function ArchiveView() {
   const archivedTasks = useBoardStore(state => state.archivedTasks);
   const archiveWarnings = useBoardStore(state => state.archiveWarnings);
+  const archiveUnreadable = useBoardStore(state => state.archiveUnreadable);
   const isLoading = useBoardStore(state => state.isArchiveLoading);
   const loadError = useBoardStore(state => state.archiveLoadError);
   const liveSearchQuery = useBoardStore(state => state.searchQuery);
@@ -94,6 +96,19 @@ export function ArchiveView() {
             : 'archived tasks have'}{' '}
           validation warnings.
         </p>
+      ) : null}
+
+      {archiveUnreadable.length > 0 ? (
+        <ul
+          aria-label="Unreadable archived task files"
+          className="grid gap-3 border-b border-sb-iron p-4 sm:grid-cols-2"
+        >
+          {archiveUnreadable.map(file => (
+            <li key={file.path}>
+              <UnreadableTaskCard file={file} />
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       <div className="p-4">

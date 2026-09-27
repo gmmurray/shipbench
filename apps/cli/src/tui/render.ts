@@ -227,7 +227,8 @@ function hasVisibleWaitingTask(model: BoardModel, plan: Plan): boolean {
  * escape sequence that bleeds colour into the rest of the frame.
  *
  * Rank, most important first: the last-updated timestamp; a non-fatal failure
- * notice; the uncategorized count; collapsed-column counts; the project name.
+ * notice, unreadable task files, and warnings; the uncategorized count;
+ * collapsed-column counts; the project name.
  */
 function statusLine(
   model: BoardModel,
@@ -242,6 +243,11 @@ function statusLine(
   const alerts: string[] = [];
   if (model.notice) alerts.push(style(`${BOX.warn} ${model.notice}`, 'yellow'));
   if (model.staleSince) alerts.push(style(`${BOX.warn} stale`, 'yellow'));
+  if (model.unreadableCount) {
+    alerts.push(
+      style(`${BOX.warn} ${model.unreadableCount} unreadable`, 'yellow'),
+    );
+  }
   if (model.warnings.length > 0) {
     alerts.push(
       style(`${BOX.warn} ${model.warnings.length} warnings`, 'yellow'),

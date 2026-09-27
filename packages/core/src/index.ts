@@ -83,6 +83,7 @@ export {
   moveTask,
   reorderTask,
   taskFileSlugs,
+  UnreadableTaskError,
   unarchiveTask,
   unreadableUpdatesWarning,
   updateTask,
@@ -104,5 +105,6 @@ export type {
   TaskFrontmatter,
   TaskReadResult,
   TaskValidationWarning,
+  UnreadableTaskFile,
   UnreadableUpdates,
 } from './types.js';

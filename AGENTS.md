@@ -102,7 +102,7 @@ The core library is headless — no filesystem access, no UI, no network calls. 
 
 **Config resolution.** Core maintains `DEFAULT_CONFIG` internally and deep-merges the user's `config.json` over it on read. Partial configs are fully supported — missing fields fall back to defaults. `shipbench init` scaffolds a complete config for discoverability, but users can delete blocks freely.
 
-**Validation.** Strict on write: invalid statuses, priorities, or malformed fields are rejected. Graceful on read: tasks with unrecognized status values are returned with validation warnings, never dropped. Unknown frontmatter fields are preserved and passed through with a warning — core never strips data it doesn't own.
+**Validation.** Strict on write: invalid statuses, priorities, or malformed fields are rejected. Graceful on read: tasks with unrecognized status values are returned with validation warnings, never dropped. Unknown frontmatter fields are preserved and passed through with a warning — core never strips data it doesn't own. A file whose frontmatter does not parse can't be a `Task`, so reads return it verbatim in `TaskReadResult.unreadable` instead of leaving it out, and single-task reads and writes throw `UnreadableTaskError`.
 
 **Slug generation.** Core owns slugification (lowercase, hyphenated, no special characters) and collision handling (numeric suffixes: `my-task.md` → `my-task-2.md`). All consumers should create tasks through core to get consistent slugs.
 
@@ -257,6 +257,8 @@ Freeform Markdown body.
 `depends_on` is strict on write (unknown slug, self-reference, and direct two-hop cycles are rejected) and graceful on read (a dangling slug becomes a validation warning; the task still loads). Agents selecting work should prefer tasks whose every `depends_on` entry sits in the `done` column or resolves to `tasks/archive/` (archived dependencies count as satisfied), and treat prose `## Depends on` sections as commentary.
 
 Tasks with invalid statuses on read are surfaced with warnings. The Board UI renders them in an "Uncategorized" column. They are never hidden or dropped.
+
+A task file whose frontmatter does not parse is not dropped either. Reads return it in `unreadable`, the Board shows it as a read-only card in an "Unreadable" column, and `task list` / `task search` print it beside the tasks. It stays that way until someone fixes the file.
 
 ### Task archiving
 

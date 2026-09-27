@@ -5,7 +5,6 @@
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "let-tasks-reference-related-work-without-implying-a-dependency",
-    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it",
     "stop-hidden-boards-from-handling-window-keyboard-shortcuts",
     "ask-before-leaving-a-task-with-unsaved-edits-in-the-board",
     "keep-board-drafts-intact-when-the-task-changes-on-disk",
@@ -28,6 +27,6 @@
   ],
   "in-progress": [],
   "review": [
-    "reject-cross-origin-and-rebound-requests-to-the-cli-board-server"
+    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it"
   ]
 }

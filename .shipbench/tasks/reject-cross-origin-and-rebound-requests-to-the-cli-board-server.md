@@ -1,12 +1,12 @@
 ---
 title: Reject cross-origin and rebound requests to the CLI board server
-status: review
+status: done
 priority: high
 tags:
   - cli
   - security
 created: '2026-09-23T19:18:26.495Z'
-updated: '2026-09-26T21:01:20.384Z'
+updated: '2026-09-26T21:11:24.838Z'
 ---
 
 `shipbench board` serves a local API that writes into the user's repo, and it

@@ -52,6 +52,7 @@ Store shape (sketch):
   config: ShipbenchConfig | null,
   tasks: Task[],
   warnings: TaskValidationWarning[],
+  unreadable: UnreadableTaskFile[],
   selectedTaskSlug: string | null,
   searchQuery: string,
   lastSyncedAt: number | null,
@@ -127,6 +128,8 @@ A single sticky row across the top of the Board. Breadcrumb on the left, toolbar
 ```
 
 Columns are rendered from `config.columns`. The Uncategorized column appears at the trailing edge **only when** at least one task has an unrecognized status — never empty.
+
+An Unreadable column appears at the **leading** edge only when a task file's frontmatter did not parse (`TaskReadResult.unreadable`). Such a file has no title, status, or position, so it renders as a read-only card, not a `Task`: the slug and path, the reason in `warning`, and the frontmatter verbatim in a `pre` — not through `Markdown`, which would hide the markup that broke the parse. It leads rather than trails because the file is otherwise absent from the board, and a column past the fold would leave it just as unseen. It is not a drop target. The archive view lists unreadable archived files the same way. Repair happens in the file; the next read turns the card back into a task.
 
 ### Detail mode
 

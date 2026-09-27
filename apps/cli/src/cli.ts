@@ -26,6 +26,7 @@ import {
   type Task,
   type TaskFrontmatter,
   taskFileSlugs,
+  type UnreadableTaskFile,
   unarchiveTask,
   unreadableUpdatesWarning,
   updateTask,
@@ -387,6 +388,22 @@ async function readProcessStdin(): Promise<string> {
 function enableExitOverride(command: Command): void {
   command.exitOverride();
   for (const child of command.commands) enableExitOverride(child);
+}
+
+// A file whose frontmatter does not parse has no status, title, or position,
+// so no filter can include or exclude it. List and search print it beside the
+// tasks rather than only in the trailing warnings, which is easy to miss.
+function formatUnreadableFile(file: UnreadableTaskFile): string {
+  return `[unreadable] ${file.path}: ${file.reason} (${file.slug})`;
+}
+
+function unreadableFileJson(file: UnreadableTaskFile, includeBody: boolean) {
+  return {
+    slug: file.slug,
+    path: file.path,
+    reason: file.reason,
+    ...(includeBody ? { content: file.content } : {}),
+  };
 }
 
 function formatProjectWarning(warning: ProjectWarning): string {
@@ -1305,9 +1322,12 @@ export function createCli(opts: CliOptions): Command {
               }
             : {}),
         }));
+        const unreadable = result.unreadable.map(file =>
+          unreadableFileJson(file, Boolean(raw.includeBody)),
+        );
         const payload = raw.archived
-          ? { archived: true, tasks, warnings: result.warnings }
-          : { tasks, warnings: result.warnings };
+          ? { archived: true, tasks, unreadable, warnings: result.warnings }
+          : { tasks, unreadable, warnings: result.warnings };
         data(JSON.stringify(payload, null, 2));
         return;
       }
@@ -1316,6 +1336,7 @@ export function createCli(opts: CliOptions): Command {
       for (const t of filtered) {
         data(`[${t.frontmatter.status}] ${t.frontmatter.title} (${t.slug})`);
       }
+      for (const file of result.unreadable) data(formatUnreadableFile(file));
       if (result.warnings.length > 0) {
         chrome('');
         chrome('Warnings:');
@@ -1454,6 +1475,10 @@ export function createCli(opts: CliOptions): Command {
         ...(liveResult?.warnings ?? []),
         ...(searchArchive ? (archivedResult?.warnings ?? []) : []),
       ];
+      const unreadable = [
+        ...(liveResult?.unreadable ?? []),
+        ...(searchArchive ? (archivedResult?.unreadable ?? []) : []),
+      ];
 
       if (raw.json) {
         const tasksBySlug = new Map(
@@ -1484,6 +1509,9 @@ export function createCli(opts: CliOptions): Command {
             {
               matches: payloadMatches,
               total_matches: allMatches.length,
+              unreadable: unreadable.map(file =>
+                unreadableFileJson(file, Boolean(raw.includeBody)),
+              ),
               warnings,
             },
             null,
@@ -1519,6 +1547,7 @@ export function createCli(opts: CliOptions): Command {
           );
         }
       }
+      for (const file of unreadable) data(formatUnreadableFile(file));
       if (warnings.length > 0) {
         chrome('');
         chrome('Warnings:');

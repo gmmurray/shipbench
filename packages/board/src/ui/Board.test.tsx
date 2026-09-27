@@ -93,8 +93,12 @@ afterEach(() => {
 function api(overrides: Partial<BoardAPI> = {}): BoardAPI {
   return {
     getConfig: vi.fn(async () => config),
-    listTasks: vi.fn(async () => ({ tasks, warnings: [] })),
-    listArchivedTasks: vi.fn(async () => ({ tasks: [], warnings: [] })),
+    listTasks: vi.fn(async () => ({ tasks, warnings: [], unreadable: [] })),
+    listArchivedTasks: vi.fn(async () => ({
+      tasks: [],
+      warnings: [],
+      unreadable: [],
+    })),
     createTask: vi.fn(async () => tasks[0] as Task),
     updateTask: vi.fn(async () => ({ task: tasks[0] as Task })),
     addComment: vi.fn(async () => tasks[0] as Task),
@@ -205,6 +209,7 @@ describe('Board', () => {
     const listArchivedTasks = vi.fn(async () => ({
       tasks: [archivedTask],
       warnings: [],
+      unreadable: [],
     }));
     const unarchiveTask = vi.fn(async () => archivedTask);
     render(<Board api={api({ listArchivedTasks, unarchiveTask })} />);
@@ -262,6 +267,7 @@ describe('Board', () => {
     const listArchivedTasks = vi.fn(async () => ({
       tasks: [archivedTask],
       warnings: [],
+      unreadable: [],
     }));
     render(<Board api={api({ listArchivedTasks })} />);
 
@@ -316,6 +322,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [withUnreadableUpdates],
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -324,9 +331,7 @@ describe('Board', () => {
     await user.click(await screen.findByText('Setup auth'));
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent(
-      'saw "#### 2026-06-02T09:00:00.000Z"',
-    );
+    expect(alert).toHaveTextContent('saw "#### 2026-06-02T09:00:00.000Z"');
     // Verbatim, not rendered: the `####` that broke the parse has to stay
     // visible as text rather than becoming a heading.
     const section = screen.getByRole('region', { name: 'Task Updates' });
@@ -345,6 +350,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [withUnreadableUpdates],
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -366,6 +372,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [withUnreadableUpdates],
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -389,6 +396,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [withUnreadableUpdates],
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -730,7 +738,11 @@ describe('Board', () => {
             ...config,
             layout: { done: ['older-touch', 'newer-touch'] },
           })),
-          listTasks: vi.fn(async () => ({ tasks: doneTasks, warnings: [] })),
+          listTasks: vi.fn(async () => ({
+            tasks: doneTasks,
+            warnings: [],
+            unreadable: [],
+          })),
         })}
       />,
     );
@@ -772,6 +784,7 @@ describe('Board', () => {
     const listArchivedTasks = vi.fn(async () => ({
       tasks: [],
       warnings: [],
+      unreadable: [],
     }));
     const readOnlyTasks: Task[] = [
       {
@@ -792,6 +805,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: readOnlyTasks,
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -958,6 +972,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: dependentTasks,
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -1010,6 +1025,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [doneTask, dependent],
             warnings: [],
+            unreadable: [],
           })),
         })}
       />,
@@ -1061,6 +1077,7 @@ describe('Board', () => {
                   'Dangling dependency "missing-task" — no task file matches that slug.',
               },
             ],
+            unreadable: [],
           })),
         })}
       />,
@@ -1103,6 +1120,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [tasks[0]!, taggedTask],
             warnings: [],
+            unreadable: [],
           })),
           updateTask,
         })}
@@ -1208,6 +1226,7 @@ describe('Board', () => {
           listTasks: vi.fn(async () => ({
             tasks: [dependentTask, tasks[2]!, finishedTask],
             warnings: [],
+            unreadable: [],
           })),
           updateTask,
         })}
@@ -1301,7 +1320,11 @@ describe('Board', () => {
             ...config,
             done_display: { max: 20 },
           })),
-          listTasks: vi.fn(async () => ({ tasks: doneTasks, warnings: [] })),
+          listTasks: vi.fn(async () => ({
+            tasks: doneTasks,
+            warnings: [],
+            unreadable: [],
+          })),
         })}
       />,
     );
@@ -1343,7 +1366,11 @@ describe('Board', () => {
             ...config,
             done_display: { max: 0 },
           })),
-          listTasks: vi.fn(async () => ({ tasks: doneTasks, warnings: [] })),
+          listTasks: vi.fn(async () => ({
+            tasks: doneTasks,
+            warnings: [],
+            unreadable: [],
+          })),
         })}
       />,
     );
@@ -1376,7 +1403,11 @@ describe('Board', () => {
             ...config,
             done_display: { max: 20 },
           })),
-          listTasks: vi.fn(async () => ({ tasks: doneTasks, warnings: [] })),
+          listTasks: vi.fn(async () => ({
+            tasks: doneTasks,
+            warnings: [],
+            unreadable: [],
+          })),
         })}
       />,
     );
@@ -1643,5 +1674,84 @@ describe('Board', () => {
         name: 'Add task to Uncategorized from column bottom',
       }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('Board unreadable task files', () => {
+  const broken = {
+    slug: 'hand-edited',
+    path: '.shipbench/tasks/hand-edited.md',
+    content: [
+      '---',
+      'title: Hand edited',
+      'depends_on: [a]',
+      'depends_on: [b]',
+      '---',
+      '',
+      'The body is not the problem.',
+    ].join('\n'),
+    reason: 'Duplicated mapping key at line 4.',
+  };
+  const withBroken = () =>
+    vi.fn(async () => ({ tasks, warnings: [], unreadable: [broken] }));
+
+  it.each([
+    ['writable', false],
+    ['read-only', true],
+  ])('shows the file as a broken card on a %s board', async (_, readOnly) => {
+    render(<Board api={api({ readOnly, listTasks: withBroken() })} />);
+
+    const column = await screen.findByRole('region', {
+      name: 'Unreadable task files',
+    });
+    expect(column).toHaveTextContent('Unreadable');
+    expect(column).toHaveTextContent('.shipbench/tasks/hand-edited.md');
+    expect(column).toHaveTextContent(
+      'Frontmatter does not parse: Duplicated mapping key at line 4.',
+    );
+    // The frontmatter verbatim, not the body.
+    const raw = column.querySelector('pre');
+    expect(raw?.textContent).toBe(
+      broken.content.split('\n').slice(0, 5).join('\n'),
+    );
+    expect(column).not.toHaveTextContent('The body is not the problem.');
+    // The rest of the board still renders.
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
+  });
+
+  it('shows no Unreadable column when every file parses', async () => {
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    expect(
+      screen.queryByRole('region', { name: 'Unreadable task files' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows unreadable archived files in the archive view', async () => {
+    const user = userEvent.setup();
+    const archived = {
+      ...broken,
+      path: '.shipbench/tasks/archive/hand-edited.md',
+    };
+    render(
+      <Board
+        api={api({
+          listArchivedTasks: vi.fn(async () => ({
+            tasks: [],
+            warnings: [],
+            unreadable: [archived],
+          })),
+        })}
+      />,
+    );
+
+    await screen.findByText('Setup auth');
+    await user.click(screen.getByRole('button', { name: 'Archive' }));
+
+    const list = await screen.findByRole('list', {
+      name: 'Unreadable archived task files',
+    });
+    expect(list).toHaveTextContent('.shipbench/tasks/archive/hand-edited.md');
   });
 });

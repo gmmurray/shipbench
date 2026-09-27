@@ -92,6 +92,8 @@ The YAML frontmatter carries structured data. The content below it is the task d
 
 Readers preserve unknown frontmatter fields and report them as warnings. Subsequent writes must retain fields they do not recognize.
 
+A file whose frontmatter does not parse is not a task, but readers still report it, with the reason, rather than leaving it out. Writers refuse to change it. Repairing it is a text edit in the file.
+
 ## Slugs and dependencies
 
 New task filenames derive from their titles: lowercase, hyphenated, and stripped of special characters. If the resulting slug exists in either the live or archive directory, task creation appends a numeric suffix such as `setup-auth-2.md`. Archived slugs remain reserved so dependency references stay unambiguous.

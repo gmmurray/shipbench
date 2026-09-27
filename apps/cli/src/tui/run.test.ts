@@ -214,6 +214,7 @@ describe('every read after the first', () => {
 
     project.write('.shipbench/tasks/broken.md', BROKEN_TASK);
     await run.change();
+    expect(run.frame().at(-1)).toContain('! 1 unreadable');
     expect(run.frame().at(-1)).toContain('! 1 warnings');
     expect(run.frame().at(-1)).not.toContain('! stale');
 

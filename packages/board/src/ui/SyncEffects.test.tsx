@@ -23,8 +23,12 @@ const config: ShipbenchConfig = {
 function makeApi(overrides: Partial<BoardAPI> = {}): BoardAPI {
   return {
     getConfig: vi.fn(async () => config),
-    listTasks: vi.fn(async () => ({ tasks: [], warnings: [] })),
-    listArchivedTasks: vi.fn(async () => ({ tasks: [], warnings: [] })),
+    listTasks: vi.fn(async () => ({ tasks: [], warnings: [], unreadable: [] })),
+    listArchivedTasks: vi.fn(async () => ({
+      tasks: [],
+      warnings: [],
+      unreadable: [],
+    })),
     createTask: vi.fn(),
     updateTask: vi.fn(),
     addComment: vi.fn(),

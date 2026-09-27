@@ -4,7 +4,9 @@ import type {
   ShipbenchConfig,
   Task,
   TaskFrontmatter,
+  TaskReadResult,
   TaskValidationWarning,
+  UnreadableTaskFile,
 } from '@shipbench/core';
 // Values come from the pure `layout` subpath, never the barrel: the barrel
 // re-exports FsAdapter, which imports `node:fs` and cannot be bundled for the
@@ -35,9 +37,12 @@ export interface BoardState {
   config: ShipbenchConfig | null;
   tasks: Task[];
   warnings: TaskValidationWarning[];
+  /** Live task files whose frontmatter did not parse, shown as broken cards. */
+  unreadable: UnreadableTaskFile[];
   archiveViewOpen: boolean;
   archivedTasks: Task[] | null;
   archiveWarnings: TaskValidationWarning[];
+  archiveUnreadable: UnreadableTaskFile[];
   isArchiveLoading: boolean;
   archiveLoadError: string | null;
   selectedTaskSlug: string | null;
@@ -133,9 +138,11 @@ export function createBoardStore(api: BoardAPI): BoardStore {
     config: null,
     tasks: [],
     warnings: [],
+    unreadable: [],
     archiveViewOpen: false,
     archivedTasks: null,
     archiveWarnings: [],
+    archiveUnreadable: [],
     isArchiveLoading: false,
     archiveLoadError: null,
     selectedTaskSlug: null,
@@ -636,6 +643,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
         set({
           archivedTasks: result.tasks,
           archiveWarnings: result.warnings,
+          archiveUnreadable: result.unreadable,
           isArchiveLoading: false,
           archiveLoadError: null,
         });
@@ -687,11 +695,16 @@ export function getVisibleTasks(tasks: Task[], searchQuery: string): Task[] {
 function mergeServerRead(
   state: BoardState,
   config: ShipbenchConfig,
-  read: { tasks: Task[]; warnings: TaskValidationWarning[] },
+  read: TaskReadResult,
   pending: ReadonlyMap<string, number>,
-): Pick<BoardState, 'config' | 'tasks' | 'warnings'> {
+): Pick<BoardState, 'config' | 'tasks' | 'warnings' | 'unreadable'> {
   if (pending.size === 0) {
-    return { config, tasks: read.tasks, warnings: read.warnings };
+    return {
+      config,
+      tasks: read.tasks,
+      warnings: read.warnings,
+      unreadable: read.unreadable,
+    };
   }
 
   const localBySlug = new Map(state.tasks.map(task => [task.slug, task]));
@@ -720,6 +733,9 @@ function mergeServerRead(
       ...read.warnings.filter(warning => !pending.has(warning.slug)),
       ...state.warnings.filter(warning => pending.has(warning.slug)),
     ],
+    // A pending slug keeps its local task above; showing it broken too would
+    // put one file on the board twice until the mutation settles.
+    unreadable: read.unreadable.filter(file => !pending.has(file.slug)),
   };
 }
 

@@ -371,9 +371,12 @@ Without `--include-body`, JSON remains compact:
       "updated": "2026-07-21T03:49:00.000Z"
     }
   ],
+  "unreadable": [],
   "warnings": []
 }
 ```
+
+`unreadable` lists task files whose frontmatter does not parse, such as a hand edit that repeats a key. Each entry has `slug`, `path`, and `reason`, which names the file line where it can; `--include-body` adds the file's raw `content`. These files have no status or fields, so filters, `--available`, and `--limit` never remove them, and text output prints each one as an `[unreadable]` line after the tasks. The command still exits `0`: the read succeeded, and the broken file is in the output. `task get` on such a file fails and names the file.
 
 `position` is zero-based within the task's column and is computed before filters or availability ranking. `--include-body` adds `body` and `comments` to each task. `--archived --json` adds `"archived": true` at the top level and omits `position` because archived tasks have no board placement.
 
@@ -440,9 +443,12 @@ JSON reports where each match occurred, the task's current `status` and `locatio
     }
   ],
   "total_matches": 1,
+  "unreadable": [],
   "warnings": []
 }
 ```
+
+`unreadable` works as it does for `task list`. Search cannot look inside a file whose frontmatter does not parse, so those files are always reported, whatever the query.
 
 An unreadable Updates section reports `{ "unreadable": true, "snippet": "…" }` in `update_matches` instead of an index and timestamp.
 

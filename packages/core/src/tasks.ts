@@ -11,6 +11,7 @@ import type {
   TaskFrontmatter,
   TaskReadResult,
   TaskValidationWarning,
+  UnreadableTaskFile,
   UnreadableUpdates,
 } from './types.js';
 
@@ -65,6 +66,20 @@ export class ArchiveBlockedError extends Error {
       `Cannot archive "${slug}" because live tasks depend on it: ${dependentSlugs.join(', ')}`,
     );
     this.name = 'ArchiveBlockedError';
+  }
+}
+
+/**
+ * Thrown by any read or write of a single task whose frontmatter does not
+ * parse. `file` carries what a list read returns in `unreadable`, so a host
+ * can show the file instead of only the message.
+ */
+export class UnreadableTaskError extends Error {
+  constructor(public readonly file: UnreadableTaskFile) {
+    super(
+      `Cannot read task "${file.slug}": the frontmatter in ${file.path} does not parse. ${file.reason} Fix the file to restore the task.`,
+    );
+    this.name = 'UnreadableTaskError';
   }
 }
 
@@ -329,8 +344,40 @@ function parseFrontmatter(fileContent: string) {
   }
 }
 
-function parseTaskFile(slug: string, fileContent: string): Task {
-  const { data, content: bodyContent } = parseFrontmatter(fileContent);
+/**
+ * One sentence on why frontmatter failed, for a reader who has the file open.
+ *
+ * js-yaml's own message repeats a snippet and a column, and the column is not
+ * reliable once gray-matter has sliced the frontmatter out. Its `reason` and
+ * line are: the line counts from the opening `---`, so it matches the file.
+ */
+function frontmatterFailureReason(error: unknown): string {
+  const yaml = error as { reason?: unknown; mark?: { line?: unknown } };
+  if (typeof yaml.reason === 'string' && typeof yaml.mark?.line === 'number') {
+    const reason = yaml.reason.charAt(0).toUpperCase() + yaml.reason.slice(1);
+    return `${reason} at line ${yaml.mark.line + 1}.`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
+function parseTaskFile(slug: string, fileContent: string, path: string): Task {
+  const unreadable = (reason: string) =>
+    new UnreadableTaskError({ slug, path, content: fileContent, reason });
+
+  let parsed: ReturnType<typeof parseFrontmatter>;
+  try {
+    parsed = parseFrontmatter(fileContent);
+  } catch (error) {
+    throw unreadable(frontmatterFailureReason(error));
+  }
+  const { data, content: bodyContent } = parsed;
+  // YAML that parses to a list or a bare value is still not a task: spread
+  // into frontmatter it would become fields named `0`, `1`, ...
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    throw unreadable(
+      'The frontmatter is not a set of `key: value` fields, so it has no title or status.',
+    );
+  }
   const parsedBody = parseTaskBody(bodyContent);
   const frontmatter = {
     ...data,
@@ -539,7 +586,7 @@ async function listTasksInDirectory(
   const mdFiles = files.filter(f => f.endsWith('.md'));
 
   if (mdFiles.length === 0) {
-    return { tasks: [], warnings: [] };
+    return { tasks: [], warnings: [], unreadable: [] };
   }
 
   const paths = mdFiles.map(f => `${directory}/${f}`);
@@ -547,16 +594,18 @@ async function listTasksInDirectory(
 
   const tasks: Task[] = [];
   const warnings: TaskValidationWarning[] = [];
+  const unreadable: UnreadableTaskFile[] = [];
   for (const [path, content] of contents) {
     const slug = path.replace(`${directory}/`, '').replace(/\.md$/, '');
     try {
-      tasks.push(parseTaskFile(slug, content));
+      tasks.push(parseTaskFile(slug, content, path));
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
+      if (!(error instanceof UnreadableTaskError)) throw error;
+      unreadable.push(error.file);
       warnings.push({
         slug,
         field: 'frontmatter',
-        message: `Could not parse frontmatter in "${path}": ${detail}`,
+        message: `Could not parse frontmatter in "${path}": ${error.file.reason}`,
       });
     }
   }
@@ -573,7 +622,7 @@ async function listTasksInDirectory(
     warnings.push(...validateTask(task, config, knownSlugs));
   }
 
-  return { tasks, warnings };
+  return { tasks, warnings, unreadable };
 }
 
 export async function listTasks(
@@ -601,8 +650,9 @@ export async function getTask(
   // primitives. Parsing itself is intentionally config-independent.
   void config;
   const directory = options.archived ? ARCHIVE_DIR : TASKS_DIR;
-  const content = await adapter.readFileIfExists(taskPath(slug, directory));
-  return content === null ? null : parseTaskFile(slug, content);
+  const path = taskPath(slug, directory);
+  const content = await adapter.readFileIfExists(path);
+  return content === null ? null : parseTaskFile(slug, content, path);
 }
 
 export async function listArchivedTasks(
@@ -712,7 +762,7 @@ export async function updateTask(
 
   const path = taskPath(slug);
   const content = await adapter.readFile(path);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, path);
 
   if (fields.status) assertValidStatus(fields.status, config);
   if (fields.priority) assertValidPriority(fields.priority, config);
@@ -788,7 +838,7 @@ export async function addComment(
 
   const path = taskPath(slug);
   const content = await adapter.readFile(path);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, path);
   if (task.unreadableUpdates) {
     throw new Error(
       `Cannot add an update to "${slug}" because its Updates section is malformed. Fix the section in the task file first.`,
@@ -842,7 +892,7 @@ export async function editComment(
 
   const path = taskPath(slug);
   const content = await adapter.readFile(path);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, path);
   assertMutableComments(task, slug, 'edit');
   assertCommentIndex(task, slug, index);
 
@@ -862,7 +912,7 @@ export async function deleteComment(
   void config;
   const path = taskPath(slug);
   const content = await adapter.readFile(path);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, path);
   assertMutableComments(task, slug, 'delete');
   assertCommentIndex(task, slug, index);
 
@@ -932,7 +982,7 @@ export async function reorderTask(
 
   const path = taskPath(slug);
   const content = await adapter.readFile(path);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, path);
 
   if (task.frontmatter.status !== toStatus) {
     task.frontmatter = {
@@ -1010,7 +1060,7 @@ export async function archiveTask(
 ): Promise<Task> {
   const livePath = taskPath(slug);
   const content = await adapter.readFile(livePath);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, livePath);
 
   if (task.frontmatter.status !== config.done_column && !options?.force) {
     const { tasks } = await listTasks(adapter, config);
@@ -1051,7 +1101,7 @@ export async function unarchiveTask(
 ): Promise<Task> {
   const archivedPath = taskPath(slug, ARCHIVE_DIR);
   const content = await adapter.readFile(archivedPath);
-  const task = parseTaskFile(slug, content);
+  const task = parseTaskFile(slug, content, archivedPath);
 
   await adapter.writeFile(taskPath(slug), content);
   await adapter.deleteFile(archivedPath);

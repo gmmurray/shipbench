@@ -536,6 +536,33 @@ describe('board task routes and slugs', () => {
   });
 });
 
+describe('board task files whose frontmatter does not parse', () => {
+  it('lists the file and answers 422 to a write aimed at it', async () => {
+    const fixture = await makeFixture();
+    const path = join(fixture.root, '.shipbench', 'tasks', 'broken.md');
+    const broken = '---\ntitle: [unclosed\n---\n\nBody.\n';
+    await writeFile(path, broken, 'utf-8');
+    const server = await startFixture(fixture);
+
+    const list = await json<{ unreadable: { slug: string }[] }>(
+      server,
+      '/api/tasks',
+    );
+    expect(list.body.unreadable).toEqual([
+      expect.objectContaining({ slug: 'broken', content: broken }),
+    ]);
+
+    const patch = await json<{ error: string }>(
+      server,
+      '/api/tasks/broken',
+      jsonInit({ fields: { priority: 'high' } }, 'PATCH'),
+    );
+    expect(patch.response.status).toBe(422);
+    expect(patch.body.error).toMatch(/^Cannot read task "broken"/);
+    await expect(readFile(path, 'utf-8')).resolves.toBe(broken);
+  });
+});
+
 describe('board server origin and host checks', () => {
   // undici treats `Host` as a forbidden header, so these requests go through
   // node:http, which sends whatever headers it is given.

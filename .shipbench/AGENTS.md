@@ -87,6 +87,8 @@ shipbench task list --available --json
 
 That ranking is not the board's order. `--available` sorts by priority and age and does not read manual placement, while a plain `shipbench task list` returns the order the columns are actually arranged in. The two can disagree — a task sitting first in its column may come back third here — and neither is the more correct answer. JSON carries both: the array is in ranked order, and each task's `position` is its board placement, computed before the ranking. Read whichever answers the question you have.
 
+JSON from `task list` and `task search` also carries an `unreadable` array, which is empty on a healthy board. Each entry is a task file whose frontmatter does not parse — a hand edit that repeated a key, say — so it is missing from `tasks`, whatever the filters. If the array is not empty, tell the user which files are listed and the `reason` for each. Do not guess what the task says, and do not recreate it under a new slug. Fix the frontmatter only when asked: which value is the right one is the user's call.
+
 Narrow the candidate set without loading every description:
 
 ```bash

@@ -55,6 +55,8 @@ export interface BoardModel {
   staleSince?: Date;
   /** Non-fatal problem to surface on the status line. */
   notice?: string;
+  /** Live task files whose frontmatter did not parse, so they have no card. */
+  unreadableCount?: number;
   updatedAt: Date;
 }
 

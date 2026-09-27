@@ -1499,6 +1499,102 @@ describe('shipbench task comment', () => {
   });
 });
 
+describe('task files whose frontmatter does not parse', () => {
+  // A hand edit that left two `depends_on` keys: the reported case.
+  const BROKEN = [
+    '---',
+    'title: Hand edited',
+    'status: todo',
+    'depends_on: [a]',
+    'depends_on: [b]',
+    '---',
+    '',
+    'Body.',
+    '',
+  ].join('\n');
+  const LINE =
+    '[unreadable] .shipbench/tasks/hand-edited.md: Duplicated mapping key at line 5. (hand-edited)';
+
+  async function project() {
+    const h = harness();
+    await h.run('init');
+    h.adapter.files.set('.shipbench/tasks/hand-edited.md', BROKEN);
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+    return h;
+  }
+
+  it('lists the file on stdout beside the tasks, whatever the filters', async () => {
+    const h = await project();
+
+    await h.run('task', 'list');
+    expect(h.stdout).toContain(LINE);
+    expect(h.stdout.join('\n')).toContain('welcome-to-shipbench');
+
+    // It has no status or dependencies, so no filter can rule it out.
+    h.stdout.length = 0;
+    await h.run('task', 'list', '--available', '--status', 'done');
+    expect(h.stdout).toEqual([LINE]);
+  });
+
+  it('carries the file in list JSON, with its content under --include-body', async () => {
+    const h = await project();
+
+    await h.run('task', 'list', '--available', '--json');
+    expect(JSON.parse(h.stdout.join('\n')).unreadable).toEqual([
+      {
+        slug: 'hand-edited',
+        path: '.shipbench/tasks/hand-edited.md',
+        reason: 'Duplicated mapping key at line 5.',
+      },
+    ]);
+
+    h.stdout.length = 0;
+    await h.run('task', 'list', '--json', '--include-body');
+    expect(JSON.parse(h.stdout.join('\n')).unreadable).toEqual([
+      expect.objectContaining({ slug: 'hand-edited', content: BROKEN }),
+    ]);
+  });
+
+  it('reports an empty unreadable array when every file parses', async () => {
+    const h = harness();
+    await h.run('init');
+    h.stdout.length = 0;
+
+    await h.run('task', 'list', '--json');
+
+    expect(JSON.parse(h.stdout.join('\n')).unreadable).toEqual([]);
+  });
+
+  it('reports the file from search, which cannot look inside it', async () => {
+    const h = await project();
+
+    await h.run('task', 'search', 'no-such-term');
+    expect(h.stdout).toEqual(['No matches for "no-such-term".', LINE]);
+
+    h.stdout.length = 0;
+    await h.run('task', 'search', 'welcome', '--json');
+    expect(JSON.parse(h.stdout.join('\n')).unreadable).toEqual([
+      expect.objectContaining({ slug: 'hand-edited' }),
+    ]);
+  });
+
+  it('exits zero from list, since the read itself succeeded', async () => {
+    // Recorded on the task: non-zero would break scripts that tolerate
+    // warnings today, and the file is now in the output they read.
+    const h = await project();
+    await expect(h.run('task', 'list', '--json')).resolves.toBeUndefined();
+  });
+
+  it('names the task and the file when task get cannot read it', async () => {
+    const h = await project();
+
+    await expect(h.run('task', 'get', 'hand-edited')).rejects.toThrow(
+      'Cannot read task "hand-edited": the frontmatter in .shipbench/tasks/hand-edited.md does not parse. Duplicated mapping key at line 5. Fix the file to restore the task.',
+    );
+  });
+});
+
 describe('shipbench task get', () => {
   it('names the offending line when a task Updates section is unreadable', async () => {
     const h = harness();

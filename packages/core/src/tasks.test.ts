@@ -15,6 +15,7 @@ import {
   moveTask,
   reorderTask,
   taskFileSlugs,
+  UnreadableTaskError,
   unarchiveTask,
   unreadableUpdatesWarning,
   updateTask,
@@ -1589,7 +1590,133 @@ Wrong level.`,
 
     await expect(
       updateTask(adapter, DEFAULT_CONFIG, 'broken', { priority: 'high' }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(UnreadableTaskError);
+  });
+
+  // The reported case: a hand edit added a second `depends_on` to a task.
+  const duplicateKey = [
+    '---',
+    'title: Hand edited',
+    'status: todo',
+    'depends_on: [a]',
+    'depends_on: [b]',
+    'created: 2026-01-01T00:00:00Z',
+    'updated: 2026-01-01T00:00:00Z',
+    '---',
+    '',
+    'Body.',
+    '',
+  ].join('\n');
+
+  it('returns a file whose frontmatter does not parse as unreadable, verbatim', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/hand-edited.md': duplicateKey,
+    });
+
+    const result = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.tasks).toEqual([]);
+    expect(result.unreadable).toEqual([
+      {
+        slug: 'hand-edited',
+        path: '.shipbench/tasks/hand-edited.md',
+        content: duplicateKey,
+        // Line 5 of the file is the second `depends_on`.
+        reason: 'Duplicated mapping key at line 5.',
+      },
+    ]);
+    expect(result.warnings).toEqual([
+      {
+        slug: 'hand-edited',
+        field: 'frontmatter',
+        message:
+          'Could not parse frontmatter in ".shipbench/tasks/hand-edited.md": Duplicated mapping key at line 5.',
+      },
+    ]);
+  });
+
+  it('counts lines from the top of the file in CRLF files too', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/hand-edited.md': duplicateKey.replace(/\n/g, '\r\n'),
+    });
+
+    const { unreadable } = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(unreadable[0]?.reason).toBe('Duplicated mapping key at line 5.');
+  });
+
+  it.each([
+    ['a list', '---\n- title\n- status\n---\n\nBody.\n'],
+    ['a bare value', '---\njust some text\n---\n\nBody.\n'],
+  ])('treats frontmatter that parses to %s as unreadable', async (_, file) => {
+    // Spread into a Task, these would become fields named `0`, `1`, ... and
+    // reach every consumer as a task with no title and no status.
+    const adapter = memoryAdapter({ '.shipbench/tasks/odd.md': file });
+
+    const result = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.tasks).toEqual([]);
+    expect(result.unreadable).toEqual([
+      expect.objectContaining({
+        slug: 'odd',
+        content: file,
+        reason: expect.stringMatching(/not a set of `key: value` fields/),
+      }),
+    ]);
+  });
+
+  it('returns unreadable archived files from listArchivedTasks', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/archive/hand-edited.md': duplicateKey,
+    });
+
+    const result = await listArchivedTasks(adapter, DEFAULT_CONFIG);
+
+    expect(result.unreadable).toEqual([
+      expect.objectContaining({
+        slug: 'hand-edited',
+        path: '.shipbench/tasks/archive/hand-edited.md',
+      }),
+    ]);
+  });
+
+  it('makes getTask throw an error that names the task and the file', async () => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/hand-edited.md': duplicateKey,
+    });
+
+    const error = await getTask(adapter, DEFAULT_CONFIG, 'hand-edited').catch(
+      caught => caught,
+    );
+
+    expect(error).toBeInstanceOf(UnreadableTaskError);
+    expect(error.message).toBe(
+      'Cannot read task "hand-edited": the frontmatter in .shipbench/tasks/hand-edited.md does not parse. Duplicated mapping key at line 5. Fix the file to restore the task.',
+    );
+    expect(error.file).toEqual({
+      slug: 'hand-edited',
+      path: '.shipbench/tasks/hand-edited.md',
+      content: duplicateKey,
+      reason: 'Duplicated mapping key at line 5.',
+    });
+  });
+
+  it.each<[string, (adapter: StorageAdapter) => Promise<unknown>]>([
+    ['updateTask', a => updateTask(a, DEFAULT_CONFIG, 'hand-edited', {})],
+    ['addComment', a => addComment(a, DEFAULT_CONFIG, 'hand-edited', 'Hi.')],
+    ['moveTask', a => moveTask(a, DEFAULT_CONFIG, 'hand-edited', 'done')],
+    [
+      'archiveTask',
+      a => archiveTask(a, DEFAULT_CONFIG, 'hand-edited', { force: true }),
+    ],
+  ])('makes %s throw UnreadableTaskError and write nothing', async (_, run) => {
+    const adapter = memoryAdapter({
+      '.shipbench/tasks/hand-edited.md': duplicateKey,
+    });
+    const before = new Map(adapter.files);
+
+    await expect(run(adapter)).rejects.toThrow(UnreadableTaskError);
+    expect(adapter.files).toEqual(before);
   });
 });
 

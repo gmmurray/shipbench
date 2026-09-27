@@ -67,8 +67,12 @@ afterEach(cleanup);
 function api(overrides: Partial<BoardAPI> = {}): BoardAPI {
   return {
     getConfig: vi.fn(async () => config),
-    listTasks: vi.fn(async () => ({ tasks, warnings: [] })),
-    listArchivedTasks: vi.fn(async () => ({ tasks: [], warnings: [] })),
+    listTasks: vi.fn(async () => ({ tasks, warnings: [], unreadable: [] })),
+    listArchivedTasks: vi.fn(async () => ({
+      tasks: [],
+      warnings: [],
+      unreadable: [],
+    })),
     createTask: vi.fn(async () => tasks[0] as Task),
     updateTask: vi.fn(async () => ({ task: tasks[0] as Task })),
     addComment: vi.fn(async () => tasks[0] as Task),
@@ -171,6 +175,7 @@ describe('Markdown link handling', () => {
     const listTasks = vi.fn(async () => ({
       tasks: [tasks[0] as Task],
       warnings: [],
+      unreadable: [],
     }));
     await openSetupAuth(api({ resolveRepoLink, listTasks }));
 

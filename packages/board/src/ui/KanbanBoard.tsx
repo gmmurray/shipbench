@@ -18,7 +18,11 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import type { ShipbenchConfig, Task } from '@shipbench/core';
+import type {
+  ShipbenchConfig,
+  Task,
+  UnreadableTaskFile,
+} from '@shipbench/core';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import { useMemo, useState } from 'react';
 import { RxArchive, RxMagnifyingGlass, RxPlus } from 'react-icons/rx';
@@ -26,6 +30,7 @@ import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { getVisibleTasks, UNCATEGORIZED_STATUS } from '../store/boardStore.js';
 import { NewTaskDialog } from './NewTaskDialog.js';
 import { TaskCard } from './TaskCard.js';
+import { UnreadableTaskCard } from './UnreadableTaskCard.js';
 
 interface Column {
   id: string;
@@ -178,6 +183,7 @@ const staticSortingStrategy = () => null;
 export function KanbanBoard() {
   const config = useBoardStore(state => state.config);
   const tasks = useBoardStore(state => state.tasks);
+  const unreadable = useBoardStore(state => state.unreadable);
   const searchQuery = useBoardStore(state => state.searchQuery);
   const reorderTask = useBoardStore(state => state.reorderTask);
   const readOnly = useBoardStore(state => state.readOnly);
@@ -332,6 +338,7 @@ export function KanbanBoard() {
   if (readOnly) {
     return (
       <div className="flex min-h-[calc(100vh-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
+        <UnreadableColumn files={unreadable} />
         {columns.map(column => (
           <StaticBoardColumn
             key={column.id}
@@ -360,6 +367,7 @@ export function KanbanBoard() {
       onDragEnd={onDragEnd}
     >
       <div className="flex min-h-[calc(100vh-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
+        <UnreadableColumn files={unreadable} />
         {columns.map(column => {
           const isUncategorized = column.id === UNCATEGORIZED_STATUS;
           return (
@@ -447,6 +455,29 @@ function StaticBoardColumn({
             onToggle={() => setExpanded(v => !v)}
           />
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Task files whose frontmatter did not parse. Leading rather than trailing
+ * like Uncategorized: these files are otherwise absent from the board, and a
+ * column past the fold on a wide board would leave them just as unseen. Not a
+ * drop target and never empty — it only renders while a file is broken.
+ */
+function UnreadableColumn({ files }: { files: UnreadableTaskFile[] }) {
+  if (files.length === 0) return null;
+  return (
+    <section
+      aria-label="Unreadable task files"
+      className="flex w-[20rem] shrink-0 flex-col rounded-md border border-sb-iron"
+    >
+      <ColumnHeader label="Unreadable" count={files.length} />
+      <div className="flex flex-1 flex-col gap-3 p-3">
+        {files.map(file => (
+          <UnreadableTaskCard key={file.path} file={file} />
+        ))}
       </div>
     </section>
   );

@@ -42,8 +42,16 @@ const task = (overrides: Partial<Task> = {}): Task => ({
 function api(overrides: Partial<BoardAPI> = {}): BoardAPI {
   return {
     getConfig: vi.fn(async () => config),
-    listTasks: vi.fn(async () => ({ tasks: [task()], warnings: [] })),
-    listArchivedTasks: vi.fn(async () => ({ tasks: [], warnings: [] })),
+    listTasks: vi.fn(async () => ({
+      tasks: [task()],
+      warnings: [],
+      unreadable: [],
+    })),
+    listArchivedTasks: vi.fn(async () => ({
+      tasks: [],
+      warnings: [],
+      unreadable: [],
+    })),
     createTask: vi.fn(async (title, fields) =>
       task({
         slug: 'created-task',
@@ -117,6 +125,7 @@ describe('createBoardStore', () => {
         listTasks: vi.fn(async () => ({
           tasks: [task()],
           warnings: [warning],
+          unreadable: [],
         })),
       }),
     );
@@ -142,6 +151,7 @@ describe('createBoardStore', () => {
     const listArchivedTasks = vi.fn(async () => ({
       tasks: [archived],
       warnings: [],
+      unreadable: [],
     }));
     const unarchiveTask = vi.fn(async () => archived);
     const store = createBoardStore(api({ listArchivedTasks, unarchiveTask }));
@@ -229,6 +239,7 @@ describe('createBoardStore', () => {
       listTasks: vi.fn(async () => ({
         tasks: [task({ slug: 'other' }), task({ slug: 'setup-auth' })],
         warnings: [],
+        unreadable: [],
       })),
       getConfig: vi.fn(async () => ({
         ...config,
@@ -313,6 +324,7 @@ describe('createBoardStore', () => {
           task({ slug: 'last-task' }),
         ],
         warnings: [],
+        unreadable: [],
       })),
     });
     const store = createBoardStore(boardApi);
@@ -494,7 +506,11 @@ describe('createBoardStore', () => {
     );
     const store = createBoardStore(
       api({
-        listTasks: vi.fn(async () => ({ tasks: [original], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [original],
+          warnings: [],
+          unreadable: [],
+        })),
         editComment,
       }),
     );
@@ -538,7 +554,11 @@ describe('createBoardStore', () => {
     );
     const store = createBoardStore(
       api({
-        listTasks: vi.fn(async () => ({ tasks: [original], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [original],
+          warnings: [],
+          unreadable: [],
+        })),
         deleteComment,
       }),
     );
@@ -566,7 +586,11 @@ describe('createBoardStore', () => {
     });
     const store = createBoardStore(
       api({
-        listTasks: vi.fn(async () => ({ tasks: [original], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [original],
+          warnings: [],
+          unreadable: [],
+        })),
         editComment: vi.fn(async () => {
           throw new Error('Edit rejected.');
         }),
@@ -693,7 +717,11 @@ describe('getVisibleTasks', () => {
       };
       const boardApi = api({
         getConfig: vi.fn(async () => customConfig),
-        listTasks: vi.fn(async () => ({ tasks: [task()], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [task()],
+          warnings: [],
+          unreadable: [],
+        })),
         updateTask: vi.fn(async (slug, fields) => ({
           task: task({
             slug,
@@ -743,7 +771,11 @@ describe('getVisibleTasks', () => {
       });
       const boardApi = api({
         getConfig: vi.fn(async () => customConfig),
-        listTasks: vi.fn(async () => ({ tasks: [task()], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [task()],
+          warnings: [],
+          unreadable: [],
+        })),
         updateTask: vi.fn(async () => ({
           task: saved,
           layout: { 'in-progress': ['setup-auth'] },
@@ -785,7 +817,11 @@ describe('getVisibleTasks', () => {
       };
       const boardApi = api({
         getConfig: vi.fn(async () => customConfig),
-        listTasks: vi.fn(async () => ({ tasks: [task()], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [task()],
+          warnings: [],
+          unreadable: [],
+        })),
         updateTask: vi.fn(async () => {
           throw new Error('Unknown dependency "ghost-task".');
         }),
@@ -824,7 +860,11 @@ describe('getVisibleTasks', () => {
       };
       const boardApi = api({
         getConfig: vi.fn(async () => customConfig),
-        listTasks: vi.fn(async () => ({ tasks: [task()], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [task()],
+          warnings: [],
+          unreadable: [],
+        })),
         updateTask: vi.fn(async (slug, fields) => ({
           task: task({
             slug,
@@ -886,6 +926,7 @@ describe('request sequencing', () => {
         listTasks: vi.fn(async () => ({
           tasks: [seed('a'), seed('b')],
           warnings: [],
+          unreadable: [],
         })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),
@@ -916,6 +957,7 @@ describe('request sequencing', () => {
         listTasks: vi.fn(async () => ({
           tasks: [seed('a'), seed('b')],
           warnings: [],
+          unreadable: [],
         })),
         deleteTask: vi.fn(
           () =>
@@ -938,12 +980,53 @@ describe('request sequencing', () => {
     expect(store.getState().tasks.map(t => t.slug)).toEqual(['b']);
   });
 
+  it('keeps unreadable files current, except a slug that is mid-mutation', async () => {
+    const { fn, settles } = deferredReorder();
+    const unreadableFile = (slug: string) => ({
+      slug,
+      path: `.shipbench/tasks/${slug}.md`,
+      content: '---\ntitle: [\n---\n',
+      reason: 'Unexpected end of the stream at line 3.',
+    });
+    let listing = { tasks: [seed('a')], unreadable: [unreadableFile('b')] };
+    const store = createBoardStore(
+      api({
+        listTasks: vi.fn(async () => ({ ...listing, warnings: [] })),
+        reorderTask: fn as unknown as BoardAPI['reorderTask'],
+      }),
+    );
+    await store.getState().refresh();
+    expect(store.getState().unreadable.map(file => file.slug)).toEqual(['b']);
+
+    const moving = store.getState().reorderTask('a', 'done', -1);
+    // A breaks mid-move. Its local card stays until the move settles, so the
+    // board must not show it a second time as a broken file.
+    listing = {
+      tasks: [],
+      unreadable: [unreadableFile('a'), unreadableFile('b')],
+    };
+    await store.getState().refresh();
+    expect(store.getState().unreadable.map(file => file.slug)).toEqual(['b']);
+
+    settles[0]?.resolve({ task: seed('a', 'done'), layout: {} });
+    await moving;
+    await store.getState().refresh();
+    expect(store.getState().unreadable.map(file => file.slug)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
   it('still applies external edits to unrelated slugs while one is pending', async () => {
     const { fn, settles } = deferredReorder();
     let listing = [seed('a'), seed('b')];
     const store = createBoardStore(
       api({
-        listTasks: vi.fn(async () => ({ tasks: listing, warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: listing,
+          warnings: [],
+          unreadable: [],
+        })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),
     );
@@ -966,7 +1049,11 @@ describe('request sequencing', () => {
     const { fn, settles } = deferredReorder();
     const store = createBoardStore(
       api({
-        listTasks: vi.fn(async () => ({ tasks: [seed('a')], warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: [seed('a')],
+          warnings: [],
+          unreadable: [],
+        })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),
     );
@@ -988,7 +1075,11 @@ describe('request sequencing', () => {
     const store = createBoardStore(
       api({
         getConfig: vi.fn(async () => ({ ...config, layout })),
-        listTasks: vi.fn(async () => ({ tasks: listing, warnings: [] })),
+        listTasks: vi.fn(async () => ({
+          tasks: listing,
+          warnings: [],
+          unreadable: [],
+        })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),
     );
@@ -1021,6 +1112,7 @@ describe('request sequencing', () => {
         listTasks: vi.fn(async () => ({
           tasks: [seed('a'), seed('b')],
           warnings: [],
+          unreadable: [],
         })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),
@@ -1065,6 +1157,7 @@ describe('request sequencing', () => {
         listTasks: vi.fn(async () => ({
           tasks: [seed('a'), seed('b'), seed('c')],
           warnings: [],
+          unreadable: [],
         })),
         reorderTask: fn as unknown as BoardAPI['reorderTask'],
       }),

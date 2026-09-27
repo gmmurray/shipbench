@@ -22,6 +22,7 @@ import {
   reorderTask,
   type StorageAdapter,
   type TaskFrontmatter,
+  UnreadableTaskError,
   unarchiveTask,
   updateTask,
 } from '@shipbench/core';
@@ -83,6 +84,7 @@ function isValidationError(error: unknown): boolean {
 }
 
 function coreErrorStatus(error: unknown): number {
+  if (error instanceof UnreadableTaskError) return 422;
   if (isNotFoundError(error)) return 404;
   if (error instanceof ArchiveBlockedError) return 409;
   if (isValidationError(error)) return 400;

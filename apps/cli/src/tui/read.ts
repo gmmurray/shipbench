@@ -98,6 +98,9 @@ export async function readBoard(
       archived.tasks,
       archivedSlugs,
     );
+    if (live.unreadable.length > 0) {
+      model.unreadableCount = live.unreadable.length;
+    }
     const configWarning = configWarnings[0];
     if (configWarning) {
       model.notice = `${configWarning.path}: ${configWarning.message}`;
