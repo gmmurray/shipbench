@@ -1,5 +1,33 @@
 # @shipbench/board
 
+## 0.5.0
+
+### Minor Changes
+
+- e2d15c9: Show an unreadable Updates section in the task detail view instead of an empty one. A task whose `## Task Updates` section will not parse used to render as "Task Updates 0" with nothing to explain it, because the Board displayed only `depends_on` warnings — so the corruption was invisible in the Board and in Harbor, which inherits the same rendering and is read-only.
+  
+  The section now reports itself: the count reads `unreadable`, the reason the parse failed is announced as an alert, and the preserved text is shown verbatim in a `pre` rather than rendered as Markdown, since rendering it would hide the very markup that broke it. The add-update form is hidden while the section is in this state, matching core, which refuses those mutations until it parses.
+  
+  The read-only shortcut that hid an empty Updates section no longer applies when the section is unreadable. Harbor is read-only everywhere, which makes it the host that most needs this to stay visible.
+- 56be8c8: A task file whose frontmatter does not parse now shows up everywhere instead of disappearing. A hand edit that repeats a key, such as a second `depends_on:`, makes the YAML invalid. Until now, core dropped that file from every read and left a single warning behind. The Board showed nothing, and `task list --json` returned a `tasks` array that looked complete.
+  
+  Core now returns the file itself. `TaskReadResult` has a new required `unreadable` array of `UnreadableTaskFile` entries (`slug`, `path`, the whole file verbatim, and a `reason` that names the file line where it can, such as "Duplicated mapping key at line 5."). The `frontmatter` warning is still there. Frontmatter that parses to a list or a bare value, which used to come through as a task with fields named `0` and `1`, is treated the same way. `getTask` and every mutation now throw an exported `UnreadableTaskError` whose message names the task and the file and whose `file` carries the same record. Before, `getTask` threw the raw js-yaml message, which named neither. Hosts that build a `TaskReadResult` themselves must add `unreadable`.
+  
+  The Board shows these files in an Unreadable column at the leading edge of the board and in the archive view. Each read-only card shows the path, the reason, and the frontmatter exactly as written.
+  
+  `shipbench task list` and `task search` print each file as an `[unreadable]` line after the tasks, whatever the filters, and their JSON has an `unreadable` array (`--include-body` adds the raw `content`). Both still exit `0`, because the read succeeded and the file is in the output. `task get` on such a file fails with the new message. The terminal board shows an "N unreadable" alert, and the board server answers a write to the file with 422.
+
+### Patch Changes
+
+- Updated dependencies [0a42655]
+- Updated dependencies [2617c6b]
+- Updated dependencies [b1e6037]
+- Updated dependencies [d5ad53b]
+- Updated dependencies [ea2df5b]
+- Updated dependencies [56be8c8]
+- Updated dependencies [debafc0]
+  - @shipbench/core@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
