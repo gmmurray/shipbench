@@ -6,6 +6,7 @@ import {
   inspectProjectInitialization,
   ProjectInitializationError,
 } from './init.js';
+import { addComment, getTask } from './tasks.js';
 import type { StorageAdapter } from './types.js';
 
 function memoryAdapter(): StorageAdapter & { files: Map<string, string> } {
@@ -243,6 +244,45 @@ describe('initProject', () => {
     expect(created).toBeGreaterThanOrEqual(before);
     expect(created).toBeLessThanOrEqual(after);
     expect(updated).toBe(created);
+  });
+
+  it('writes a welcome task whose Task Update parses as one timestamped entry', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Test Project' });
+
+    const task = await getTask(adapter, DEFAULT_CONFIG, 'welcome-to-shipbench');
+
+    expect(task).not.toBeNull();
+    expect(task!.unreadableUpdates).toBeUndefined();
+    expect(task!.comments).toEqual([
+      {
+        timestamp: task!.frontmatter.created,
+        text: 'Set up this board with `shipbench init`.',
+      },
+    ]);
+    expect(task!.frontmatter.updated).toBe(task!.frontmatter.created);
+    expect(task!.body).not.toContain('## Task Updates');
+    expect(task!.body).toContain(
+      'shipbench task comment welcome-to-shipbench "What changed and why."',
+    );
+  });
+
+  it('appends a new Update after the welcome task entry', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Test Project' });
+
+    await addComment(
+      adapter,
+      DEFAULT_CONFIG,
+      'welcome-to-shipbench',
+      'Picked the first real task.',
+    );
+    const task = await getTask(adapter, DEFAULT_CONFIG, 'welcome-to-shipbench');
+
+    expect(task!.comments.map(comment => comment.text)).toEqual([
+      'Set up this board with `shipbench init`.',
+      'Picked the first real task.',
+    ]);
   });
 
   it('writes a welcome task whose status matches the default column', async () => {

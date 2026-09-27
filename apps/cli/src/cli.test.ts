@@ -1261,6 +1261,9 @@ describe('shipbench task move placement', () => {
 });
 
 describe('shipbench task comment', () => {
+  // `init` scaffolds one Update on the welcome task; these tests add theirs after it.
+  const SCAFFOLDED = 1;
+
   it('appends a timestamped Updates entry end to end', async () => {
     const h = harness();
     await h.run('init');
@@ -1287,16 +1290,18 @@ describe('shipbench task comment', () => {
     await h.run('task', 'get', 'welcome-to-shipbench');
     const payload = JSON.parse(h.stdout.join('\n'));
     expect(payload.body).toContain('Your ShipBench project board');
-    expect(payload.comments).toEqual([
+    expect(payload.comments.slice(SCAFFOLDED)).toEqual([
       {
         timestamp: expect.any(String),
         text: 'Scope expanded after review.',
       },
     ]);
-    const timestamp = Date.parse(payload.comments[0].timestamp);
+    const timestamp = Date.parse(payload.comments[SCAFFOLDED].timestamp);
     expect(timestamp).toBeGreaterThanOrEqual(before);
     expect(timestamp).toBeLessThanOrEqual(after);
-    expect(payload.frontmatter.updated).toBe(payload.comments[0].timestamp);
+    expect(payload.frontmatter.updated).toBe(
+      payload.comments[SCAFFOLDED].timestamp,
+    );
   });
 
   it('rejects blank update text', async () => {
@@ -1330,7 +1335,7 @@ describe('shipbench task comment', () => {
 
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
-    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+    expect(JSON.parse(h.stdout.join('\n')).comments.slice(SCAFFOLDED)).toEqual([
       { timestamp: expect.any(String), text },
     ]);
   });
@@ -1343,7 +1348,7 @@ describe('shipbench task comment', () => {
 
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
-    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+    expect(JSON.parse(h.stdout.join('\n')).comments.slice(SCAFFOLDED)).toEqual([
       { timestamp: expect.any(String), text: 'Piped update.' },
     ]);
   });
@@ -1354,8 +1359,9 @@ describe('shipbench task comment', () => {
     await h.run('task', 'comment', 'welcome-to-shipbench', 'Original.');
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
-    const originalTimestamp = JSON.parse(h.stdout.join('\n')).comments[0]
-      .timestamp;
+    const originalTimestamp = JSON.parse(h.stdout.join('\n')).comments[
+      SCAFFOLDED
+    ].timestamp;
 
     const dir = await mkdtemp(join(tmpdir(), 'shipbench-update-'));
     const path = join(dir, 'update.md');
@@ -1366,7 +1372,7 @@ describe('shipbench task comment', () => {
         'comment',
         'edit',
         'welcome-to-shipbench',
-        '0',
+        String(SCAFFOLDED),
         '--body-file',
         path,
       );
@@ -1376,7 +1382,7 @@ describe('shipbench task comment', () => {
 
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
-    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+    expect(JSON.parse(h.stdout.join('\n')).comments.slice(SCAFFOLDED)).toEqual([
       {
         timestamp: originalTimestamp,
         text: '## Corrected\n\nWith a heading.',
@@ -1420,7 +1426,7 @@ describe('shipbench task comment', () => {
     h.stderr.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
     expect(h.stderr).toEqual([]);
-    expect(JSON.parse(h.stdout.join('\n')).comments).toEqual([
+    expect(JSON.parse(h.stdout.join('\n')).comments.slice(SCAFFOLDED)).toEqual([
       { timestamp: expect.any(String), text },
     ]);
   });
@@ -1458,7 +1464,7 @@ describe('shipbench task comment', () => {
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
     const appended = JSON.parse(h.stdout.join('\n'));
-    const originalTimestamp = appended.comments[0].timestamp;
+    const originalTimestamp = appended.comments[SCAFFOLDED].timestamp;
 
     h.stdout.length = 0;
     h.stderr.length = 0;
@@ -1467,16 +1473,18 @@ describe('shipbench task comment', () => {
       'comment',
       'edit',
       'welcome-to-shipbench',
-      '0',
+      String(SCAFFOLDED),
       'Corrected decision.',
     );
     expect(h.stdout).toEqual([]);
-    expect(h.stderr).toEqual(['Edited update 0 on welcome-to-shipbench']);
+    expect(h.stderr).toEqual([
+      `Edited update ${SCAFFOLDED} on welcome-to-shipbench`,
+    ]);
 
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
     const edited = JSON.parse(h.stdout.join('\n'));
-    expect(edited.comments).toEqual([
+    expect(edited.comments.slice(SCAFFOLDED)).toEqual([
       {
         timestamp: originalTimestamp,
         text: 'Corrected decision.',
@@ -1485,14 +1493,25 @@ describe('shipbench task comment', () => {
 
     h.stdout.length = 0;
     h.stderr.length = 0;
-    await h.run('task', 'comment', 'delete', 'welcome-to-shipbench', '0');
+    await h.run(
+      'task',
+      'comment',
+      'delete',
+      'welcome-to-shipbench',
+      String(SCAFFOLDED),
+    );
     expect(h.stdout).toEqual([]);
-    expect(h.stderr).toEqual(['Deleted update 0 from welcome-to-shipbench']);
+    expect(h.stderr).toEqual([
+      `Deleted update ${SCAFFOLDED} from welcome-to-shipbench`,
+    ]);
 
     h.stdout.length = 0;
     await h.run('task', 'get', 'welcome-to-shipbench');
     const deleted = JSON.parse(h.stdout.join('\n'));
-    expect(deleted.comments).toEqual([]);
+    expect(deleted.comments).toEqual(edited.comments.slice(0, SCAFFOLDED));
+
+    // Deleting the last entry removes the section heading too.
+    await h.run('task', 'comment', 'delete', 'welcome-to-shipbench', '0');
     expect(
       h.adapter.files.get('.shipbench/tasks/welcome-to-shipbench.md'),
     ).not.toContain('## Task Updates');

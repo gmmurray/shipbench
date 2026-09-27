@@ -1,13 +1,13 @@
 ---
 title: Show a Task Update in the welcome task shipbench init scaffolds
-status: todo
+status: done
 priority: medium
 tags:
   - onboarding
   - core
   - init
 created: '2026-09-23T21:46:02.421Z'
-updated: '2026-09-23T21:46:02.421Z'
+updated: '2026-09-27T19:02:48.234Z'
 ---
 
 The welcome task `shipbench init` scaffolds (`generateWelcomeTask` in `packages/core/src/init.ts`) shows frontmatter, a description, and next steps. It has no `## Task Updates` section, so a new board never shows a timestamped entry, even though the site now presents Task Updates as half of what a task is for. The landing page, quickstart step 4, and both why pages all point at recording a decision on a task and finding it again. The first file a new user opens doesn't show it.
@@ -28,3 +28,10 @@ Refreshing files scaffolded into existing projects when ShipBench updates is [up
 ## Origin
 
 Proposed in the next-steps assessment of [strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps](strengthen-and-correct-shipbench-s-public-explanation-across-the-site-and-docs-then-assess-next-steps.md). It passes that task's durability filter: it teaches the convention itself and isn't tied to any agent's limits.
+
+## Task Updates
+
+### 2026-09-27T19:01:24.739Z
+Implemented. The scaffolded entry reads "Set up this board with `shipbench init`." It records the board's creation, an event that needs its date, and doesn't explain Updates inside an Update. The explanation stays in the description's new next-steps line, which uses the welcome task's own slug so the command runs as written.
+
+Six CLI `task comment` tests assumed a fresh welcome task had no Updates. They now act on the entries they add after the scaffolded one, and the delete test still removes the last entry to show the `## Task Updates` heading goes with it. The changeset names `shipbench` at minor because an appended Update now lands at index 1 instead of 0.

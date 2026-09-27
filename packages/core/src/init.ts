@@ -506,7 +506,13 @@ Your ShipBench project board for **${name}** is set up and ready to go.
 
 - Create new tasks with \`shipbench task create "My first task"\`
 - Open the board with \`shipbench board\`, or watch it in a terminal pane with \`shipbench board terminal\`
+- Record a decision with \`shipbench task comment welcome-to-shipbench "What changed and why."\` It lands under Task Updates with a timestamp, like the entry below.
 - Edit this file or delete it when you're ready
+
+## Task Updates
+
+### ${now}
+Set up this board with \`shipbench init\`.
 `;
 }
 
