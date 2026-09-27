@@ -405,8 +405,9 @@ warning count.
 Auto-generated `--help` and `-v, --version` via commander. Distribution: the CLI bundles `@shipbench/core` and `gray-matter` (CJS) into a single ESM file via tsup, and is installable globally via `pnpm link --global` or npm.
 
 **Search.** `searchTasks` in `@shipbench/core` is the shared lexical retrieval
-contract. The CLI is its first consumer; the Board implements the same semantics
-against loaded live tasks (see the board-search work). It is lexical only — no
+contract. The CLI and the Board both call it: the CLI over the location it was
+asked for, the Board over its loaded live tasks (see **On the Board** below). It
+is lexical only — no
 account, no model service — and stays that way unless measured misses justify a
 separate investigation.
 
@@ -422,7 +423,8 @@ separate investigation.
   internal whitespace matching any whitespace run so a phrase survives a line
   break; an empty or unbalanced quote is dropped. `--whole-word` matches every
   term (loose or quoted) on word boundaries, so `ci` stops matching `decision`.
-  The grammar lives in `searchTasks`, so the Board inherits it verbatim. The CLI
+  The grammar lives in `searchTasks`, so the Board's search field accepts the
+  same quoted phrases; it has no whole-word control. The CLI
   passes literal quote characters through in the `<query>` argument, so a phrase
   has to be protected from the shell (`task search '"token exchange"'`).
 - **Result context.** Each match reports `slug`, `title`, current `status`,
@@ -439,9 +441,10 @@ separate investigation.
   tags, then body, then Updates) scaled by how many query terms that field
   covers, so a task carrying more of the query in a stronger field ranks higher.
   Ties break toward the more recently `updated` task, then fall back to the
-  caller's input order. Ranking lives in `searchTasks` itself, so the Board
-  inherits the same order when its description-search work adopts the shared
-  function.
+  caller's input order. Ranking lives in `searchTasks` itself. The Board
+  deliberately does not apply it: a column's order is its manual layout (or
+  `updated` desc in the done column), and search only hides the cards that do
+  not match.
 - **Omitted matches.** `--limit` still truncates, but no longer silently. JSON
   carries `total_matches` (the count before the limit); text output ends with a
   `… N of M matches not shown (raise --limit)` line whenever the limit drops any
@@ -456,9 +459,19 @@ separate investigation.
   availability is a live-column concept and cannot combine with `--archived` /
   `--all`. Filtering only narrows which tasks are searched; it never changes the
   relevance ordering above.
-- **Staged, not in this increment.** Semantic retrieval — a dedicated task. The
-  Board's description-search correction implements the corpus, precision, and
-  result-context contract above and need not wait for it.
+- **On the Board.** The search field runs `searchTasks` over the loaded live
+  tasks, with each card's slug and assignee added to the corpus. Those two are
+  printed on every card, and board search matched them before it matched
+  descriptions, so those lookups keep working. When some term appears only in a
+  task's description or Updates, the card shows where it was found: the body
+  snippet, or else the first matching Update's excerpt with its timestamp, plus
+  a count of any other matching Updates. A card whose title, slug, assignee, or
+  tags already show every term adds nothing. The zero-result state names the
+  corpus and, where the host has an archive view, says archived tasks are not
+  searched and offers the archive filter. That filter runs the same search over
+  the archive the view has already fetched, with the saved status added to the
+  corpus.
+- **Staged, not in this increment.** Semantic retrieval — a dedicated task.
 
 **Harbor opt-in.** Without any `--harbor` flag, the CLI has zero knowledge of Harbor. The `--harbor` family of flags is the only surface where the CLI talks to a hosted service.
 

@@ -21,13 +21,15 @@ import {
 import type {
   ShipbenchConfig,
   Task,
+  TaskSearchMatch,
   UnreadableTaskFile,
 } from '@shipbench/core';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import { useMemo, useState } from 'react';
 import { RxArchive, RxMagnifyingGlass, RxPlus } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
-import { getVisibleTasks, UNCATEGORIZED_STATUS } from '../store/boardStore.js';
+import { searchBoardTasks } from '../store/boardSearch.js';
+import { UNCATEGORIZED_STATUS } from '../store/boardStore.js';
 import { NewTaskDialog } from './NewTaskDialog.js';
 import { TaskCard } from './TaskCard.js';
 import { UnreadableTaskCard } from './UnreadableTaskCard.js';
@@ -188,10 +190,11 @@ export function KanbanBoard() {
   const reorderTask = useBoardStore(state => state.reorderTask);
   const readOnly = useBoardStore(state => state.readOnly);
   const openArchive = useBoardStore(state => state.openArchive);
-  const visibleTasks = useMemo(
-    () => getVisibleTasks(tasks, searchQuery),
+  const search = useMemo(
+    () => searchBoardTasks(tasks, searchQuery),
     [tasks, searchQuery],
   );
+  const visibleTasks = search.tasks;
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
   const [previewPosition, setPreviewPosition] = useState<number>(-1);
@@ -315,6 +318,10 @@ export function KanbanBoard() {
           <p className="mt-3 font-mono text-[13px] text-sb-frosted">
             No live tasks match “{searchQuery.trim()}”.
           </p>
+          <p className="mt-2 text-[12px] text-sb-silver">
+            Search looks in titles, descriptions, Task Updates, tags, slugs, and
+            assignees.
+          </p>
           {readOnly ? null : (
             <>
               <p className="mt-2 text-[12px] text-sb-silver">
@@ -345,6 +352,7 @@ export function KanbanBoard() {
             id={column.id}
             label={column.label}
             tasks={column.tasks}
+            searchContext={search.contextBySlug}
             capMax={
               column.isDone && !searchQuery.trim()
                 ? (config.done_display?.max ?? 0)
@@ -376,6 +384,7 @@ export function KanbanBoard() {
               id={column.id}
               label={column.label}
               tasks={column.tasks}
+              searchContext={search.contextBySlug}
               activeSlug={activeSlug}
               // The done column time-sorts, so a drop position there carries no
               // meaning — highlight the column but draw no insertion line.
@@ -408,7 +417,11 @@ export function KanbanBoard() {
 
       <DragOverlay dropAnimation={null}>
         {activeTask ? (
-          <TaskCard task={activeTask} status={activeTask.frontmatter.status} />
+          <TaskCard
+            task={activeTask}
+            status={activeTask.frontmatter.status}
+            searchMatch={search.contextBySlug.get(activeTask.slug)}
+          />
         ) : null}
       </DragOverlay>
     </DndContext>
@@ -419,11 +432,14 @@ function StaticBoardColumn({
   id,
   label,
   tasks,
+  searchContext,
   capMax,
 }: {
   id: string;
   label: string;
   tasks: Task[];
+  /** Content matches from the active search, keyed by slug. */
+  searchContext: ReadonlyMap<string, TaskSearchMatch>;
   /** Cap on visible tasks. `0` or negative disables the cap. */
   capMax: number;
 }) {
@@ -436,7 +452,13 @@ function StaticBoardColumn({
   const body =
     tasks.length > 0 ? (
       visible.map(task => (
-        <TaskCard key={task.slug} task={task} status={id} draggable={false} />
+        <TaskCard
+          key={task.slug}
+          task={task}
+          status={id}
+          draggable={false}
+          searchMatch={searchContext.get(task.slug)}
+        />
       ))
     ) : (
       <ColumnEmptyPlaceholder />
@@ -563,6 +585,7 @@ function BoardColumn({
   id,
   label,
   tasks,
+  searchContext,
   activeSlug,
   indicatorIndex,
   sortable,
@@ -574,6 +597,8 @@ function BoardColumn({
   id: string;
   label: string;
   tasks: Task[];
+  /** Content matches from the active search, keyed by slug. */
+  searchContext: ReadonlyMap<string, TaskSearchMatch>;
   activeSlug: string | null;
   /**
    * Index in `tasks` to draw the insertion line before; `tasks.length` draws it
@@ -619,6 +644,7 @@ function BoardColumn({
             status={id}
             draggable={sortable}
             isPlaceholder={activeSlug === task.slug}
+            searchMatch={searchContext.get(task.slug)}
           />
           {line === visible.length && index === visible.length - 1 ? (
             <DropIndicator tail />

@@ -662,27 +662,6 @@ export function createBoardStore(api: BoardAPI): BoardStore {
   return store;
 }
 
-export function getVisibleTasks(tasks: Task[], searchQuery: string): Task[] {
-  const query = searchQuery.trim().toLowerCase();
-
-  if (!query) {
-    return tasks;
-  }
-
-  return tasks.filter(task => {
-    const haystack = [
-      task.slug,
-      task.frontmatter.title,
-      task.frontmatter.assignee ?? '',
-      ...(task.frontmatter.tags ?? []),
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    return haystack.includes(query);
-  });
-}
-
 /**
  * Fold a server read into local state without trampling in-flight mutations.
  *

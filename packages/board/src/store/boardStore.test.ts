@@ -1,7 +1,7 @@
 import type { BoardAPI, ShipbenchConfig, Task } from '@shipbench/core';
 import { toast } from 'sonner';
 import { describe, expect, it, vi } from 'vitest';
-import { createBoardStore, getVisibleTasks } from './boardStore.js';
+import { createBoardStore } from './boardStore.js';
 
 const config: ShipbenchConfig = {
   version: 1,
@@ -684,27 +684,7 @@ describe('createBoardStore', () => {
   });
 });
 
-describe('getVisibleTasks', () => {
-  it('matches title, slug, assignee, and tags case-insensitively', () => {
-    const tasks = [
-      task(),
-      task({
-        slug: 'write-docs',
-        frontmatter: {
-          ...task().frontmatter,
-          title: 'Write docs',
-          assignee: 'Ada',
-          tags: ['docs'],
-        },
-      }),
-    ];
-
-    expect(getVisibleTasks(tasks, 'AUTH')).toHaveLength(1);
-    expect(getVisibleTasks(tasks, 'ada')).toHaveLength(1);
-    expect(getVisibleTasks(tasks, 'write-docs')).toHaveLength(1);
-    expect(getVisibleTasks(tasks, 'missing')).toHaveLength(0);
-  });
-
+describe('updateTask', () => {
   describe('status changes via updateTask', () => {
     it('sends the full fields (including status) in a single updateTask call and applies the returned layout', async () => {
       const customConfig: ShipbenchConfig = {

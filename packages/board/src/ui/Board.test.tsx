@@ -194,6 +194,68 @@ describe('Board', () => {
     expect(screen.getByText('Lost task')).toBeInTheDocument();
   });
 
+  it('finds a task by its description and shows where the term was found', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    await user.type(screen.getByPlaceholderText('Search tasks'), 'oauth');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
+    });
+    const card = screen.getByText('Setup auth').closest('article');
+    expect(card).toHaveTextContent('Found in description');
+    expect(card).toHaveTextContent('## Notes Use OAuth.');
+  });
+
+  it('finds a task by a Task Update and shows the Update’s timestamp', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    await user.type(screen.getByPlaceholderText('Search tasks'), 'pkce');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
+    });
+    const card = screen.getByText('Setup auth').closest('article');
+    expect(card).toHaveTextContent('Found in Update ·');
+    expect(card).toHaveTextContent(
+      'Switched to PKCE after the security review.',
+    );
+    expect(
+      container.querySelector('time[datetime="2026-06-01T12:30:00.000Z"]'),
+    ).not.toBeNull();
+  });
+
+  it('shows no match context when the card already shows the term', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api()} />);
+
+    await screen.findByText('Setup auth');
+    await user.type(screen.getByPlaceholderText('Search tasks'), 'trinity');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Found in/)).not.toBeInTheDocument();
+  });
+
+  it('says what search covers when nothing matches', async () => {
+    const user = userEvent.setup();
+    render(<Board api={api({ readOnly: true })} />);
+
+    await screen.findByText('Setup auth');
+    await user.type(screen.getByPlaceholderText('Search tasks'), 'nowhere');
+
+    expect(
+      await screen.findByText(
+        'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('lazily opens, filters, and restores tasks from the archive view', async () => {
     const user = userEvent.setup();
     const archivedTask: Task = {
@@ -284,6 +346,39 @@ describe('Board', () => {
       screen.getByRole('textbox', { name: 'Filter archived tasks' }),
     ).toHaveValue('buried');
     expect(listArchivedTasks).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters the archive by description text the same way', async () => {
+    const user = userEvent.setup();
+    const archivedTask: Task = {
+      ...tasks[0]!,
+      slug: 'filed-task',
+      frontmatter: {
+        ...tasks[0]!.frontmatter,
+        title: 'Filed task',
+        status: 'done',
+      },
+      body: 'Dropped because the copy was never concise enough.',
+      comments: [],
+    };
+    const listArchivedTasks = vi.fn(async () => ({
+      tasks: [archivedTask],
+      warnings: [],
+      unreadable: [],
+    }));
+    render(<Board api={api({ listArchivedTasks })} />);
+
+    await screen.findByText('Setup auth');
+    await user.click(screen.getByRole('button', { name: 'Archive' }));
+    await screen.findByText('Filed task');
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Filter archived tasks' }),
+      'concise',
+    );
+    const row = screen.getByRole('list', { name: 'Archived tasks' });
+    expect(row).toHaveTextContent('Filed task');
+    expect(row).toHaveTextContent('Found in description');
   });
 
   const unreadableSection = [

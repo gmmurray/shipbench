@@ -106,6 +106,16 @@ Import ordering helpers from `@shipbench/core/layout`, never the package root â€
 the root re-exports `FsAdapter`, which pulls in `node:fs` and will break a
 browser bundle.
 
+## The `/search` subpath
+
+`searchTasks` is the lexical search the CLI's `task search` runs. A browser
+host that wants the same matching, snippets, and Update context imports it
+from its own pure subpath, for the same reason as `/layout`:
+
+```ts
+import { searchTasks } from '@shipbench/core/search';
+```
+
 ## License
 
 MIT

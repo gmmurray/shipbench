@@ -1,6 +1,6 @@
 ---
 title: Make task descriptions discoverable through board search
-status: todo
+status: done
 priority: high
 tags:
   - board
@@ -9,7 +9,7 @@ tags:
 depends_on:
   - make-cli-search-retrieve-recorded-decisions-with-useful-context
 created: '2026-09-05T21:33:38.341Z'
-updated: '2026-09-25T03:21:47.583Z'
+updated: '2026-09-27T18:44:36.122Z'
 ---
 
 A person returning to a project may remember a phrase from its reasoning rather than a task title. The September 5 evaluation created a task with "concise" only in its description. The CLI's task search found it with a body snippet; the browser board's "Search tasks" field reported no matching live tasks.
@@ -61,3 +61,15 @@ Reuse: `searchTasks` in packages/core/src/search.ts is the contract in code. `Ta
 
 ### 2026-09-25T03:21:47.583Z
 When this lands, update the last item under Limits in apps/site/src/content/docs/decision-trail.md. It currently says the local board's search matches task titles only.
+
+### 2026-09-27T18:43:56.359Z
+Implemented against the settled contract. Decisions made along the way:
+
+- **One function, both surfaces.** The Board calls core's `searchTasks` through a new pure `@shipbench/core/search` subpath (same shape as `/layout`; biome now blocks importing it from the barrel). AGENTS.md's "one runtime exception" paragraph now names both subpaths.
+- **Slug and assignee stay searchable.** They are added to the corpus as extra tags before `searchTasks` runs, so per-term semantics hold across them: `claude oauth` finds a task assigned to claude that mentions OAuth. The CLI corpus is unchanged.
+- **No relevance reordering on the board.** Search hides cards; columns keep layout order and the done column keeps its time sort. Ranking would overwrite the one thing a column's position means. The spec's Ordering bullet said the Board would inherit ranking; it now says it deliberately doesn't.
+- **Match context only when the card can't explain the hit.** If every term is already visible on the card face (title, slug, assignee, tags), nothing is added. Otherwise a "Found in" block shows the description snippet, or the first matching Update's excerpt with its timestamp, plus "Also in N Task Updates". No "current" labels.
+- **Archive boundary unchanged.** Live search still never reads the archive. The empty state now lists the corpus; the archive view's filter (which already had the archive loaded) uses the same search, so the "Search archive" hand-off finds description matches too.
+- No whole-word toggle on the board; quoted phrases work because the grammar is in core.
+
+Verified in Chromium against this repo's own board via `board web`: `concise` finds the two live tasks that carry it only in their descriptions, each with a description snippet; `"shared search contract"` finds two tasks via Updates with timestamps. decision-trail.md's Limits item is updated per the previous Update.

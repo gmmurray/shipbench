@@ -87,7 +87,7 @@ path-filtered to changes that can actually affect the site. See
 
 ```
 core ← cli (core + FsAdapter, and board's standalone bundle at runtime)
-core ← board (core types, plus the pure `@shipbench/core/layout` subpath)
+core ← board (core types, plus the pure `@shipbench/core/layout` and `@shipbench/core/search` subpaths)
 ```
 
 The core library is the foundation; the Board UI and CLI are consumers. `apps/site` depends on none of them — it is a standalone Astro site.
@@ -116,14 +116,16 @@ Standalone React app that accepts a `BoardAPI` interface at initialization. The 
 
 The `BoardAPI` contract is defined in core's type exports. The Board imports types from core but never imports adapter implementations or business logic.
 
-**The one runtime exception: `@shipbench/core/layout`.** Manual task ordering
-(`layoutAfterMove`, `layoutWithoutTask`, `orderedTasksForColumn`) is shared
-contract, not business logic — the Board's optimistic updates have to produce the
-same layout core writes, and keeping a second copy in the Board is what let the
-two drift (see [docs/audits/board-move-algorithm-audit.md](docs/audits/board-move-algorithm-audit.md)).
-That module is pure, does no I/O, and imports only types.
+**The runtime exceptions: `@shipbench/core/layout` and `@shipbench/core/search`.**
+Manual task ordering (`layoutAfterMove`, `layoutWithoutTask`,
+`orderedTasksForColumn`) is shared contract, not business logic — the Board's
+optimistic updates have to produce the same layout core writes, and keeping a
+second copy in the Board is what let the two drift (see [docs/audits/board-move-algorithm-audit.md](docs/audits/board-move-algorithm-audit.md)).
+`searchTasks` is shared for the same reason: a query has to mean the same thing
+on the board as in `shipbench task search`. Both modules are pure, do no I/O,
+and import only types.
 
-Import it from the **subpath**, never the barrel. `@shipbench/core` re-exports
+Import them from their **subpaths**, never the barrel. `@shipbench/core` re-exports
 `FsAdapter`, which imports `node:fs` — pulling the barrel into the Board breaks
 the Vite browser build. Types are safe from either (`import type` is erased), but
 any *value* the Board needs from core must live behind a pure subpath.

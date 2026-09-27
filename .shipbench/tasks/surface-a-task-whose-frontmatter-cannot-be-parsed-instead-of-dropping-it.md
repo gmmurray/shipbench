@@ -1,6 +1,6 @@
 ---
 title: Surface a task whose frontmatter cannot be parsed instead of dropping it
-status: review
+status: done
 priority: high
 tags:
   - core
@@ -8,7 +8,7 @@ tags:
   - cli
   - validation
 created: '2026-09-19T23:05:04.474Z'
-updated: '2026-09-26T21:18:43.804Z'
+updated: '2026-09-27T18:28:05.044Z'
 ---
 
 An agent working in a ShipBench project hand-edited frontmatter into two tasks

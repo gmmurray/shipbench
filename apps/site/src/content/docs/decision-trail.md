@@ -82,4 +82,4 @@ doesn't cover it.
 - Nothing is captured automatically. Decisions that weren't written down can't be found.
 - Updates record what someone believed at the time. A later Update can correct an earlier one, and it's worth doing when a decision changes.
 - Links to a task point at its path in `tasks/`. Once that task is archived it moves to `tasks/archive/`, so the link stops opening it on the board. `task search --all` still finds it by slug.
-- The local board's search matches task titles only. Use the CLI to search descriptions and Updates.
+- The board's search covers descriptions and Updates, but only for live tasks. Use `task search --all` to include archived ones.

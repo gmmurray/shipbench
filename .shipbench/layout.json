@@ -1,6 +1,5 @@
 {
   "todo": [
-    "make-task-descriptions-discoverable-through-board-search",
     "add-a-complete-project-resumption-and-agent-handoff-walkthrough",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
@@ -26,7 +25,5 @@
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory"
   ],
   "in-progress": [],
-  "review": [
-    "surface-a-task-whose-frontmatter-cannot-be-parsed-instead-of-dropping-it"
-  ]
+  "review": []
 }

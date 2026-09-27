@@ -1,9 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Task } from '@shipbench/core';
+import type { Task, TaskSearchMatch } from '@shipbench/core';
 import { RxLink2 } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { PriorityMeter } from './PriorityMeter.js';
+import { SearchMatchContext } from './SearchMatchContext.js';
 
 /**
  * Shared empty fallback for store selectors. zustand v5 reads through a plain
@@ -21,6 +22,8 @@ interface TaskCardProps {
   draggable?: boolean;
   /** When true, render the card as a placeholder shadow (overlay handles the real one). */
   isPlaceholder?: boolean;
+  /** Set during a search the card face cannot explain; shows where it matched. */
+  searchMatch?: TaskSearchMatch | undefined;
 }
 
 export function TaskCard({
@@ -28,6 +31,7 @@ export function TaskCard({
   status,
   draggable = false,
   isPlaceholder = false,
+  searchMatch,
 }: TaskCardProps) {
   if (draggable) {
     return (
@@ -35,20 +39,23 @@ export function TaskCard({
         task={task}
         status={status}
         isPlaceholder={isPlaceholder}
+        searchMatch={searchMatch}
       />
     );
   }
-  return <StaticTaskCard task={task} />;
+  return <StaticTaskCard task={task} searchMatch={searchMatch} />;
 }
 
 function SortableTaskCard({
   task,
   status,
   isPlaceholder,
+  searchMatch,
 }: {
   task: Task;
   status: string;
   isPlaceholder: boolean;
+  searchMatch: TaskSearchMatch | undefined;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
@@ -63,7 +70,11 @@ function SortableTaskCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <StaticTaskCard task={task} dimmed={isPlaceholder} />
+      <StaticTaskCard
+        task={task}
+        dimmed={isPlaceholder}
+        searchMatch={searchMatch}
+      />
     </div>
   );
 }
@@ -71,9 +82,11 @@ function SortableTaskCard({
 function StaticTaskCard({
   task,
   dimmed = false,
+  searchMatch,
 }: {
   task: Task;
   dimmed?: boolean;
+  searchMatch: TaskSearchMatch | undefined;
 }) {
   const selectTask = useBoardStore(state => state.selectTask);
   const errorAt = useBoardStore(state => state.errorAtBySlug[task.slug]);
@@ -140,6 +153,8 @@ function StaticTaskCard({
             </span>
           ) : null}
         </div>
+
+        {searchMatch ? <SearchMatchContext match={searchMatch} /> : null}
       </button>
     </article>
   );

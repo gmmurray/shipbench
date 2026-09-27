@@ -1,8 +1,20 @@
 import { useMemo, useState } from 'react';
 import { RxArchive, RxMagnifyingGlass, RxReset } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
+import { type CardFace, searchBoardTasks } from '../store/boardSearch.js';
 import { relativeTime } from '../utils/time.js';
+import { SearchMatchContext } from './SearchMatchContext.js';
 import { UnreadableTaskCard } from './UnreadableTaskCard.js';
+
+/**
+ * An archive row shows the slug and saved status beside the title. Assignee
+ * stays searchable here as it was before the archive filter used core search.
+ */
+const archiveRowFace: CardFace = task => [
+  task.slug,
+  task.frontmatter.status,
+  ...(task.frontmatter.assignee ? [task.frontmatter.assignee] : []),
+];
 
 export function ArchiveView() {
   const archivedTasks = useBoardStore(state => state.archivedTasks);
@@ -18,26 +30,21 @@ export function ArchiveView() {
     () => new Set(),
   );
 
-  const filteredTasks = useMemo(() => {
-    const query = filter.trim().toLowerCase();
-    const matches = (archivedTasks ?? []).filter(task => {
-      if (!query) return true;
-      return [
-        task.frontmatter.title,
-        task.slug,
-        task.frontmatter.status,
-        task.frontmatter.assignee ?? '',
-        ...(task.frontmatter.tags ?? []),
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(query);
-    });
-    return matches.sort(
-      (a, b) =>
-        Date.parse(b.frontmatter.updated) - Date.parse(a.frontmatter.updated),
+  const search = useMemo(() => {
+    const result = searchBoardTasks(
+      archivedTasks ?? [],
+      filter,
+      archiveRowFace,
     );
+    return {
+      ...result,
+      tasks: result.tasks.sort(
+        (a, b) =>
+          Date.parse(b.frontmatter.updated) - Date.parse(a.frontmatter.updated),
+      ),
+    };
   }, [archivedTasks, filter]);
+  const filteredTasks = search.tasks;
 
   const restore = async (slug: string) => {
     setRestoringSlugs(current => new Set(current).add(slug));
@@ -140,6 +147,7 @@ export function ArchiveView() {
           <ul aria-label="Archived tasks" className="space-y-2">
             {filteredTasks.map(task => {
               const restoring = restoringSlugs.has(task.slug);
+              const searchMatch = search.contextBySlug.get(task.slug);
               return (
                 <li
                   className="flex flex-col gap-3 rounded-md border border-sb-iron bg-sb-surface p-3 transition-colors hover:border-sb-silver sm:flex-row sm:items-center sm:justify-between"
@@ -152,6 +160,9 @@ export function ArchiveView() {
                     <p className="mt-0.5 truncate font-mono text-[11px] text-sb-silver">
                       {task.slug}
                     </p>
+                    {searchMatch ? (
+                      <SearchMatchContext match={searchMatch} />
+                    ) : null}
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">

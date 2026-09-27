@@ -82,9 +82,15 @@ Pattern for every mutation:
 
 ### Search
 
-Search filters tasks **client-side from the store**, not by re-querying the API. Search input is debounced ~200ms before updating `searchQuery` to avoid re-rendering on every keystroke. Match is case-insensitive substring against title, slug, tags, and assignee.
+Search filters tasks **client-side from the store**, not by re-querying the API. Search input is debounced ~200ms before updating `searchQuery` to avoid re-rendering on every keystroke.
 
-**Search never reaches the archive.** Archived tasks (`tasks/archive/`) are not loaded on the board's hot path, so they cannot match. The zero-results state says so explicitly and links into the archive view, whose own client-side filter covers archived retrieval. The archive view fetches `listArchivedTasks` lazily on first open and lists by `updated` desc — the same sort key as the done column, so the capped done column and the archive read as one continuous timeline (deliberately no `archived_at` field; Git records filing time).
+Matching is core's `searchTasks`, imported from the pure `@shipbench/core/search` subpath, so a query means the same thing on the board as in `shipbench task search`: every whitespace-separated term (or double-quoted phrase) must occur, case-insensitively, in the title, a tag, the description, or a Task Updates entry. The board adds the slug and assignee to that corpus because every card prints them. The contract itself is in [the spec](../spec.md) under the CLI's **Search** heading; `searchBoardTasks` in `store/boardSearch.ts` is the board side.
+
+Search hides cards and never reorders them. Columns keep their layout order, and the done column keeps its time sort, but its display cap is lifted while a query is active.
+
+**Match context.** A card that matched only because of its content says so. When any term is missing from what the card already shows (title, slug, assignee, tags), the card adds a "Found in" block below its chips: the description snippet, or else the first matching Update's excerpt with its timestamp, then "Also in N Task Updates" for the rest. Updates show a timestamp and never a "current" label. The card's column is the task's present state, and an Update records what was said at the time.
+
+**Search never reaches the archive.** Archived tasks (`tasks/archive/`) are not loaded on the board's hot path, so they cannot match. The zero-results state names what search covers, says archived tasks aren't searched, and links into the archive view. The archive view's own client-side filter runs the same search over the archive it has already fetched, with the saved status added to the corpus, and shows the same match context. The archive view fetches `listArchivedTasks` lazily on first open and lists by `updated` desc — the same sort key as the done column, so the capped done column and the archive read as one continuous timeline (deliberately no `archived_at` field; Git records filing time).
 
 ## Sync model
 
