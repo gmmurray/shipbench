@@ -1,12 +1,12 @@
 ---
 title: Let host apps size the board with CSS variables
-status: todo
+status: review
 priority: medium
 tags:
   - board
   - ui
 created: '2026-09-23T21:25:59.783Z'
-updated: '2026-09-23T21:25:59.783Z'
+updated: '2026-09-27T19:52:10.307Z'
 ---
 
 The board assumes it owns the whole browser window. It sizes itself against
@@ -93,3 +93,10 @@ docs stay as they are.
   This guards against a default on `.sb-board-root` shadowing it.
 - Add a changeset, since this changes `@shipbench/board`. Outside hosts get it
   only through a board release.
+
+## Task Updates
+
+### 2026-09-27T19:52:10.218Z
+The class changes are checked two ways, because Vitest doesn't load Tailwind. A production build confirmed each class compiles to the intended rule, for example `min-height: var(--sb-viewport-h,100vh)` and `top: calc(var(--sb-sticky-top,0px) + var(--sb-header-h) + 1.25rem)`. The tests load the real `styles.css` into jsdom, which cascades custom properties, so a default declared anywhere in the sheet would show up as a shadowed host value. Adding `--sb-viewport-h: 100vh` to `.sb-board-root` as a check made both new tests fail.
+
+The tests read `styles.css` with `node:fs` instead of a `?raw` import. The board's tsconfig carries no Vite client types, and adding them only for this test wasn't worth it.

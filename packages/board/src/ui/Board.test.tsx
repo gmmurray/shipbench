@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { BoardAPI, ShipbenchConfig, Task } from '@shipbench/core';
 import {
   act,
@@ -13,6 +15,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createBoard } from '../index.js';
 import { Board } from './Board.js';
 
 const config: ShipbenchConfig = {
@@ -742,13 +745,19 @@ describe('Board', () => {
     await user.click(await screen.findByText('Setup auth'));
 
     expect(container.querySelector('.sb-board-root')).toBeInTheDocument();
+    // With no host variables set, the fallbacks reproduce the full-window
+    // layout: 100vh for the viewport and 0px for the sticky offset.
     expect(container.querySelector('main')).toHaveClass(
-      'min-h-[calc(100vh-var(--sb-header-h))]',
+      'min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h))]',
+    );
+    expect(container.querySelector('header')).toHaveClass(
+      'sticky',
+      'top-[var(--sb-sticky-top,0px)]',
     );
     expect(container.querySelector('aside')).toHaveClass(
       'lg:sticky',
-      'lg:top-[calc(var(--sb-header-h)+1.25rem)]',
-      'lg:max-h-[calc(100vh-var(--sb-header-h)-2.5rem)]',
+      'lg:top-[calc(var(--sb-sticky-top,0px)+var(--sb-header-h)+1.25rem)]',
+      'lg:max-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)]',
       'lg:self-start',
       'lg:overflow-y-auto',
     );
@@ -2646,5 +2655,98 @@ describe('Board unsaved changes guard', () => {
 
     await user.clear(composer);
     expect(unload()).toBe(false);
+  });
+});
+
+describe('Board host sizing variables', () => {
+  // Vitest doesn't load the board's stylesheet, so the test adds it. jsdom
+  // cascades custom properties, which makes a default declared anywhere in
+  // styles.css visible here as a shadowed host value.
+  function mountInHost(variables: Record<string, string>) {
+    const style = document.createElement('style');
+    style.textContent = readFileSync(join(__dirname, '../styles.css'), 'utf8');
+    document.head.append(style);
+
+    const host = document.createElement('div');
+    for (const [name, value] of Object.entries(variables)) {
+      host.style.setProperty(name, value);
+    }
+    document.body.append(host);
+
+    let board: ReturnType<typeof createBoard> | undefined;
+    act(() => {
+      board = createBoard(host, { api: api() });
+    });
+
+    return {
+      host,
+      unmount: () => {
+        act(() => board?.unmount());
+        host.remove();
+        style.remove();
+      },
+    };
+  }
+
+  const resolved = (element: Element, name: string) =>
+    getComputedStyle(element).getPropertyValue(name).trim();
+
+  it('reads both variables set on the element passed to createBoard', async () => {
+    const user = userEvent.setup();
+    const { host, unmount } = mountInHost({
+      '--sb-viewport-h': '480px',
+      '--sb-sticky-top': '56px',
+    });
+
+    try {
+      await within(host).findByText('Setup auth');
+      const root = host.querySelector('.sb-board-root') as HTMLElement;
+      // Proves the stylesheet parsed: its own default for the measured
+      // header height applies, since jsdom has no layout to measure.
+      expect(resolved(root, '--sb-header-h')).toBe('65px');
+
+      // The root, the canvas, and the column container.
+      const viewportSized = [
+        ...host.querySelectorAll('[class*="var(--sb-viewport-h,100vh)"]'),
+      ];
+      expect(viewportSized).toContain(root);
+      expect(viewportSized).toContain(host.querySelector('main'));
+      expect(viewportSized).toHaveLength(3);
+      for (const element of viewportSized) {
+        expect(resolved(element, '--sb-viewport-h')).toBe('480px');
+      }
+
+      const header = host.querySelector('header') as HTMLElement;
+      expect(header.className).toContain('top-[var(--sb-sticky-top,0px)]');
+      expect(resolved(header, '--sb-sticky-top')).toBe('56px');
+
+      await user.click(within(host).getByText('Setup auth'));
+      const aside = host.querySelector('aside') as HTMLElement;
+      expect(aside.className).toContain(
+        'lg:top-[calc(var(--sb-sticky-top,0px)+var(--sb-header-h)+1.25rem)]',
+      );
+      expect(aside.className).toContain(
+        'lg:max-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)]',
+      );
+      expect(resolved(aside, '--sb-sticky-top')).toBe('56px');
+      expect(resolved(aside, '--sb-viewport-h')).toBe('480px');
+    } finally {
+      unmount();
+    }
+  });
+
+  it('declares no default that would hide an unset variable’s fallback', async () => {
+    const { host, unmount } = mountInHost({});
+
+    try {
+      await within(host).findByText('Setup auth');
+      const root = host.querySelector('.sb-board-root') as HTMLElement;
+
+      // Empty means unset, so each `var()` falls back to 100vh and 0px.
+      expect(resolved(root, '--sb-viewport-h')).toBe('');
+      expect(resolved(root, '--sb-sticky-top')).toBe('');
+    } finally {
+      unmount();
+    }
   });
 });

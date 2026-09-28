@@ -101,7 +101,7 @@ export function BoardHeader({
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-10 border-b border-sb-iron bg-sb-canvas/95 px-5 py-3"
+      className="sticky top-[var(--sb-sticky-top,0px)] z-10 border-b border-sb-iron bg-sb-canvas/95 px-5 py-3"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <nav

@@ -1,6 +1,5 @@
 {
   "todo": [
-    "let-host-apps-size-the-board-with-css-variables",
     "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
@@ -19,5 +18,7 @@
     "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "let-host-apps-size-the-board-with-css-variables"
+  ]
 }

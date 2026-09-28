@@ -197,7 +197,7 @@ export function DetailView({ slug }: { slug: string }) {
           />
         </article>
 
-        <aside className="h-fit rounded-md border border-sb-iron bg-sb-surface p-4 lg:sticky lg:top-[calc(var(--sb-header-h)+1.25rem)] lg:max-h-[calc(100vh-var(--sb-header-h)-2.5rem)] lg:self-start lg:overflow-y-auto">
+        <aside className="h-fit rounded-md border border-sb-iron bg-sb-surface p-4 lg:sticky lg:top-[calc(var(--sb-sticky-top,0px)+var(--sb-header-h)+1.25rem)] lg:max-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] lg:self-start lg:overflow-y-auto">
           <div className="space-y-4">
             <Field label="Status">
               <SelectField

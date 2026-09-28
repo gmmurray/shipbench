@@ -181,7 +181,12 @@
 
 /* BoardHeader measures itself into this variable so embedded and standalone
  * layouts share one responsive header-height source. The fallback covers the
- * first layout pass before measurement. */
+ * first layout pass before measurement.
+ *
+ * Don't declare the host sizing variables (--sb-viewport-h, --sb-sticky-top)
+ * here or anywhere else. A default on the board root would shadow the value a
+ * host sets on its mount element; the var() fallbacks at each point of use are
+ * the defaults. */
 .sb-board-root {
   --sb-header-h: 65px;
 }

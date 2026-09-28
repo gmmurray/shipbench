@@ -17,7 +17,7 @@ export function BoardCanvas() {
   });
 
   return (
-    <main className="min-h-[calc(100vh-var(--sb-header-h))] px-5 py-5">
+    <main className="min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h))] px-5 py-5">
       {archiveViewOpen ? (
         <ArchiveView />
       ) : selectedTaskSlug ? (

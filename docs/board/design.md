@@ -41,6 +41,30 @@ createBoard(rootElement, { api });
 
 `createBoard` is a thin wrapper around `createRoot(rootElement).render(<Board api={api} />)`. Both paths feed the same component.
 
+### Embedding: sizing the board
+
+By default the Board assumes it owns the browser window: it fills `100vh` and its sticky parts (the header, and the metadata panel in detail mode) stop at the top of the viewport. A host that puts it under its own app bar or inside a panel sets two CSS custom properties instead of overriding the Board's classes:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `--sb-viewport-h` | `100vh` | The height the Board treats as its viewport. The root, the canvas, the column area, and the detail panel's maximum height are sized from it. |
+| `--sb-sticky-top` | `0px` | How far from the top of the scroll container the Board's sticky parts stop. |
+
+Set them on the element passed to `createBoard`, or on any ancestor of the `<Board>`. The Board declares neither variable itself; the defaults are `var()` fallbacks where each is used, so a value the host sets is never shadowed.
+
+A host with a 56px fixed app bar that scrolls the window:
+
+```css
+#board-mount {
+  --sb-viewport-h: calc(100dvh - 56px);
+  --sb-sticky-top: 56px;
+}
+```
+
+A host that puts the Board in its own scrolling panel sets `--sb-viewport-h` to the panel's height and leaves `--sb-sticky-top` at `0px`.
+
+Dialogs and toasts still use `position: fixed` against the window: a modal over the whole page and a corner toast both work inside a host.
+
 ## State model
 
 A single Zustand store. The API is the writer of truth, but the store is the read surface for the entire UI — search, filters, and selection all operate against the store, never via fresh API calls.

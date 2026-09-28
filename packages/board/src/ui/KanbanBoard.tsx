@@ -309,7 +309,7 @@ export function KanbanBoard() {
 
   if (searchQuery.trim() && visibleTasks.length === 0) {
     return (
-      <div className="flex min-h-[calc(100vh-var(--sb-header-h)-2.5rem)] items-center justify-center">
+      <div className="flex min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] items-center justify-center">
         <div className="w-full max-w-md rounded-md border border-dashed border-sb-iron px-5 py-12 text-center">
           <RxMagnifyingGlass
             aria-hidden="true"
@@ -344,7 +344,7 @@ export function KanbanBoard() {
 
   if (readOnly) {
     return (
-      <div className="flex min-h-[calc(100vh-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
+      <div className="flex min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
         <UnreadableColumn files={unreadable} />
         {columns.map(column => (
           <StaticBoardColumn
@@ -374,7 +374,7 @@ export function KanbanBoard() {
       onDragCancel={clearPreview}
       onDragEnd={onDragEnd}
     >
-      <div className="flex min-h-[calc(100vh-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
+      <div className="flex min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] gap-4 overflow-x-auto pb-4">
         <UnreadableColumn files={unreadable} />
         {columns.map(column => {
           const isUncategorized = column.id === UNCATEGORIZED_STATUS;

@@ -55,7 +55,7 @@ function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
 
   if (!hasLoaded && initialLoadError) {
     return (
-      <div className="sb-canvas-grid min-h-screen p-6 font-sans text-sb-frosted">
+      <div className="sb-canvas-grid min-h-[var(--sb-viewport-h,100vh)] p-6 font-sans text-sb-frosted">
         <ChevronDefs />
         <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col justify-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-sb-silver">
@@ -84,7 +84,7 @@ function BoardShell({ api, themeControl, documentTitle }: BoardProps) {
     <BoardRootContext.Provider value={rootRef}>
       <div
         ref={rootRef}
-        className="sb-board-root sb-canvas-grid min-h-screen font-sans text-sb-frosted"
+        className="sb-board-root sb-canvas-grid min-h-[var(--sb-viewport-h,100vh)] font-sans text-sb-frosted"
       >
         <ChevronDefs />
         <SyncEffects api={api} />
