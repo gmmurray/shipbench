@@ -23,7 +23,7 @@
  * never load-bearing, so it is gone. Plain text parsing says the same things.
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { HARBOR_ENABLED } from '../src/config/flags';
@@ -70,6 +70,7 @@ const DOC_PAGES = [
   'docs/why',
   'docs/overview',
   'docs/quickstart',
+  'docs/resuming-a-project',
   'docs/cli-reference',
   'docs/convention-spec',
   'docs/decision-trail',
@@ -393,7 +394,9 @@ test.describe('landing-page flow survives the build', () => {
     if (HARBOR_ENABLED) {
       expect(home).toContain('ShipBench Harbor is the optional hosted client');
     } else {
-      expect(home).not.toContain('ShipBench Harbor is the optional hosted client');
+      expect(home).not.toContain(
+        'ShipBench Harbor is the optional hosted client',
+      );
     }
   });
 
@@ -426,9 +429,10 @@ test.describe('landing-page flow survives the build', () => {
       expect(page, `${route || '/'} footer credit`).toContain(
         'href="https://thedevelopergreg.com"',
       );
-      expect(page.includes('class="doc-byline"'), `${route || '/'} byline`).toBe(
-        route === 'docs/why',
-      );
+      expect(
+        page.includes('class="doc-byline"'),
+        `${route || '/'} byline`,
+      ).toBe(route === 'docs/why');
     }
   });
 
@@ -458,7 +462,10 @@ test.describe('landing-page flow survives the build', () => {
 
     for (const [route, command] of runnable) {
       const block = codeBlockContaining(html(route), command);
-      expect(block, `${route} has no code block containing "${command}"`).not.toBeNull();
+      expect(
+        block,
+        `${route} has no code block containing "${command}"`,
+      ).not.toBeNull();
       expect(block, `"${command}" is marked no-copy`).not.toContain(
         'data-copy="false"',
       );
@@ -468,7 +475,10 @@ test.describe('landing-page flow survives the build', () => {
       html('docs/cli-reference'),
       'shipbench task move <slug>',
     );
-    expect(synopsis, 'cli-reference has no `task move` synopsis block').not.toBeNull();
+    expect(
+      synopsis,
+      'cli-reference has no `task move` synopsis block',
+    ).not.toBeNull();
     expect(synopsis).toContain('data-copy="false"');
   });
 });
