@@ -18,7 +18,5 @@
     "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
-  "review": [
-    "let-host-apps-size-the-board-with-css-variables"
-  ]
+  "review": []
 }

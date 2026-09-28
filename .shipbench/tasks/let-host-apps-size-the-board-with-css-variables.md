@@ -1,12 +1,12 @@
 ---
 title: Let host apps size the board with CSS variables
-status: review
+status: done
 priority: medium
 tags:
   - board
   - ui
 created: '2026-09-23T21:25:59.783Z'
-updated: '2026-09-27T19:52:10.307Z'
+updated: '2026-09-28T23:29:18.653Z'
 ---
 
 The board assumes it owns the whole browser window. It sizes itself against
