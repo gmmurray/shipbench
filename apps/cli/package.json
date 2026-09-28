@@ -1,6 +1,6 @@
 {
   "name": "shipbench",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Git-native project management for solo developers. Each task is a Markdown file in your repository, with a CLI and a local board on top.",
   "license": "MIT",
   "repository": {

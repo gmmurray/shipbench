@@ -1,5 +1,11 @@
 # @shipbench/core
 
+## 0.6.0
+
+### Minor Changes
+
+- c5479e5: `searchTasks` is now also exported from a new `@shipbench/core/search` subpath. Browser hosts can import it from there without pulling in the package root, which imports `node:fs`.
+
 ## 0.5.0
 
 ### Minor Changes
