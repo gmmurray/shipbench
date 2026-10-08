@@ -26,11 +26,39 @@ const socialImageUrl = new URL(
   SITE_CONFIG.socialImage,
   Astro.site ?? SITE_CONFIG.url,
 );
+// The application's `sameAs` ties this site, the npm package, and the GitHub
+// repository together as one entity for search engines.
+const appId = `${SITE_CONFIG.url}/#software`;
 const websiteSchema = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: SITE_CONFIG.name,
-  url: SITE_CONFIG.url,
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_CONFIG.url}/#website`,
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.url,
+      about: { '@id': appId },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': appId,
+      name: SITE_CONFIG.name,
+      description: SITE_CONFIG.descriptor,
+      url: SITE_CONFIG.url,
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Windows, macOS, Linux',
+      softwareVersion: SITE_CONFIG.version,
+      license: 'https://opensource.org/licenses/MIT',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      author: {
+        '@type': 'Person',
+        name: SITE_CONFIG.author.name,
+        url: SITE_CONFIG.author.url,
+      },
+      sameAs: [SITE_CONFIG.githubUrl, SITE_CONFIG.npmUrl],
+    },
+  ],
 };
 ---
 

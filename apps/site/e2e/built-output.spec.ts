@@ -319,6 +319,26 @@ test.describe('search and sharing metadata survives the build', () => {
     expect(homeHead).toContain('"url":"https://shipbench.dev"');
   });
 
+  test('home page ties the site, npm package, and repository together', () => {
+    const match = headOf(html('')).match(
+      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+    );
+    expect(match).not.toBeNull();
+    const graph: Array<Record<string, unknown>> = JSON.parse(match![1])['@graph'];
+    const app = graph.find((node) => node['@type'] === 'SoftwareApplication');
+    expect(app).toMatchObject({
+      name: 'ShipBench',
+      description: 'Git-native project management for solo developers.',
+      url: 'https://shipbench.dev',
+      sameAs: [
+        'https://github.com/gmmurray/shipbench',
+        'https://www.npmjs.com/package/shipbench',
+      ],
+    });
+    const site = graph.find((node) => node['@type'] === 'WebSite');
+    expect(site?.about).toEqual({ '@id': app?.['@id'] });
+  });
+
   test('robots and sitemap expose every canonical page', () => {
     const robotsPath = `${DIST}robots.txt`;
     const sitemapIndexPath = `${DIST}sitemap-index.xml`;
