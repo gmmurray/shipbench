@@ -1011,6 +1011,7 @@ export function createCli(opts: CliOptions): Command {
 
   const getTaskCommand = task
     .command('get <slug>')
+    .alias('show')
     .description('Retrieve one task as JSON')
     .option('--archived', 'Retrieve the task from the archive instead');
 

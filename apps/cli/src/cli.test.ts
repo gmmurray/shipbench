@@ -1778,6 +1778,19 @@ Wrong level.`;
     expect(h.stderr.join('\n')).toContain("Task 'missing' not found.");
   });
 
+  it('resolves the show alias', async () => {
+    const h = harness();
+    await h.run('init');
+    await h.run('task', 'create', 'Shown task', '--status=todo');
+    h.stdout.length = 0;
+
+    await h.run('task', 'show', 'shown-task');
+
+    expect(JSON.parse(h.stdout.join('\n'))).toEqual(
+      expect.objectContaining({ slug: 'shown-task', status: 'todo' }),
+    );
+  });
+
   it('is documented in task help', async () => {
     const h = harness();
 
@@ -1786,7 +1799,7 @@ Wrong level.`;
       exitCode: 0,
     });
     expect(h.stdout.join('\n')).toMatch(
-      /get \[options\] <slug>\s+Retrieve one task as JSON/,
+      /get\|show \[options\] <slug>\s+Retrieve one task as JSON/,
     );
   });
 });

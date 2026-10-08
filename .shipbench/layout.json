@@ -16,7 +16,8 @@
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
     "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
-    "updating-shipbench-init-with-new-versions"
+    "updating-shipbench-init-with-new-versions",
+    "add-a-generic-flag-field-for-highlighting-tasks-on-the-board"
   ],
   "in-progress": [],
   "review": []

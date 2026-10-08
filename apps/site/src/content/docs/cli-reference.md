@@ -260,7 +260,7 @@ Git keeps prior text and deleted entries in file history.
 shipbench task get <slug> [--archived]
 ```
 
-Returns one task as JSON. The payload always includes full frontmatter, the Markdown description, and parsed Updates:
+Returns one task as JSON. Alias: `show`. The payload always includes full frontmatter, the Markdown description, and parsed Updates:
 
 ```json
 {
