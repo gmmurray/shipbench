@@ -1,5 +1,22 @@
 # shipbench
 
+## 0.7.0
+
+### Minor Changes
+
+- 63adb7c: Tasks can be flagged for attention without moving them. `shipbench task flag <slug> [reason]` sets a flag with an optional one-line reason, and `shipbench task unflag <slug>` clears it. What a flag means is your project's call. Nothing clears it for you, including moving the task to done.
+  
+  `task list`, `task search`, and `board terminal` take `--flagged`. Text output from `task list` and `task search` ends a flagged task's line with `— flagged: <reason>`, and `task search --json` adds `flag` to a flagged match. The terminal board marks flagged rows with `!` and counts them on the status line. On the browser board, flagged cards stand out, columns count them, and a header toggle shows only flagged tasks.
+  
+  `shipbench init` documents flags in the `AGENTS.md` it scaffolds.
+
+### Patch Changes
+
+- 63adb7c: Clearing a task's priority or assignee on the board served by `shipbench board` now saves. Before, the field emptied and then came straight back, because the change never reached the file.
+- b58fe35: `shipbench task show <slug>` now works as an alias of `task get`.
+- Updated dependencies [63adb7c]
+  - @shipbench/board@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
