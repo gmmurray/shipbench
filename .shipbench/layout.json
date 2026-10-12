@@ -6,8 +6,7 @@
     "let-tasks-reference-related-work-without-implying-a-dependency",
     "strip-rationale-comments-from-the-rest-of-the-site",
     "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
-    "document-running-several-shipbench-boards-in-one-repository",
-    "add-umami-analytics-to-shipbench-dev"
+    "document-running-several-shipbench-boards-in-one-repository"
   ],
   "backlog": [
     "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
@@ -19,5 +18,7 @@
     "updating-shipbench-init-with-new-versions"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "add-umami-analytics-to-shipbench-dev"
+  ]
 }

@@ -23,6 +23,8 @@ import { defineConfig, devices } from '@playwright/test';
 const siteDir = fileURLToPath(new URL('.', import.meta.url));
 const PORT = Number(process.env.SITE_E2E_PORT ?? 4321);
 const BASE_URL = `http://localhost:${PORT}`;
+// The script loads from cloud.umami.is and reports to gateway.umami.is.
+const UMAMI_HOSTS = '*.umami.is';
 
 // Fail loudly and usefully rather than letting `astro preview` die on a missing
 // directory. `pnpm test:e2e` builds first; a bare `playwright test` may not have.
@@ -65,7 +67,16 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Umami never sees the harness. `data-domains` already stops the
+        // tracker reporting from localhost; this stops the browser reaching
+        // Umami at all, script included, so no test depends on a third party.
+        // analytics.spec.ts fails if this is removed.
+        launchOptions: {
+          args: [`--host-resolver-rules=MAP ${UMAMI_HOSTS} ~NOTFOUND`],
+        },
+      },
     },
   ],
 

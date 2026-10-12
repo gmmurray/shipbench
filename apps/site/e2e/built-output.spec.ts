@@ -176,6 +176,33 @@ test.describe('theme bootstrap survives the build', () => {
   });
 });
 
+test.describe('Umami analytics', () => {
+  for (const route of ALL_PAGES) {
+    test(`deferred, production-only, and below the theme bootstrap on /${route}`, () => {
+      const head = headOf(html(route));
+      const tags = head.match(/<script[^>]+umami[^>]*>/g) ?? [];
+
+      expect(tags, 'expected exactly one Umami script in <head>').toHaveLength(
+        1,
+      );
+      const tag = tags[0]!;
+      expect(tag).toContain('src="https://cloud.umami.is/script.js"');
+      expect(tag).toContain(
+        'data-website-id="ce714e4f-ac12-45cc-baab-ae4b6b2a3e10"',
+      );
+      expect(tag).toMatch(/\sdefer[\s>=]/);
+      // Without this, dev, preview, the harness, and Cloudflare preview
+      // deployments all record page views.
+      expect(tag).toContain('data-domains="shipbench.dev"');
+
+      expect(
+        head.indexOf("localStorage.getItem('theme')"),
+        'the Umami script now precedes the theme bootstrap',
+      ).toBeLessThan(head.indexOf(tag));
+    });
+  }
+});
+
 test('the generated platform icon set ships with the preferred SVG favicon', () => {
   const head = headOf(html(''));
   const raster = head.indexOf(

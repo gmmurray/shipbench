@@ -21,4 +21,12 @@ export const SITE_CONFIG = {
   // Must describe public/opengraph.png, generated from scripts/og/cards.ts.
   // Change the headline there and update this too.
   socialImageAlt: 'ShipBench — Plans that ship with the work. shipbench.dev',
+  // Umami Cloud. The website ID is public by design: it ships in every page.
+  // `domains` keeps dev, preview, the e2e harness, and Cloudflare preview
+  // deployments from recording views — the tracker only reports on these hosts.
+  analytics: {
+    scriptUrl: 'https://cloud.umami.is/script.js',
+    websiteId: 'ce714e4f-ac12-45cc-baab-ae4b6b2a3e10',
+    domains: 'shipbench.dev',
+  },
 } as const;

@@ -142,6 +142,18 @@ const websiteSchema = {
         document.addEventListener('astro:after-swap', applyStoredTheme);
       })();
     </script>
+    {/* Page-view analytics. Below the theme bootstrap so it can never delay
+        first paint, and deferred so nothing waits on it — the page works the
+        same when a blocker drops it. ClientRouter keeps this element across
+        swaps rather than re-running it; the tracker counts client-side
+        navigations itself by hooking history.pushState. */}
+    <script
+      is:inline
+      defer
+      src={SITE_CONFIG.analytics.scriptUrl}
+      data-website-id={SITE_CONFIG.analytics.websiteId}
+      data-domains={SITE_CONFIG.analytics.domains}
+    ></script>
     <Font cssVariable="--font-plex-sans" preload />
     <Font cssVariable="--font-intel-mono" preload />
     <ClientRouter />

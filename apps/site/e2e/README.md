@@ -124,6 +124,15 @@ worked both down to zero:
   `.col-mini > .card-mini` with no `h3` above it; the mock-UI labels are no
   longer headings.
 
+### `analytics.spec.ts` — Umami never sees the harness
+
+`playwright.config.ts` maps every `*.umami.is` host to "not found", so the
+tracker script never loads and no page view leaves the browser, whatever
+`data-domains` says. The spec loads a docs page, follows a client-side link,
+and fails if Umami answered any request, so removing the block fails the run.
+`built-output.spec.ts` covers the tag itself: the website ID, `defer`,
+`data-domains="shipbench.dev"`, and its place below the theme bootstrap.
+
 ### `screenshots.spec.ts` — captures, never comparisons
 
 Landing plus two docs pages, both themes, desktop (1440) and mobile (390), plus
@@ -195,6 +204,7 @@ e2e/
 ├── theme.spec.ts           # first-paint theme correctness, plus its self-check
 ├── docs-rendering.spec.ts  # prose enhancements across swaps + pinned copy control
 ├── a11y.spec.ts            # axe, baselined
+├── analytics.spec.ts       # Umami hosts stay blocked
 ├── screenshots.spec.ts     # capture only
 ├── built-output.spec.ts    # dist/ probes, no browser
 ├── axe-baseline.json       # accepted rule IDs per page:theme
