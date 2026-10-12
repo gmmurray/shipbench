@@ -1,3 +1,4 @@
+import { isTaskFlagged } from '@shipbench/core/flag';
 import {
   type KeyboardEvent,
   useEffect,
@@ -8,6 +9,7 @@ import {
 import {
   RxArchive,
   RxCross2,
+  RxExclamationTriangle,
   RxLockClosed,
   RxMagnifyingGlass,
   RxUpdate,
@@ -43,6 +45,17 @@ export function BoardHeader({
   const lastSyncedAt = useBoardStore(state => state.lastSyncedAt);
   const setSearchQuery = useBoardStore(state => state.setSearchQuery);
   const readOnly = useBoardStore(state => state.readOnly);
+  const flaggedOnly = useBoardStore(state => state.flaggedOnly);
+  const setFlaggedOnly = useBoardStore(state => state.setFlaggedOnly);
+  // Live flags only: a flag left on a done task is not asking for anyone.
+  const flaggedCount = useBoardStore(
+    state =>
+      state.tasks.filter(
+        task =>
+          task.frontmatter.status !== state.config?.done_column &&
+          isTaskFlagged(task),
+      ).length,
+  );
   const [draftSearch, setDraftSearch] = useState('');
 
   useLayoutEffect(() => {
@@ -166,6 +179,26 @@ export function BoardHeader({
                 </button>
               ) : null}
             </div>
+          )}
+
+          {archiveViewOpen || (flaggedCount === 0 && !flaggedOnly) ? null : (
+            <button
+              aria-pressed={flaggedOnly}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded border px-3 font-mono text-[11px] transition-colors hover:border-sb-silver hover:bg-sb-surface2 hover:text-sb-frosted ${
+                flaggedOnly
+                  ? 'border-sb-silver bg-sb-surface2 text-sb-frosted'
+                  : 'border-sb-iron bg-transparent text-sb-silver'
+              }`}
+              type="button"
+              onClick={() => setFlaggedOnly(!flaggedOnly)}
+            >
+              <RxExclamationTriangle
+                aria-hidden="true"
+                className={`h-3.5 w-3.5 ${flaggedCount > 0 ? 'text-sb-warning' : ''}`}
+              />
+              Flagged
+              <span className="tabular-nums">{flaggedCount}</span>
+            </button>
           )}
 
           {readOnly ? (

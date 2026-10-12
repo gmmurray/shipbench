@@ -87,6 +87,7 @@ The YAML frontmatter carries structured data. The content below it is the task d
 | `assignee` | No | Freeform informational label. It does not claim or lock work. |
 | `tags` | No | Array of freeform strings. |
 | `depends_on` | No | Array of task slugs that must finish first. |
+| `flag` | No | Marks the task for attention: a one-line reason, or `true`. See [Flags](#flags). |
 | `created` | Yes | ISO 8601 timestamp recorded when the task is created and never changed. |
 | `updated` | Yes | ISO 8601 timestamp changed by task-content and status mutations. Layout-only reorders and archiving leave the task file unchanged. |
 
@@ -106,6 +107,12 @@ A dependency is satisfied when it is:
 - present in `tasks/archive/`.
 
 Use `shipbench task list --available` to select tasks whose dependencies are satisfied, `--blocked` to find tasks still waiting, and `shipbench task graph` to inspect forward and reverse relationships.
+
+## Flags
+
+`flag` asks for someone's attention without moving the task. Its value is a one-line reason, or `true` when there is none to give. What a flag means is the project's call: blocked, needs a decision, needs review. The field is informational like `assignee`. It gates nothing, and nothing sets or clears it as a side effect, so a task moved to `done_column` keeps its flag until someone removes the field.
+
+Writes reject a blank or multi-line reason and any value other than a string or `true`. Reads treat any other value as unflagged and report a warning. A flag is not the same as being blocked: `--blocked` means unmet `depends_on`.
 
 ## Task Updates
 
@@ -192,7 +199,7 @@ See the [ShipBench CLI Reference](/docs/cli-reference/) for archive commands and
 
 The convention requires strict writes and graceful reads.
 
-- Writes reject invalid statuses, priorities, timestamps, dependencies, and malformed fields.
+- Writes reject invalid statuses, priorities, timestamps, dependencies, flags, and malformed fields.
 - Reads return recoverable tasks with warnings, including unknown statuses and fields.
 - A file with malformed YAML is skipped with a warning; other readable tasks remain available.
 - Tasks with an unknown status appear in the board's Uncategorized column.

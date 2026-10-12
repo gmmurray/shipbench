@@ -94,6 +94,19 @@ describe('initProject', () => {
     expect(agents).toContain('Archived slugs are never reused');
   });
 
+  it('documents flags as a convention, not a workflow', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Test Project' });
+    const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
+
+    expect(agents).toContain('- **flag** (optional)');
+    expect(agents).toContain('## Flagging a Task');
+    expect(agents).toContain('shipbench task flag <slug> "Short reason"');
+    expect(agents).toContain('shipbench task unflag <slug>');
+    expect(agents).toContain('shipbench task list --flagged --json');
+    expect(agents).toContain('Nothing clears a flag for you');
+  });
+
   it('writes an AGENTS.md that reflects the default columns and priorities', async () => {
     const adapter = memoryAdapter();
     await initProject(adapter, { name: 'Test Project' });

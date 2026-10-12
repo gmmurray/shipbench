@@ -1,4 +1,9 @@
-import type { TaskComment, UnreadableUpdates } from '@shipbench/core';
+import type {
+  TaskComment,
+  TaskFrontmatter,
+  UnreadableUpdates,
+} from '@shipbench/core';
+import { type TaskFlag, taskFlag } from '@shipbench/core/flag';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import {
   type FormEvent,
@@ -215,6 +220,13 @@ export function DetailView({ slug }: { slug: string }) {
                 }
               />
             </Field>
+            <FlagField
+              key={`flag:${task.slug}`}
+              readOnly={readOnly}
+              flag={taskFlag(task)}
+              raised={task.frontmatter.status !== config.done_column}
+              onChange={flag => void updateTask(task.slug, { flag })}
+            />
             <Field label="Priority">
               <SelectField
                 readOnly={readOnly}
@@ -1039,6 +1051,141 @@ function ChangedOnDiskNotice({
           Keep mine
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Sets, rewords, and clears a task's flag. Flagging takes one click and needs
+ * no reason; the reason is edited in place afterwards and saved on blur, like
+ * the other metadata inputs. A blank reason saves as a bare flag rather than
+ * clearing it, because clearing is its own explicit action.
+ */
+function FlagField({
+  readOnly,
+  flag,
+  raised,
+  onChange,
+}: {
+  readOnly: boolean;
+  flag: TaskFlag | null;
+  /** False on a done task, where a flag is most likely one nobody cleared. */
+  raised: boolean;
+  onChange: (flag: TaskFrontmatter['flag']) => void;
+}) {
+  const reason = flag?.reason ?? '';
+  const [draft, setDraft] = useState(reason);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const focusOnFlag = useRef(false);
+  const inputId = useId();
+
+  useEffect(() => {
+    setDraft(reason);
+  }, [reason]);
+
+  useEffect(() => {
+    if (flag && focusOnFlag.current) {
+      focusOnFlag.current = false;
+      inputRef.current?.focus();
+    }
+  }, [flag]);
+
+  if (readOnly) {
+    if (!flag) return null;
+    return (
+      <Field label="Flag">
+        <FlagBox raised={raised}>
+          <span className="min-w-0 break-words px-3 py-2 text-[13px] text-sb-frosted">
+            {flag.reason ?? 'Flagged'}
+          </span>
+        </FlagBox>
+      </Field>
+    );
+  }
+
+  if (!flag) {
+    return (
+      <Field label="Flag">
+        <button
+          className="inline-flex h-9 items-center justify-center gap-2 rounded border border-sb-iron text-[13px] font-medium text-sb-silver transition-colors hover:border-sb-silver hover:bg-sb-surface2 hover:text-sb-frosted"
+          type="button"
+          onClick={() => {
+            focusOnFlag.current = true;
+            onChange(true);
+          }}
+        >
+          <RxExclamationTriangle aria-hidden="true" className="h-3.5 w-3.5" />
+          Flag for attention
+        </button>
+      </Field>
+    );
+  }
+
+  const commit = () => {
+    const next = draft.trim();
+    if (next === reason) return;
+    onChange(next || true);
+  };
+
+  return (
+    <div className="grid gap-1.5">
+      <label
+        className="font-mono text-[11px] uppercase tracking-[0.14em] text-sb-silver"
+        htmlFor={inputId}
+      >
+        Flag
+      </label>
+      <FlagBox raised={raised}>
+        <input
+          ref={inputRef}
+          id={inputId}
+          className="h-9 min-w-0 flex-1 bg-transparent px-3 text-[13px] text-sb-frosted outline-none placeholder:text-sb-silver"
+          placeholder="Reason (optional)"
+          value={draft}
+          onBlur={commit}
+          onChange={event => setDraft(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              setDraft(reason);
+            }
+          }}
+        />
+        <button
+          className="shrink-0 px-3 font-mono text-[12px] text-sb-silver transition-colors hover:text-sb-frosted focus-visible:text-sb-frosted"
+          type="button"
+          // Keeps the input's blur from saving a draft the clear is about to drop.
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => onChange(undefined)}
+        >
+          Clear
+        </button>
+      </FlagBox>
+    </div>
+  );
+}
+
+function FlagBox({
+  raised,
+  children,
+}: {
+  raised: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex min-h-9 items-center rounded border border-sb-iron bg-sb-surface2 transition-colors focus-within:border-sb-silver ${
+        raised
+          ? 'border-l-2 border-l-sb-warning focus-within:border-l-sb-warning'
+          : ''
+      }`}
+    >
+      <RxExclamationTriangle
+        aria-hidden="true"
+        className={`ml-3 h-3.5 w-3.5 shrink-0 ${raised ? 'text-sb-warning' : 'text-sb-silver'}`}
+      />
+      {children}
     </div>
   );
 }

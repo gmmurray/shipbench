@@ -14,6 +14,7 @@ import {
   archiveTask,
   createTask,
   FsAdapter,
+  getTask,
   initProject,
   loadConfig,
   type Task,
@@ -329,6 +330,36 @@ describe('board REST API', () => {
 
     expect(response.status).toBe(200);
     expect(body.frontmatter.status).toBe('todo');
+  });
+
+  it('clears a field the request sets to null', async () => {
+    const fixture = await makeFixture();
+    const config = await loadConfig(fixture.adapter);
+    await createTask(fixture.adapter, config, 'Clearable', {
+      assignee: 'claude',
+      priority: 'high',
+      flag: 'Stuck on credentials',
+    });
+    const server = await startFixture(fixture);
+
+    // JSON has no `undefined`, so `null` is how a browser host says "clear
+    // this field". Dropping the key instead would leave the field untouched.
+    const { response, body } = await json<{ task: Task }>(
+      server,
+      '/api/tasks/clearable',
+      jsonInit(
+        { fields: { assignee: null, priority: null, flag: null } },
+        'PATCH',
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.task.frontmatter).not.toHaveProperty('assignee');
+    expect(body.task.frontmatter).not.toHaveProperty('flag');
+    const reread = await getTask(fixture.adapter, config, 'clearable');
+    expect(reread?.frontmatter).not.toHaveProperty('assignee');
+    expect(reread?.frontmatter).not.toHaveProperty('flag');
+    expect(reread?.frontmatter.priority).toBeUndefined();
   });
 
   it('rejects a description carrying the Updates marker with a 400', async () => {

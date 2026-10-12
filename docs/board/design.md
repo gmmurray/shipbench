@@ -108,11 +108,11 @@ Pattern for every mutation:
 
 Search filters tasks **client-side from the store**, not by re-querying the API. Search input is debounced ~200ms before updating `searchQuery` to avoid re-rendering on every keystroke.
 
-Matching is core's `searchTasks`, imported from the pure `@shipbench/core/search` subpath, so a query means the same thing on the board as in `shipbench task search`: every whitespace-separated term (or double-quoted phrase) must occur, case-insensitively, in the title, a tag, the description, or a Task Updates entry. The board adds the slug and assignee to that corpus because every card prints them. The contract itself is in [the spec](../spec.md) under the CLI's **Search** heading; `searchBoardTasks` in `store/boardSearch.ts` is the board side.
+Matching is core's `searchTasks`, imported from the pure `@shipbench/core/search` subpath, so a query means the same thing on the board as in `shipbench task search`: every whitespace-separated term (or double-quoted phrase) must occur, case-insensitively, in the title, a tag, the description, or a Task Updates entry. The board adds the slug, assignee, and flag reason to that corpus because cards print them. The contract itself is in [the spec](../spec.md) under the CLI's **Search** heading; `searchBoardTasks` in `store/boardSearch.ts` is the board side.
 
-Search hides cards and never reorders them. Columns keep their layout order, and the done column keeps its time sort, but its display cap is lifted while a query is active.
+Search hides cards and never reorders them. Columns keep their layout order, and the done column keeps its time sort, but its display cap is lifted while a query or the flagged filter is active.
 
-**Match context.** A card that matched only because of its content says so. When any term is missing from what the card already shows (title, slug, assignee, tags), the card adds a "Found in" block below its chips: the description snippet, or else the first matching Update's excerpt with its timestamp, then "Also in N Task Updates" for the rest. Updates show a timestamp and never a "current" label. The card's column is the task's present state, and an Update records what was said at the time.
+**Match context.** A card that matched only because of its content says so. When any term is missing from what the card already shows (title, slug, flag reason, assignee, tags), the card adds a "Found in" block below its chips: the description snippet, or else the first matching Update's excerpt with its timestamp, then "Also in N Task Updates" for the rest. Updates show a timestamp and never a "current" label. The card's column is the task's present state, and an Update records what was said at the time.
 
 **Search never reaches the archive.** Archived tasks (`tasks/archive/`) are not loaded on the board's hot path, so they cannot match. The zero-results state names what search covers, says archived tasks aren't searched, and links into the archive view. The archive view's own client-side filter runs the same search over the archive it has already fetched, with the saved status added to the corpus, and shows the same match context. The archive view fetches `listArchivedTasks` lazily on first open and lists by `updated` desc — the same sort key as the done column, so the capped done column and the archive read as one continuous timeline (deliberately no `archived_at` field; Git records filing time).
 
@@ -161,6 +161,17 @@ Columns are rendered from `config.columns`. The Uncategorized column appears at 
 
 An Unreadable column appears at the **leading** edge only when a task file's frontmatter did not parse (`TaskReadResult.unreadable`). Such a file has no title, status, or position, so it renders as a read-only card, not a `Task`: the slug and path, the reason in `warning`, and the frontmatter verbatim in a `pre` — not through `Markdown`, which would hide the markup that broke the parse. It leads rather than trails because the file is otherwise absent from the board, and a column past the fold would leave it just as unseen. It is not a drop target. The archive view lists unreadable archived files the same way. Repair happens in the file; the next read turns the card back into a task.
 
+### Flags
+
+A task's `flag` (see [the spec](../spec.md), **Flags**) asks for attention without moving the task, so the board has to make it hard to miss in any column. Every reading of the field goes through `taskFlag` from the pure `@shipbench/core/flag` subpath, the same function behind `task list --flagged`.
+
+- **Card.** A flagged card takes the doctrine's semantic carriers for `warning` (needs attention): a left border and an `RxExclamationTriangle` glyph, with the reason as secondary text under the slug (`Flagged` when there is none). On a card in `done_column` the flag is most likely one nobody cleared, so it stays visible but neutral: silver glyph, no border.
+- **Column header.** A non-done column with flagged cards shows a warning-glyph count beside its task count, so a flag scrolled below the fold is still noticed.
+- **Header toggle.** A `Flagged N` toggle (live, non-done flags) narrows the board to flagged tasks on top of any search. It appears only while something is flagged or the filter is on, and is hidden in the archive view. Filtering lifts the done cap just as search does.
+- **Detail.** The meta pane's Flag field flags a task in one click without asking for a reason, edits the reason in place (saved on blur, like the other metadata inputs), and clears it with an explicit Clear. A blank reason saves as a bare flag rather than clearing, because clearing is its own action. Read-only hosts show the flag with no controls, and hide the field when there is no flag.
+
+Clearing goes over the wire as `null`: `JSON.stringify` drops an `undefined` key, which would leave the field untouched, so the standalone client sends `null` and the CLI's board server turns it back into `undefined`. The same applies to clearing priority and assignee.
+
 ### Detail mode
 
 A Linear-style in-place swap. The header stays; the board area becomes the detail surface. The breadcrumb in the header extends with the task title:
@@ -172,6 +183,7 @@ A Linear-style in-place swap. The header stays; the board area becomes the detai
 │ Left ~70% — Markdown working area        │ Right ~30% — Meta    │
 │                                          │                      │
 │   [View: rendered]                       │ Status:   [dropdown] │
+│                                          │ Flag:     [reason]   │
 │      or                                  │ Priority: [dropdown] │
 │   [Edit: monospaced textarea]            │ Assignee: [input]    │
 │                                          │ Tags:     [chips]    │

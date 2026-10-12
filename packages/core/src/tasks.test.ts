@@ -2233,3 +2233,110 @@ describe('slug confinement', () => {
     expect(adapter.files.has('.shipbench/tasks/My_Task.md')).toBe(false);
   });
 });
+
+describe('flag', () => {
+  function flaggedBoard(flag: unknown) {
+    return memoryAdapter({
+      '.shipbench/tasks/api.md': taskFile({
+        title: 'API',
+        status: 'in-progress',
+        created: '2026-01-01T00:00:00Z',
+        updated: '2026-01-01T00:00:00Z',
+        ...(flag === undefined ? {} : { flag }),
+      }),
+    });
+  }
+
+  it('creates a task with a trimmed reason and reads it back', async () => {
+    const adapter = memoryAdapter();
+    await createTask(adapter, DEFAULT_CONFIG, 'Wire it up', {
+      flag: '  Waiting on a schema decision  ',
+    });
+
+    const reread = await getTask(adapter, DEFAULT_CONFIG, 'wire-it-up');
+    expect(reread?.frontmatter.flag).toBe('Waiting on a schema decision');
+    const { warnings } = await listTasks(adapter, DEFAULT_CONFIG);
+    expect(warnings).toEqual([]);
+  });
+
+  it('omits the field when a task is created unflagged', async () => {
+    const adapter = memoryAdapter();
+    await createTask(adapter, DEFAULT_CONFIG, 'Plain');
+
+    const raw = adapter.files.get('.shipbench/tasks/plain.md');
+    expect(matter(raw!).data).not.toHaveProperty('flag');
+  });
+
+  it('sets, replaces, and clears a flag through updateTask', async () => {
+    const adapter = flaggedBoard(undefined);
+
+    await updateTask(adapter, DEFAULT_CONFIG, 'api', { flag: true });
+    expect(
+      matter(adapter.files.get('.shipbench/tasks/api.md')!).data.flag,
+    ).toBe(true);
+
+    await updateTask(adapter, DEFAULT_CONFIG, 'api', { flag: 'Needs review' });
+    expect(
+      (await getTask(adapter, DEFAULT_CONFIG, 'api'))?.frontmatter.flag,
+    ).toBe('Needs review');
+
+    const { task } = await updateTask(adapter, DEFAULT_CONFIG, 'api', {
+      flag: undefined,
+    });
+    expect(task.frontmatter.updated).not.toBe('2026-01-01T00:00:00.000Z');
+    expect(
+      matter(adapter.files.get('.shipbench/tasks/api.md')!).data,
+    ).not.toHaveProperty('flag');
+  });
+
+  it('leaves the flag alone when an update does not mention it', async () => {
+    const adapter = flaggedBoard('Blocked on credentials');
+    await updateTask(adapter, DEFAULT_CONFIG, 'api', { status: 'done' });
+
+    expect(
+      (await getTask(adapter, DEFAULT_CONFIG, 'api'))?.frontmatter.flag,
+    ).toBe('Blocked on credentials');
+  });
+
+  it.each([
+    ['a blank reason', '   ', /reason is blank/],
+    ['a multi-line reason', 'one\ntwo', /one line/],
+    ['false', false, /short reason or `true`/],
+    ['a number', 3, /short reason or `true`/],
+  ])('rejects %s on write without touching the file', async (_name, flag, message) => {
+    const adapter = flaggedBoard('Original');
+    const before = adapter.files.get('.shipbench/tasks/api.md');
+
+    await expect(
+      updateTask(adapter, DEFAULT_CONFIG, 'api', {
+        flag: flag as string,
+      }),
+    ).rejects.toThrow(message);
+    await expect(
+      createTask(adapter, DEFAULT_CONFIG, 'Another', { flag: flag as string }),
+    ).rejects.toThrow(message);
+    expect(adapter.files.get('.shipbench/tasks/api.md')).toBe(before);
+    expect(adapter.files.has('.shipbench/tasks/another.md')).toBe(false);
+  });
+
+  it.each([
+    ['false', false],
+    ['a blank string', ''],
+    ['a list', ['a']],
+  ])('warns on read when the flag is %s, and keeps the task', async (_name, flag) => {
+    const { tasks, warnings } = await listTasks(
+      flaggedBoard(flag),
+      DEFAULT_CONFIG,
+    );
+
+    expect(tasks.map(task => task.slug)).toEqual(['api']);
+    expect(warnings).toEqual([
+      expect.objectContaining({ slug: 'api', field: 'flag' }),
+    ]);
+  });
+
+  it('treats an empty `flag:` like an omitted field', async () => {
+    const { warnings } = await listTasks(flaggedBoard(null), DEFAULT_CONFIG);
+    expect(warnings).toEqual([]);
+  });
+});

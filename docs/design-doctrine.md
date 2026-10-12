@@ -73,7 +73,7 @@ Two measured caveats, both pinned in `tests/design-system/contrast.test.ts` so t
 | --------- | --------- | --------- | ------------------------------------------- |
 | `danger`  | `#E5605F` | `#C4322F` | Destructive, error, blocking failure.       |
 | `success` | `#57B37E` | `#2A7449` | Completed, confirmed, saved.                |
-| `warning` | `#E3A34A` | `#8A5A00` | Attention / degraded-but-loaded — read-time validation warnings, uncategorized status, dangling `depends_on` references. |
+| `warning` | `#E3A34A` | `#8A5A00` | Attention / degraded-but-loaded — read-time validation warnings, uncategorized status, dangling `depends_on` references, flagged tasks. |
 
 All three clear 4.5:1 as text/icon on `canvas`, `surface`, and `surface2` in **both** themes (worst case 4.63 dark, 4.67 light). Muted on purpose — they read as machined signal, not traffic lights. Optional soft tints (12–13% of the hue) for filled badge/toast backgrounds; the hue's primary carriers are a left-border, a small mark, and the text.
 

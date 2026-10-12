@@ -24,9 +24,15 @@ import type {
   TaskSearchMatch,
   UnreadableTaskFile,
 } from '@shipbench/core';
+import { isTaskFlagged } from '@shipbench/core/flag';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import { useMemo, useState } from 'react';
-import { RxArchive, RxMagnifyingGlass, RxPlus } from 'react-icons/rx';
+import {
+  RxArchive,
+  RxExclamationTriangle,
+  RxMagnifyingGlass,
+  RxPlus,
+} from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { searchBoardTasks } from '../store/boardSearch.js';
 import { UNCATEGORIZED_STATUS } from '../store/boardStore.js';
@@ -187,6 +193,8 @@ export function KanbanBoard() {
   const tasks = useBoardStore(state => state.tasks);
   const unreadable = useBoardStore(state => state.unreadable);
   const searchQuery = useBoardStore(state => state.searchQuery);
+  const flaggedOnly = useBoardStore(state => state.flaggedOnly);
+  const setFlaggedOnly = useBoardStore(state => state.setFlaggedOnly);
   const reorderTask = useBoardStore(state => state.reorderTask);
   const readOnly = useBoardStore(state => state.readOnly);
   const openArchive = useBoardStore(state => state.openArchive);
@@ -194,7 +202,13 @@ export function KanbanBoard() {
     () => searchBoardTasks(tasks, searchQuery),
     [tasks, searchQuery],
   );
-  const visibleTasks = search.tasks;
+  const visibleTasks = useMemo(
+    () => (flaggedOnly ? search.tasks.filter(isTaskFlagged) : search.tasks),
+    [search.tasks, flaggedOnly],
+  );
+  // Search and the flagged filter both narrow the board to what was asked for,
+  // so either one lifts the done column's cap: a match must never be hidden.
+  const narrowed = Boolean(searchQuery.trim()) || flaggedOnly;
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
   const [previewPosition, setPreviewPosition] = useState<number>(-1);
@@ -307,6 +321,29 @@ export function KanbanBoard() {
 
   const isDragging = activeSlug !== null;
 
+  if (flaggedOnly && !searchQuery.trim() && visibleTasks.length === 0) {
+    return (
+      <div className="flex min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] items-center justify-center">
+        <div className="w-full max-w-md rounded-md border border-dashed border-sb-iron px-5 py-12 text-center">
+          <RxExclamationTriangle
+            aria-hidden="true"
+            className="mx-auto h-5 w-5 text-sb-silver"
+          />
+          <p className="mt-3 font-mono text-[13px] text-sb-frosted">
+            No live tasks are flagged.
+          </p>
+          <button
+            className="mt-4 inline-flex h-9 items-center gap-2 rounded border border-sb-iron bg-transparent px-3 text-[13px] font-medium text-sb-frosted transition-colors hover:border-sb-silver hover:bg-sb-surface2"
+            type="button"
+            onClick={() => setFlaggedOnly(false)}
+          >
+            Show all tasks
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (searchQuery.trim() && visibleTasks.length === 0) {
     return (
       <div className="flex min-h-[calc(var(--sb-viewport-h,100vh)-var(--sb-header-h)-2.5rem)] items-center justify-center">
@@ -316,11 +353,13 @@ export function KanbanBoard() {
             className="mx-auto h-5 w-5 text-sb-silver"
           />
           <p className="mt-3 font-mono text-[13px] text-sb-frosted">
-            No live tasks match “{searchQuery.trim()}”.
+            {flaggedOnly
+              ? `No flagged tasks match “${searchQuery.trim()}”.`
+              : `No live tasks match “${searchQuery.trim()}”.`}
           </p>
           <p className="mt-2 text-[12px] text-sb-silver">
-            Search looks in titles, descriptions, Task Updates, tags, slugs, and
-            assignees.
+            Search looks in titles, descriptions, Task Updates, tags, slugs,
+            assignees, and flags.
           </p>
           {readOnly ? null : (
             <>
@@ -353,10 +392,9 @@ export function KanbanBoard() {
             label={column.label}
             tasks={column.tasks}
             searchContext={search.contextBySlug}
+            isDone={column.isDone}
             capMax={
-              column.isDone && !searchQuery.trim()
-                ? (config.done_display?.max ?? 0)
-                : 0
+              column.isDone && !narrowed ? (config.done_display?.max ?? 0) : 0
             }
           />
         ))}
@@ -405,10 +443,9 @@ export function KanbanBoard() {
               isActive={!isUncategorized && previewStatus === column.id}
               isDisabledTarget={isUncategorized && isDragging}
               canCreate={!isUncategorized && !column.isDone}
+              isDone={column.isDone}
               capMax={
-                column.isDone && !searchQuery.trim()
-                  ? (config.done_display?.max ?? 0)
-                  : 0
+                column.isDone && !narrowed ? (config.done_display?.max ?? 0) : 0
               }
             />
           );
@@ -433,6 +470,7 @@ function StaticBoardColumn({
   label,
   tasks,
   searchContext,
+  isDone,
   capMax,
 }: {
   id: string;
@@ -440,6 +478,7 @@ function StaticBoardColumn({
   tasks: Task[];
   /** Content matches from the active search, keyed by slug. */
   searchContext: ReadonlyMap<string, TaskSearchMatch>;
+  isDone: boolean;
   /** Cap on visible tasks. `0` or negative disables the cap. */
   capMax: number;
 }) {
@@ -466,7 +505,11 @@ function StaticBoardColumn({
 
   return (
     <section className="flex w-[20rem] shrink-0 flex-col rounded-md border border-sb-iron transition-colors">
-      <ColumnHeader label={label} count={tasks.length} />
+      <ColumnHeader
+        label={label}
+        count={tasks.length}
+        flagged={isDone ? 0 : tasks.filter(isTaskFlagged).length}
+      />
 
       <div className="flex flex-1 flex-col gap-3 p-3">
         {body}
@@ -528,10 +571,17 @@ function CapToggle({
 function ColumnHeader({
   label,
   count,
+  flagged = 0,
   children,
 }: {
   label: string;
   count: number;
+  /**
+   * Flagged tasks in the column, shown beside the count so a flag scrolled out
+   * of view is still noticed. Done columns pass 0: a flag left on finished work
+   * is not a live request.
+   */
+  flagged?: number;
   children?: React.ReactNode;
 }) {
   return (
@@ -546,6 +596,20 @@ function ColumnHeader({
         </span>
       </h2>
       <span className="flex shrink-0 items-center gap-1.5">
+        {flagged > 0 ? (
+          // biome-ignore lint/a11y/useAriaPropsSupportedByRole: title alignment
+          <span
+            className="inline-flex items-center gap-1 rounded border border-sb-iron px-1.5 py-0.5 font-mono text-[11px] text-sb-silver"
+            aria-label={`${flagged} flagged`}
+            title={`${flagged} flagged`}
+          >
+            <RxExclamationTriangle
+              aria-hidden="true"
+              className="h-3 w-3 text-sb-warning"
+            />
+            {flagged}
+          </span>
+        ) : null}
         <span className="rounded border border-sb-iron px-1.5 py-0.5 font-mono text-[11px] text-sb-silver">
           {count}
         </span>
@@ -592,6 +656,7 @@ function BoardColumn({
   isActive,
   isDisabledTarget,
   canCreate,
+  isDone,
   capMax,
 }: {
   id: string;
@@ -613,6 +678,7 @@ function BoardColumn({
   isDisabledTarget: boolean;
   /** True when this column is a valid target for newly-created tasks. */
   canCreate: boolean;
+  isDone: boolean;
   /** Cap on visible tasks. `0` or negative disables the cap. */
   capMax: number;
 }) {
@@ -675,7 +741,11 @@ function BoardColumn({
       }`}
       ref={setNodeRef}
     >
-      <ColumnHeader label={label} count={tasks.length}>
+      <ColumnHeader
+        label={label}
+        count={tasks.length}
+        flagged={isDone ? 0 : tasks.filter(isTaskFlagged).length}
+      >
         {canCreate ? (
           <ColumnCreateTaskIconButton status={id} label={label} />
         ) : null}

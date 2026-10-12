@@ -1,4 +1,5 @@
 import matter from 'gray-matter';
+import { taskFlag } from './flag.js';
 import { layoutAfterMove, layoutWithoutTask } from './layout.js';
 import { assertTaskSlug, resolveSlugCollision, slugify } from './slug.js';
 import type {
@@ -90,6 +91,7 @@ const KNOWN_FRONTMATTER_FIELDS = new Set<string>([
   'assignee',
   'tags',
   'depends_on',
+  'flag',
   'created',
   'updated',
 ]);
@@ -457,6 +459,33 @@ function normalizeDependsOn(value: string[] | undefined): string[] | undefined {
 }
 
 /**
+ * Write-time flag validation. A flag is `true` or a one-line reason; `undefined`
+ * clears it. A blank reason, a line break, or any other value is rejected
+ * rather than written as something the next read would treat as unflagged.
+ * Returns the reason trimmed.
+ */
+function normalizeFlag(value: unknown): string | true | undefined {
+  if (value === undefined || value === true) return value;
+  if (typeof value !== 'string') {
+    throw new Error(
+      'Invalid flag: expected a short reason or `true`. Omit the field to clear the flag.',
+    );
+  }
+  const reason = value.trim();
+  if (!reason) {
+    throw new Error(
+      'Invalid flag: the reason is blank. Leave the reason out to flag without one.',
+    );
+  }
+  if (/[\r\n]/.test(reason)) {
+    throw new Error(
+      'Invalid flag: keep the reason to one line. Put the detail in a Task Update.',
+    );
+  }
+  return reason;
+}
+
+/**
  * Write-time dependency validation. Rejects self-reference, slugs with no task
  * file, and direct two-hop cycles. Deeper cycles are intentionally not walked —
  * a future `shipbench task validate` owns full DAG checking.
@@ -561,6 +590,18 @@ function validateTask(
         });
       }
     }
+  }
+
+  // An empty `flag:` parses as null and means what an omitted field means, as
+  // an empty `assignee:` does. Anything else that does not flag is a mistake.
+  const flag = (task.frontmatter as { flag?: unknown }).flag;
+  if (flag !== undefined && flag !== null && !taskFlag(task)) {
+    warnings.push({
+      slug: task.slug,
+      field: 'flag',
+      message:
+        'Expected flag to be `true` or a short reason. The task reads as unflagged.',
+    });
   }
 
   for (const field of Object.keys(task.frontmatter)) {
@@ -716,6 +757,8 @@ export async function createTask(
   const dependsOn = normalizeDependsOn(fields?.depends_on);
   await assertValidDependsOn(adapter, config, slug, dependsOn);
 
+  const flag = normalizeFlag(fields?.flag);
+
   const task: Task = {
     slug,
     frontmatter: {
@@ -725,6 +768,7 @@ export async function createTask(
       assignee: fields?.assignee,
       tags: fields?.tags,
       depends_on: dependsOn,
+      flag,
       created: now,
       updated: now,
     },
@@ -787,6 +831,10 @@ export async function updateTask(
     await assertValidDependsOn(adapter, config, slug, dependsOn);
   }
 
+  // As with depends_on, a `flag` key set to undefined clears the flag.
+  const flagProvided = 'flag' in fields;
+  const flag = flagProvided ? normalizeFlag(fields.flag) : undefined;
+
   const statusChanged =
     fields.status !== undefined && fields.status !== task.frontmatter.status;
 
@@ -794,6 +842,7 @@ export async function updateTask(
     ...task.frontmatter,
     ...fields,
     ...(dependsOnProvided ? { depends_on: dependsOn } : {}),
+    ...(flagProvided ? { flag } : {}),
     // `created` is set once at creation and is not user-modifiable.
     created: task.frontmatter.created,
     updated: new Date().toISOString(),

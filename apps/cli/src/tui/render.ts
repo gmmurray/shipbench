@@ -3,7 +3,11 @@
  * lines out. Nothing here touches process.stdout, so every layout is a unit test at a fixed width.
  */
 
-import type { ShipbenchConfig, Task } from '@shipbench/core';
+import {
+  isTaskFlagged,
+  type ShipbenchConfig,
+  type Task,
+} from '@shipbench/core';
 import { meterFitsIn, type Plan, planBoard, type Viewport } from './layout.js';
 import { type BoardModel, type ColumnModel, priorityRank } from './model.js';
 import { BOX, type StyleName, type Styler, stripSgr } from './style.js';
@@ -49,9 +53,24 @@ function titleWeight(task: Task, config: ShipbenchConfig): 'bold' | undefined {
   return undefined;
 }
 
+/**
+ * What the one-cell marker before a title says, if anything. A flag outranks
+ * waiting: a flag asks for someone, and waiting only asks for patience.
+ */
+type RowMarker = 'flagged' | 'flagged-done' | 'waiting' | null;
+
+function rowMarker(
+  task: Task,
+  column: ColumnModel,
+  model: BoardModel,
+): RowMarker {
+  if (isTaskFlagged(task)) return column.isDone ? 'flagged-done' : 'flagged';
+  return model.blockedTaskSlugs.has(task.slug) ? 'waiting' : null;
+}
+
 function taskRow(
   task: Task,
-  blocked: boolean,
+  kind: RowMarker,
   width: number,
   format: RowFormat,
   options: RenderOptions,
@@ -60,14 +79,26 @@ function taskRow(
   const weight = titleWeight(task, config);
   // With a meter, the marker replaces its separator: `››·~Title` costs exactly
   // the same cells as `››· Title`. Below the meter threshold it takes the first
-  // title cell. Either way the row keeps its width and `~` survives NO_COLOR.
-  // This deliberately does not borrow the warning glyph or colour: an unfinished
-  // dependency is healthy planned order, not something wrong. Dim means exactly
-  // what this state needs to say — recede, not now.
-  const marker = blocked ? style(BOX.waiting, 'dim') : '';
+  // title cell. Either way the row keeps its width and the glyph survives
+  // NO_COLOR.
+  //
+  // Waiting deliberately does not borrow the warning glyph or colour: an
+  // unfinished dependency is healthy planned order, not something wrong. Dim
+  // means exactly what that state needs to say — recede, not now. A flag is the
+  // opposite, a request for attention, so it takes the warning pair. On a done
+  // task it is most likely a flag nobody cleared, so it dims: still there to
+  // notice, not raised as an alarm.
+  const marker =
+    kind === 'flagged'
+      ? style(BOX.warn, 'yellow')
+      : kind === 'flagged-done'
+        ? style(BOX.warn, 'dim')
+        : kind === 'waiting'
+          ? style(BOX.waiting, 'dim')
+          : '';
   const prefixWidth = format.meter
     ? config.priority.values.length + 1
-    : blocked
+    : kind
       ? 1
       : 0;
   const title = truncate(
@@ -79,7 +110,7 @@ function taskRow(
 
   return (
     (format.meter
-      ? `${meter(task, config, style)}${blocked ? marker : ' '}`
+      ? `${meter(task, config, style)}${kind ? marker : ' '}`
       : marker) +
     styledTitle +
     ' '.repeat(gap)
@@ -149,13 +180,7 @@ function columnBody(
     return [style(fit(message, width), 'dim')];
   }
   const row = (task: Task) =>
-    taskRow(
-      task,
-      model.blockedTaskSlugs.has(task.slug),
-      width,
-      format,
-      options,
-    );
+    taskRow(task, rowMarker(task, column, model), width, format, options);
   const visible = visibleTasks(column, rows);
   // `cappedOut` is what `done_display.max` already withheld. It reads as hidden
   // rows exactly like viewport truncation does, so the two share one footer
@@ -227,7 +252,7 @@ function hasVisibleWaitingTask(model: BoardModel, plan: Plan): boolean {
  * escape sequence that bleeds colour into the rest of the frame.
  *
  * Rank, most important first: the last-updated timestamp; a non-fatal failure
- * notice, unreadable task files, and warnings; the uncategorized count;
+ * notice, unreadable task files, flagged tasks, and warnings; the uncategorized count;
  * collapsed-column counts; the project name.
  */
 function statusLine(
@@ -247,6 +272,9 @@ function statusLine(
     alerts.push(
       style(`${BOX.warn} ${model.unreadableCount} unreadable`, 'yellow'),
     );
+  }
+  if (model.flaggedCount > 0) {
+    alerts.push(style(`${BOX.warn} ${model.flaggedCount} flagged`, 'yellow'));
   }
   if (model.warnings.length > 0) {
     alerts.push(

@@ -1,6 +1,6 @@
 ---
 title: Add a generic flag field for highlighting tasks on the board
-status: backlog
+status: done
 priority: medium
 tags:
   - core
@@ -8,7 +8,8 @@ tags:
   - cli
   - convention
 created: '2026-10-08T18:54:05.596Z'
-updated: '2026-10-08T18:54:05.596Z'
+updated: '2026-10-12T22:52:00.019Z'
+assignee: claude
 ---
 
 Add a generic, first-class `flag` field to task frontmatter so a task can be highlighted on the board for attention, independent of its status.
@@ -48,3 +49,15 @@ This is support through convention, not infrastructure. It is one informational 
 
 - The exact card treatment and color token for the flag, especially next to priority styling.
 - Whether search should match the flag's reason text.
+
+## Task Updates
+
+### 2026-10-08T22:45:32.737Z
+Implemented across core, CLI, terminal board, browser board, docs, and changesets. Decisions made along the way:
+
+- **Open questions resolved.** Card treatment follows the doctrine's `warning` carriers (left border plus `RxExclamationTriangle`, reason as silver secondary text); a done task's flag stays visible but neutral. Search: core's `searchTasks` does not index the flag. The board adds the reason to its card face, the same way it already folds in slug and assignee, so a board search finds what a card prints. On the CLI, `--flagged` is the way to find flagged tasks.
+- **Pure subpath.** `taskFlag` / `isTaskFlagged` live in a new `@shipbench/core/flag` subpath so the board, the CLI filter, and the terminal board share one reading of the field. The biome barrel-import rule now covers them.
+- **Terminal board added to scope.** `shipbench board terminal` is the most literal "watch agents work" surface. It got a `!` row marker (yellow, dim on done, outranking the `~` waiting marker), a status-line count of live flags, and `--flagged`.
+- **Transport bug found and fixed.** Clearing a field from the board served by `shipbench board` never reached the file. `JSON.stringify` dropped the `undefined` key, so priority and assignee clears were silently reverted by reconciliation. Flag clearing would have hit the same thing. The standalone client now sends `null` (`wireFields`), and the board server translates `null` back to `undefined`. A separate patch changeset covers it.
+- **Doc drift corrected.** The site CLI reference described the terminal board's waiting marker as `!`; the code has drawn a dim `~` for that. It is corrected now that `!` means flagged.
+- **No-op writes skipped.** `task flag` with the same reason and `task unflag` on a task with no `flag` field write nothing, so `updated` does not move.

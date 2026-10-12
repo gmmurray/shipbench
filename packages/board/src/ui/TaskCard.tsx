@@ -1,7 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Task, TaskSearchMatch } from '@shipbench/core';
-import { RxLink2 } from 'react-icons/rx';
+// From the pure subpath, never the barrel: see the note in boardSearch.ts.
+import { type TaskFlag, taskFlag } from '@shipbench/core/flag';
+import { RxExclamationTriangle, RxLink2 } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { PriorityMeter } from './PriorityMeter.js';
 import { SearchMatchContext } from './SearchMatchContext.js';
@@ -93,6 +95,13 @@ function StaticTaskCard({
   const priorityValues = useBoardStore(
     state => state.config?.priority.values ?? NO_PRIORITY_VALUES,
   );
+  const isDone = useBoardStore(
+    state => state.config?.done_column === task.frontmatter.status,
+  );
+  const flag = taskFlag(task);
+  // A flag on a finished task is most likely one nobody cleared. It stays
+  // visible but drops the warning hue, which is reserved for live attention.
+  const raised = flag !== null && !isDone;
   const unfinishedDependencyCount = useBoardStore(state => {
     const dependencies = task.frontmatter.depends_on ?? [];
     if (!dependencies.length || !state.config) return 0;
@@ -108,8 +117,8 @@ function StaticTaskCard({
   return (
     <article
       className={`rounded-md border border-sb-iron bg-sb-surface p-3 outline-none transition-colors hover:border-sb-silver ${
-        dimmed ? 'opacity-40' : ''
-      } ${errorAt ? 'sb-error-shake' : ''}`}
+        raised ? 'border-l-2 border-l-sb-warning hover:border-l-sb-warning' : ''
+      } ${dimmed ? 'opacity-40' : ''} ${errorAt ? 'sb-error-shake' : ''}`}
       key={errorAt ?? 'stable'}
     >
       <button
@@ -123,6 +132,7 @@ function StaticTaskCard({
         <p className="mt-1 truncate font-mono text-[11px] text-sb-silver">
           {task.slug}
         </p>
+        {flag ? <FlagLine flag={flag} raised={raised} /> : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {task.frontmatter.priority ? (
@@ -157,6 +167,28 @@ function StaticTaskCard({
         {searchMatch ? <SearchMatchContext match={searchMatch} /> : null}
       </button>
     </article>
+  );
+}
+
+function FlagLine({ flag, raised }: { flag: TaskFlag; raised: boolean }) {
+  return (
+    <p
+      className="mt-2 flex items-start gap-1.5 text-[12px] leading-4 text-sb-silver"
+      title={flag.reason ?? undefined}
+    >
+      <RxExclamationTriangle
+        aria-hidden="true"
+        className={`mt-0.5 h-3 w-3 shrink-0 ${raised ? 'text-sb-warning' : ''}`}
+      />
+      {flag.reason ? (
+        <span className="line-clamp-2 min-w-0 break-words">
+          <span className="sr-only">Flagged: </span>
+          {flag.reason}
+        </span>
+      ) : (
+        <span>Flagged</span>
+      )}
+    </p>
   );
 }
 

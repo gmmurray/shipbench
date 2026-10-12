@@ -12,6 +12,7 @@ import '@fontsource/intel-one-mono/700.css';
 import type { BoardAPI, TaskFrontmatter } from '@shipbench/core';
 import { createBoard } from './index.js';
 import { applyStoredBoardTheme } from './ui/BoardThemeToggle.js';
+import { wireFields } from './utils/wireFields.js';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
@@ -51,7 +52,7 @@ const api: BoardAPI = {
   updateTask: (slug: string, fields: Partial<TaskFrontmatter>, body?: string) =>
     request(`/api/tasks/${encodeURIComponent(slug)}`, {
       method: 'PATCH',
-      ...jsonBody({ fields, body }),
+      ...jsonBody({ fields: wireFields(fields), body }),
     }),
   addComment: (slug: string, text: string) =>
     request(`/api/tasks/${encodeURIComponent(slug)}/comments`, {

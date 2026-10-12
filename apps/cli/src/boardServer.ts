@@ -117,10 +117,21 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+/**
+ * JSON cannot carry `undefined`, so a browser host sends `null` for "clear this
+ * field". Core clears a field whose key is present with an `undefined` value, so
+ * the key is kept and only the value translated. A dropped key would leave the
+ * field as it was, and a raw `null` would be written into the frontmatter.
+ */
 function optionalTaskFields(value: unknown): Partial<TaskFrontmatter> {
   if (value === undefined) return {};
   if (!isObject(value)) throw new Error('"fields" must be an object.');
-  return value as Partial<TaskFrontmatter>;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, field]) => [
+      key,
+      field === null ? undefined : field,
+    ]),
+  ) as Partial<TaskFrontmatter>;
 }
 
 function optionalBody(value: unknown): string | undefined {

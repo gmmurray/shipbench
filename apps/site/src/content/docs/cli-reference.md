@@ -254,6 +254,22 @@ shipbench task comment delete build-api 0
 
 Git keeps prior text and deleted entries in file history.
 
+### `shipbench task flag`
+
+```bash no-copy
+shipbench task flag <slug> [reason]
+shipbench task unflag <slug>
+```
+
+Marks a task for attention without moving it. The reason is optional and must fit on one line; with no reason the task is saved as `flag: true`. Flagging a flagged task replaces its reason. `unflag` removes the field.
+
+```bash
+shipbench task flag build-api "Waiting on API credentials"
+shipbench task unflag build-api
+```
+
+What a flag means is your project's call: blocked, needs a decision, needs review. A flag is not `--blocked`, which means unmet `depends_on`. Nothing clears a flag for you, so a task moved to `done` keeps its flag until someone runs `unflag`. `task list` and `task search` mark flagged tasks in text output and take `--flagged` to show only them.
+
 ### `shipbench task get`
 
 ```bash no-copy
@@ -321,6 +337,7 @@ Lists live tasks in board order. Configured columns follow `config.columns`; tas
 | `-a, --assignee <assignees>` | Filter by assignee; comma-separated or repeatable, matching any listed value. |
 | `-p, --priority <priorities>` | Filter by priority; comma-separated or repeatable, matching any listed value. An unconfigured value is an error. |
 | `--tag <tag>` | Filter by tag; comma-separated or repeatable. Multiple values use AND semantics. Matching is case-insensitive. |
+| `--flagged` | Return only flagged tasks. |
 | `--available` | Return tasks in the actionable column whose dependencies are satisfied. |
 | `--blocked` | Return tasks in the actionable column with at least one unsatisfied dependency. |
 | `--limit <n>` | Return at most `n` tasks. `0` returns none. |
@@ -399,6 +416,7 @@ Two opt-in controls tighten how a term matches, without changing the corpus or t
 | `-a, --assignee <assignees>` | Restrict to tasks with any of these assignees; comma-separated or repeatable. |
 | `-p, --priority <priorities>` | Restrict to tasks with any of these priorities; comma-separated or repeatable. An unconfigured value is an error. |
 | `--tag <tag>` | Restrict by tag; comma-separated or repeatable, AND semantics, case-insensitive. |
+| `--flagged` | Restrict to flagged tasks. |
 | `--available` | Restrict to actionable-column tasks whose dependencies are satisfied. |
 | `--blocked` | Restrict to actionable-column tasks with at least one unsatisfied dependency. |
 | `--whole-word` | Match each term on word boundaries instead of as a substring. |
@@ -555,7 +573,7 @@ The server binds to `127.0.0.1`. If the preferred port is occupied, it tries the
 #### `shipbench board terminal`
 
 ```bash no-copy
-shipbench board terminal [-s <statuses>] [--tag <tag>] [-a <assignee>] [-p <priority>]
+shipbench board terminal [-s <statuses>] [--tag <tag>] [-a <assignee>] [-p <priority>] [--flagged]
 ```
 
 Renders the board in the terminal and repaints it as files change. Aliases: `term`, `tui`.
@@ -568,16 +586,19 @@ It is **read-only and takes no keyboard input** — Ctrl-C exits, nothing else i
 | `--tag <tag>` | Comma-separated or repeatable, with AND semantics. |
 | `-a, --assignee <assignee>` | Exact match. |
 | `-p, --priority <priority>` | Exact match. |
+| `--flagged` | Only flagged tasks. |
 
-`--status` chooses which columns render; the other three filter tasks inside them, and while any of them is active every column header reads `shown/total`.
+`--status` chooses which columns render; the other flags filter tasks inside them, and while any of them is active every column header reads `shown/total`.
 
 The board replaces the current terminal screen while it runs and restores it on exit. It adapts to narrow terminals, and widening the window never shows you less. Tasks whose `status` matches no configured column remain visible under `UNCATEGORIZED`.
 
 You can edit task files while the board is open. If it cannot load the project at startup, it tells you why. Once it is running, a broken config or failed read leaves the last good board on screen and adds a warning to the status line.
 
-The terminal board marks a task with unfinished dependencies by replacing the priority meter's separator with a warning mark: `››·!Blocked task`. In narrower columns, where the meter is hidden, the row starts with `!`. Archived dependencies count as satisfied, even when an archived file is malformed; malformed prerequisites add a warning instead of a blocked marker. The view rereads the archive after project changes, so archiving or unarchiving a dependency updates the marker without a restart.
+The terminal board marks a task with unfinished dependencies by replacing the priority meter's separator with a dim `~`: `››·~Waiting task`. In narrower columns, where the meter is hidden, the row starts with `~`. Archived dependencies count as satisfied, even when an archived file is malformed; malformed prerequisites add a warning instead of a waiting marker.
 
-With stdout redirected it prints one plain 80×24 frame and exits, so `shipbench board terminal > board.txt` and piping into a log both do something useful. `NO_COLOR` drops styling; the priority meter distinguishes its tiers by character (`›››` / `››·` / `›··`), and blocked tasks retain the literal `!`, so both signals survive without colour.
+A flagged task takes `!` in the same place, in the warning colour (`››·!Flagged task`), and the status line counts flagged tasks outside the done column. A flag outranks waiting on the same row. On a done task the `!` is dim, because a flag left on finished work is most likely one nobody cleared. The view rereads the archive after project changes, so archiving or unarchiving a dependency updates the marker without a restart.
+
+With stdout redirected it prints one plain 80×24 frame and exits, so `shipbench board terminal > board.txt` and piping into a log both do something useful. `NO_COLOR` drops styling; the priority meter distinguishes its tiers by character (`›››` / `››·` / `›··`), and waiting and flagged tasks keep their literal `~` and `!`, so every signal survives without colour.
 
 **Terminal support.** Any terminal with the usual VT support works; Windows Terminal on Windows 11 is the verified baseline. Legacy Windows `conhost` is out of scope: the view depends on the alternate screen buffer and Unicode box-drawing, which it does not handle the same way.
 

@@ -256,7 +256,7 @@ describe('Board', () => {
 
     expect(
       await screen.findByText(
-        'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+        'Search looks in titles, descriptions, Task Updates, tags, slugs, assignees, and flags.',
       ),
     ).toBeInTheDocument();
   });
@@ -289,7 +289,7 @@ describe('Board', () => {
     const input = screen.getByRole('textbox', { name: 'Search tasks' });
     await user.type(input, 'nowhere');
     await screen.findByText(
-      'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+      'Search looks in titles, descriptions, Task Updates, tags, slugs, assignees, and flags.',
     );
 
     await user.click(screen.getByRole('button', { name: 'Clear search' }));
@@ -301,7 +301,7 @@ describe('Board', () => {
     expect(screen.getByText('Lost task')).toBeInTheDocument();
     expect(
       screen.queryByText(
-        'Search looks in titles, descriptions, Task Updates, tags, slugs, and assignees.',
+        'Search looks in titles, descriptions, Task Updates, tags, slugs, assignees, and flags.',
       ),
     ).not.toBeInTheDocument();
   });
@@ -2748,5 +2748,145 @@ describe('Board host sizing variables', () => {
     } finally {
       unmount();
     }
+  });
+});
+
+describe('Board flags', () => {
+  const setupAuth = tasks[0] as Task;
+  const writeTests = tasks[2] as Task;
+  const flaggedTasks: Task[] = [
+    {
+      ...setupAuth,
+      frontmatter: { ...setupAuth.frontmatter, flag: 'Waiting on credentials' },
+    },
+    writeTests,
+    {
+      slug: 'shipped',
+      frontmatter: {
+        title: 'Shipped',
+        status: 'done',
+        flag: true,
+        created: '2026-06-03T00:00:00.000Z',
+        updated: '2026-06-03T00:00:00.000Z',
+      },
+      body: '',
+      comments: [],
+    },
+  ];
+
+  function flagApi(overrides: Partial<BoardAPI> = {}): BoardAPI {
+    return api({
+      listTasks: vi.fn(async () => ({
+        tasks: flaggedTasks,
+        warnings: [],
+        unreadable: [],
+      })),
+      ...overrides,
+    });
+  }
+
+  it('shows the reason on the card and counts live flags per column', async () => {
+    render(<Board api={flagApi()} />);
+
+    expect(
+      await screen.findByText('Waiting on credentials'),
+    ).toBeInTheDocument();
+    // The done column's leftover flag still shows on its card, but is not
+    // counted as a live request.
+    expect(screen.getAllByLabelText(/^\d+ flagged$/)).toEqual([
+      screen.getByLabelText('1 flagged'),
+    ]);
+    expect(screen.getByRole('button', { name: /Shipped/ })).toHaveTextContent(
+      'Flagged',
+    );
+  });
+
+  it('narrows the board to flagged tasks from the header toggle', async () => {
+    const user = userEvent.setup();
+    render(<Board api={flagApi()} />);
+    await screen.findByText('Setup auth');
+
+    const toggle = screen.getByRole('button', { name: /^Flagged\s*1$/ });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Write tests')).toBeNull();
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
+    expect(screen.getByText('Shipped')).toBeInTheDocument();
+  });
+
+  it('offers no toggle while no live task is flagged', async () => {
+    render(<Board api={api()} />);
+    await screen.findByText('Setup auth');
+
+    expect(screen.queryByRole('button', { name: /^Flagged/ })).toBeNull();
+  });
+
+  it('finds a task by its flag reason', async () => {
+    const user = userEvent.setup();
+    render(<Board api={flagApi({ readOnly: true })} />);
+    await screen.findByText('Setup auth');
+
+    await user.type(screen.getByPlaceholderText('Search tasks'), 'credentials');
+
+    await waitFor(() => expect(screen.queryByText('Write tests')).toBeNull());
+    expect(screen.getByText('Setup auth')).toBeInTheDocument();
+  });
+
+  it('flags, rewords, and clears a task from the detail view', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(
+      async (_slug: string, fields: Partial<Task['frontmatter']>) => ({
+        task: {
+          ...writeTests,
+          frontmatter: { ...writeTests.frontmatter, ...fields },
+        },
+      }),
+    );
+    render(<Board api={api({ updateTask })} />);
+
+    await user.click(await screen.findByText('Write tests'));
+    await user.click(
+      screen.getByRole('button', { name: 'Flag for attention' }),
+    );
+    expect(updateTask).toHaveBeenCalledWith(
+      'write-tests',
+      { flag: true },
+      undefined,
+    );
+
+    const reason = await screen.findByRole('textbox', { name: 'Flag' });
+    await waitFor(() => expect(reason).toHaveFocus());
+    await user.type(reason, 'Needs a decision');
+    await user.tab();
+    expect(updateTask).toHaveBeenLastCalledWith(
+      'write-tests',
+      { flag: 'Needs a decision' },
+      undefined,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(updateTask).toHaveBeenLastCalledWith(
+      'write-tests',
+      { flag: undefined },
+      undefined,
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Flag for attention' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a flag without controls in a read-only host', async () => {
+    const user = userEvent.setup();
+    render(<Board api={flagApi({ readOnly: true })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+
+    expect(screen.getByText('Waiting on credentials')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Flag for attention' }),
+    ).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Flag' })).toBeNull();
   });
 });

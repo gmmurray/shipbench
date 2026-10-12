@@ -94,6 +94,13 @@ export interface TaskFrontmatter {
    * and an empty array mean the same thing: no dependencies.
    */
   depends_on?: string[];
+  /**
+   * Marks the task for attention, independent of its column: a one-line reason,
+   * or `true` when there is none to give. What a flag means is the project's
+   * call. Informational only: nothing in core gates or clears it. Omit the field
+   * to leave the task unflagged.
+   */
+  flag?: string | true;
   created: string;
   updated: string;
 }

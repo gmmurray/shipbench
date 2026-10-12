@@ -87,7 +87,7 @@ path-filtered to changes that can actually affect the site. See
 
 ```
 core ← cli (core + FsAdapter, and board's standalone bundle at runtime)
-core ← board (core types, plus the pure `@shipbench/core/layout` and `@shipbench/core/search` subpaths)
+core ← board (core types, plus the pure `@shipbench/core/layout`, `@shipbench/core/search`, and `@shipbench/core/flag` subpaths)
 ```
 
 The core library is the foundation; the Board UI and CLI are consumers. `apps/site` depends on none of them — it is a standalone Astro site.
@@ -116,14 +116,15 @@ Standalone React app that accepts a `BoardAPI` interface at initialization. The 
 
 The `BoardAPI` contract is defined in core's type exports. The Board imports types from core but never imports adapter implementations or business logic.
 
-**The runtime exceptions: `@shipbench/core/layout` and `@shipbench/core/search`.**
+**The runtime exceptions: `@shipbench/core/layout`, `@shipbench/core/search`, and `@shipbench/core/flag`.**
 Manual task ordering (`layoutAfterMove`, `layoutWithoutTask`,
 `orderedTasksForColumn`) is shared contract, not business logic — the Board's
 optimistic updates have to produce the same layout core writes, and keeping a
 second copy in the Board is what let the two drift (see [docs/audits/board-move-algorithm-audit.md](docs/audits/board-move-algorithm-audit.md)).
 `searchTasks` is shared for the same reason: a query has to mean the same thing
-on the board as in `shipbench task search`. Both modules are pure, do no I/O,
-and import only types.
+on the board as in `shipbench task search`. `taskFlag` is shared so a card, a
+column count, and `task list --flagged` agree on which tasks are flagged. All
+three modules are pure, do no I/O, and import only types.
 
 Import them from their **subpaths**, never the barrel. `@shipbench/core` re-exports
 `FsAdapter`, which imports `node:fs` — pulling the barrel into the Board breaks
@@ -140,7 +141,7 @@ Full design intent (stack, state model, sync model, layouts, build plan) lives i
 
 ### CLI (`shipbench`)
 
-Uses `@shipbench/core` with `FsAdapter` rooted at `process.cwd()`. Commands: `init`, `connect`, `task create`, `task comment`, `task get`, `task move`, `task list`, `task search`, `task graph`, `task archive` / `task unarchive`, `task delete`, and `board`. The `board` command starts a local server hosting the Board UI with file watching for live updates.
+Uses `@shipbench/core` with `FsAdapter` rooted at `process.cwd()`. Commands: `init`, `connect`, `task create`, `task comment`, `task get`, `task flag` / `task unflag`, `task move`, `task list`, `task search`, `task graph`, `task archive` / `task unarchive`, `task delete`, and `board`. The `board` command starts a local server hosting the Board UI with file watching for live updates.
 
 ### Dogfooding ShipBench in this repo
 
@@ -253,10 +254,13 @@ Freeform Markdown body.
 | assignee   | No       | Freeform string label (e.g. `claude`, `human`). Informational only — no built-in claiming/locking behavior. |
 | tags       | No       | Array of freeform strings                                                                                   |
 | depends_on | No       | Slugs that must finish first. Data only — never gates writes or moves columns.                              |
+| flag       | No       | A one-line reason, or `true`. Asks for attention in any column. Informational only — never cleared for you. |
 | created    | Yes      | Auto-managed by core. Do not modify.                                                                        |
 | updated    | Yes      | Auto-managed by core. Do not modify.                                                                        |
 
 `depends_on` is strict on write (unknown slug, self-reference, and direct two-hop cycles are rejected) and graceful on read (a dangling slug becomes a validation warning; the task still loads). Agents selecting work should prefer tasks whose every `depends_on` entry sits in the `done` column or resolves to `tasks/archive/` (archived dependencies count as satisfied), and treat prose `## Depends on` sections as commentary.
+
+`flag` is generic on purpose: what it means (blocked, needs a decision, needs review) is each project's call. It is strict on write (a blank or multi-line reason, or any value other than a string or `true`, is rejected) and graceful on read (any other value reads as unflagged, with a warning). Nothing sets or clears it as a side effect; `task flag` / `task unflag` and the Board's detail view do it on purpose.
 
 Tasks with invalid statuses on read are surfaced with warnings. The Board UI renders them in an "Uncategorized" column. They are never hidden or dropped.
 

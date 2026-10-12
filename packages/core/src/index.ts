@@ -27,6 +27,9 @@ export {
   resolveTaskDependency,
   taskDependenciesAreSatisfied,
 } from './dependencies.js';
+// Flag
+export type { TaskFlag } from './flag.js';
+export { isTaskFlagged, taskFlag } from './flag.js';
 // GitHub URLs
 export type { GithubRepositoryParts } from './github-url.js';
 export {

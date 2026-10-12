@@ -11,6 +11,7 @@ import {
   getTask,
   initProject,
   inspectProjectInitialization,
+  isTaskFlagged,
   listArchivedTasks,
   listAvailableTasks,
   listBlockedTasks,
@@ -26,6 +27,7 @@ import {
   type Task,
   type TaskFrontmatter,
   taskFileSlugs,
+  taskFlag,
   type UnreadableTaskFile,
   unarchiveTask,
   unreadableUpdatesWarning,
@@ -141,6 +143,7 @@ interface RawTaskFilters {
   assignee?: string[];
   priority?: string[];
   tag?: string[];
+  flagged?: boolean;
 }
 
 interface ResolvedTaskFilters {
@@ -148,6 +151,7 @@ interface ResolvedTaskFilters {
   assignees: string[];
   priorities: string[];
   tags: string[];
+  flagged: boolean;
 }
 
 /** Parses and validates the shared `task list` / `task search` filter flags. */
@@ -175,14 +179,15 @@ function resolveTaskFilters(
     priorities,
     assignees: raw.assignee ?? [],
     tags: raw.tag ?? [],
+    flagged: Boolean(raw.flagged),
   };
 }
 
 /**
  * `--status`, `--priority`, and `--assignee` each match a task whose value is
- * any of the ones listed; `--tag` narrows with AND. `ignoreStatus` is set when
- * `--available` / `--blocked` has already used the status list to pick the
- * candidate column.
+ * any of the ones listed; `--tag` narrows with AND, and `--flagged` keeps only
+ * flagged tasks. `ignoreStatus` is set when `--available` / `--blocked` has
+ * already used the status list to pick the candidate column.
  */
 function taskMatchesFilters(
   task: Task,
@@ -211,8 +216,16 @@ function taskMatchesFilters(
   ) {
     return false;
   }
+  if (filters.flagged && !isTaskFlagged(task)) return false;
   const taskTags = (frontmatter.tags ?? []).map(tag => tag.toLowerCase());
   return filters.tags.every(wanted => taskTags.includes(wanted.toLowerCase()));
+}
+
+/** Appended to a task's one-line text form, so a flag is never missed in a list. */
+function flagSuffix(task: Task): string {
+  const flag = taskFlag(task);
+  if (!flag) return '';
+  return flag.reason ? ` — flagged: ${flag.reason}` : ' — flagged';
 }
 
 function parsePort(value: string): number {
@@ -470,6 +483,28 @@ export function createCli(opts: CliOptions): Command {
       return undefined;
     }
     return positional ?? fromOption;
+  };
+
+  /**
+   * Loads a live task a command is about to write, or fails the command with
+   * why there is none. An archived task is named as such, because the fix
+   * (`task unarchive`) differs from a typo's.
+   */
+  const requireLiveTask = async (
+    command: Command,
+    config: ShipbenchConfig,
+    slug: string,
+    action: string,
+  ): Promise<Task | null> => {
+    const existing = await getTask(adapter, config, slug);
+    if (existing) return existing;
+    const archived = await getTask(adapter, config, slug, { archived: true });
+    command.error(
+      archived
+        ? `Task '${slug}' is archived. Unarchive it before ${action}.`
+        : `Task '${slug}' not found.`,
+    );
+    return null;
   };
 
   const program = new Command()
@@ -802,16 +837,13 @@ export function createCli(opts: CliOptions): Command {
     }
 
     const config = await loadCliConfig();
-    const existing = await getTask(adapter, config, slug);
-    if (!existing) {
-      const archived = await getTask(adapter, config, slug, { archived: true });
-      editCommand.error(
-        archived
-          ? `Task '${slug}' is archived. Unarchive it before editing.`
-          : `Task '${slug}' not found.`,
-      );
-      return;
-    }
+    const existing = await requireLiveTask(
+      editCommand,
+      config,
+      slug,
+      'editing',
+    );
+    if (!existing) return;
 
     const before = existing.frontmatter;
     const fields: Partial<TaskFrontmatter> = {};
@@ -1062,6 +1094,70 @@ export function createCli(opts: CliOptions): Command {
     );
   });
 
+  const flagCommand = task
+    .command('flag <slug> [reason]')
+    .description('Flag a task for attention, with an optional one-line reason')
+    .addHelpText(
+      'after',
+      "\nWhat a flag means is the project's call. A flag never moves the task, and\nnothing clears it for you: run `shipbench task unflag <slug>` once it no\nlonger applies. Flagging a flagged task replaces its reason.\n",
+    );
+
+  flagCommand.action(
+    async (slug: string, reason: string | null | undefined) => {
+      const config = await loadCliConfig();
+      const existing = await requireLiveTask(
+        flagCommand,
+        config,
+        slug,
+        'flagging',
+      );
+      if (!existing) return;
+
+      // Commander reports an omitted optional argument as `null`. Core rejects a
+      // blank or multi-line reason, so the message comes from one place.
+      const flag = reason == null ? true : reason;
+      const before = taskFlag(existing);
+      if (before && before.reason === (flag === true ? null : flag.trim())) {
+        chrome(`No changes for ${slug}: it already carries that flag.`);
+        return;
+      }
+
+      const { task: flagged } = await updateTask(adapter, config, slug, {
+        flag,
+      });
+      const after = taskFlag(flagged);
+      chrome(
+        after?.reason
+          ? `Flagged ${flagged.slug}: ${after.reason}`
+          : `Flagged ${flagged.slug}`,
+      );
+    },
+  );
+
+  const unflagCommand = task
+    .command('unflag <slug>')
+    .description("Clear a task's flag");
+
+  unflagCommand.action(async (slug: string) => {
+    const config = await loadCliConfig();
+    const existing = await requireLiveTask(
+      unflagCommand,
+      config,
+      slug,
+      'unflagging',
+    );
+    if (!existing) return;
+
+    // A malformed value (`flag: false`, say) reads as unflagged but is still in
+    // the file, so only an absent field is a no-op.
+    if (existing.frontmatter.flag === undefined) {
+      chrome(`No changes for ${slug}: it is not flagged.`);
+      return;
+    }
+    await updateTask(adapter, config, slug, { flag: undefined });
+    chrome(`Unflagged ${slug}`);
+  });
+
   const moveCommand = task
     .command('move <slug>')
     .description('Move a task to another column and/or another position')
@@ -1237,6 +1333,7 @@ export function createCli(opts: CliOptions): Command {
       'Filter by tag (comma-separated or repeatable with AND semantics)',
       accumulateCommaList,
     )
+    .option('--flagged', 'Only tasks with a flag set')
     .addOption(
       new Option(
         '--available',
@@ -1335,7 +1432,9 @@ export function createCli(opts: CliOptions): Command {
 
       if (raw.archived) data('Archived tasks:');
       for (const t of filtered) {
-        data(`[${t.frontmatter.status}] ${t.frontmatter.title} (${t.slug})`);
+        data(
+          `[${t.frontmatter.status}] ${t.frontmatter.title} (${t.slug})${flagSuffix(t)}`,
+        );
       }
       for (const file of result.unreadable) data(formatUnreadableFile(file));
       if (result.warnings.length > 0) {
@@ -1376,6 +1475,7 @@ export function createCli(opts: CliOptions): Command {
       'Filter by tag (comma-separated or repeatable with AND semantics)',
       accumulateCommaList,
     )
+    .option('--flagged', 'Only tasks with a flag set')
     .addOption(
       new Option(
         '--available',
@@ -1472,6 +1572,9 @@ export function createCli(opts: CliOptions): Command {
         wholeWord: Boolean(raw.wholeWord),
       });
       const matches = allMatches.slice(0, raw.limit);
+      const candidatesBySlug = new Map(
+        candidates.map(candidate => [candidate.slug, candidate]),
+      );
       const warnings = [
         ...(liveResult?.warnings ?? []),
         ...(searchArchive ? (archivedResult?.warnings ?? []) : []),
@@ -1482,17 +1585,17 @@ export function createCli(opts: CliOptions): Command {
       ];
 
       if (raw.json) {
-        const tasksBySlug = new Map(
-          candidates.map(candidate => [candidate.slug, candidate]),
-        );
         const payloadMatches = matches.map(match => {
-          const source = tasksBySlug.get(match.slug);
+          const source = candidatesBySlug.get(match.slug);
           return {
             slug: match.slug,
             title: match.title,
             status: match.status,
             location: locationOf(match.slug),
             matched_fields: match.matched_fields,
+            ...(source && isTaskFlagged(source)
+              ? { flag: source.frontmatter.flag }
+              : {}),
             ...(match.snippet !== undefined ? { snippet: match.snippet } : {}),
             ...(match.update_matches
               ? { update_matches: match.update_matches }
@@ -1522,6 +1625,10 @@ export function createCli(opts: CliOptions): Command {
         return;
       }
 
+      const flagSuffixFor = (slug: string): string => {
+        const source = candidatesBySlug.get(slug);
+        return source ? flagSuffix(source) : '';
+      };
       if (allMatches.length === 0) {
         data(`No matches for "${query.trim()}".`);
       } else {
@@ -1530,7 +1637,7 @@ export function createCli(opts: CliOptions): Command {
         }
         for (const match of matches) {
           data(
-            `${match.title} (${match.slug}) [${locationOf(match.slug)} · ${match.status}] [${match.matched_fields.join(', ')}]`,
+            `${match.title} (${match.slug}) [${locationOf(match.slug)} · ${match.status}] [${match.matched_fields.join(', ')}]${flagSuffixFor(match.slug)}`,
           );
           if (match.snippet) data(`  ${match.snippet}`);
           for (const updateMatch of match.update_matches ?? []) {
@@ -1733,6 +1840,7 @@ export function createCli(opts: CliOptions): Command {
       'Filter by tag (comma-separated or repeatable with AND semantics)',
       accumulateCommaList,
     )
+    .option('--flagged', 'Only tasks with a flag set')
     .addHelpText(
       'after',
       '\nTakes no keyboard input: Ctrl-C exits. Never writes to the board.\nWith stdout redirected it prints one 80x24 frame and exits.\n',
@@ -1746,6 +1854,7 @@ export function createCli(opts: CliOptions): Command {
           tags: raw.tag,
           assignee: raw.assignee,
           priority: raw.priority,
+          flagged: raw.flagged,
         },
       });
     });

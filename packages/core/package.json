@@ -40,6 +40,10 @@
     "./search": {
       "types": "./src/search.ts",
       "import": "./src/search.ts"
+    },
+    "./flag": {
+      "types": "./src/flag.ts",
+      "import": "./src/flag.ts"
     }
   },
   "publishConfig": {
@@ -58,12 +62,16 @@
       "./search": {
         "types": "./dist/search.d.ts",
         "import": "./dist/search.js"
+      },
+      "./flag": {
+        "types": "./dist/flag.d.ts",
+        "import": "./dist/flag.js"
       }
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/layout.ts src/search.ts --format esm --dts",
-    "dev": "tsup src/index.ts src/layout.ts src/search.ts --format esm --dts --watch",
+    "build": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts --format esm --dts",
+    "dev": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

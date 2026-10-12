@@ -55,6 +55,8 @@ export interface BoardState {
   archiveLoadError: string | null;
   selectedTaskSlug: string | null;
   searchQuery: string;
+  /** Narrows the board to flagged tasks, on top of any search. */
+  flaggedOnly: boolean;
   lastSyncedAt: number | null;
   isSyncing: boolean;
   hasLoaded: boolean;
@@ -95,6 +97,7 @@ export interface BoardState {
   deleteTask: (slug: string) => Promise<void>;
   selectTask: (slug: string | null) => void;
   setSearchQuery: (query: string) => void;
+  setFlaggedOnly: (flaggedOnly: boolean) => void;
   /** Reports an editor's unsaved text, or clears the report with `null`. */
   setDraftDirty: (id: string, draft: UnsavedDraft | null) => void;
   discardAndNavigate: () => void;
@@ -167,6 +170,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
     archiveLoadError: null,
     selectedTaskSlug: null,
     searchQuery: '',
+    flaggedOnly: false,
     lastSyncedAt: null,
     isSyncing: false,
     hasLoaded: false,
@@ -679,6 +683,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
       navigate({ to: 'task', slug });
     },
     setSearchQuery: searchQuery => set({ searchQuery }),
+    setFlaggedOnly: flaggedOnly => set({ flaggedOnly }),
 
     setDraftDirty: (id, draft) => {
       const current = get().dirtyDrafts;

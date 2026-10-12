@@ -72,6 +72,7 @@ turns an accidental write into a compile error.
 - **Dependencies** — `listAvailableTasks`, `listBlockedTasks`,
   `buildTaskDependencyGraph`
 - **Comments** — `addComment`, `editComment`, `deleteComment`
+- **Flags** — `taskFlag`, `isTaskFlagged` (set and clear through `updateTask`)
 - **Config and setup** — `loadConfig`, `validateConfig`, `initProject`,
   `DEFAULT_CONFIG`
 - **Slugs** — `slugify`, `resolveSlugCollision`
@@ -114,6 +115,18 @@ from its own pure subpath, for the same reason as `/layout`:
 
 ```ts
 import { searchTasks } from '@shipbench/core/search';
+```
+
+## The `/flag` subpath
+
+A task's `flag` frontmatter field marks it for attention: `true`, or a one-line
+reason. `taskFlag` reads it the way every ShipBench surface does, so a browser
+host decides which cards are flagged by the same rule as `task list --flagged`:
+
+```ts
+import { taskFlag } from '@shipbench/core/flag';
+
+taskFlag(task); // { reason: 'Waiting on a schema decision' }, { reason: null }, or null
 ```
 
 ## License

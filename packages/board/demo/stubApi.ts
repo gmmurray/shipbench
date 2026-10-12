@@ -47,6 +47,7 @@ const seed: Task[] = [
       priority: 'high',
       assignee: 'greg',
       tags: ['auth', 'backend'],
+      flag: 'Waiting on OAuth app approval',
       created: '2026-06-20T10:00:00.000Z',
       updated: '2026-06-29T15:30:00.000Z',
     },

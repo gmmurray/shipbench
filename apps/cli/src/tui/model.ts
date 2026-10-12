@@ -9,6 +9,7 @@
 
 import {
   createTaskDependencyIndex,
+  isTaskFlagged,
   type ShipbenchConfig,
   type Task,
   type TaskValidationWarning,
@@ -22,6 +23,8 @@ export interface TuiFilters {
   tags?: string[];
   assignee?: string;
   priority?: string;
+  /** Only tasks with a flag set. */
+  flagged?: boolean;
 }
 
 export interface ColumnModel {
@@ -45,6 +48,12 @@ export interface BoardModel {
   warnings: TaskValidationWarning[];
   /** Live tasks with at least one unresolved or unfinished dependency. */
   blockedTaskSlugs: ReadonlySet<string>;
+  /**
+   * Flagged live tasks outside the done column, across the whole board. Counted
+   * before filters and `--status`, because a flag the current view hides still
+   * needs someone.
+   */
+  flaggedCount: number;
   /** Tasks whose `status` matched no configured column. */
   uncategorizedCount: number;
   /** `--status` values naming no configured column, in the order given. */
@@ -79,6 +88,7 @@ function matchesFilters(task: Task, filters: TuiFilters): boolean {
   if (filters.priority && task.frontmatter.priority !== filters.priority) {
     return false;
   }
+  if (filters.flagged && !isTaskFlagged(task)) return false;
   const wanted = filters.tags ?? [];
   if (wanted.length > 0) {
     const tags = (task.frontmatter.tags ?? []).map(tag => tag.toLowerCase());
@@ -91,6 +101,7 @@ export function hasTaskFilters(filters: TuiFilters): boolean {
   return Boolean(
     filters.assignee ||
       filters.priority ||
+      filters.flagged ||
       (filters.tags && filters.tags.length > 0),
   );
 }
@@ -185,6 +196,10 @@ export function buildBoardModel(
     columns,
     warnings,
     blockedTaskSlugs,
+    flaggedCount: tasks.filter(
+      task =>
+        task.frontmatter.status !== config.done_column && isTaskFlagged(task),
+    ).length,
     uncategorizedCount: uncategorized.length,
     // A `--status` value that names no column selects nothing, silently. Naming
     // the ones that missed is what lets the renderer say so instead of leaving

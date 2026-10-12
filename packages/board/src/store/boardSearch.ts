@@ -2,6 +2,7 @@ import type { Task, TaskSearchMatch } from '@shipbench/core';
 // The value comes from the pure `search` subpath, never the barrel: the barrel
 // re-exports FsAdapter, which imports `node:fs` and cannot be bundled for the
 // browser. See AGENTS.md on the core/board boundary.
+import { taskFlag } from '@shipbench/core/flag';
 import { searchTasks } from '@shipbench/core/search';
 
 /**
@@ -11,12 +12,16 @@ import { searchTasks } from '@shipbench/core/search';
  */
 export type CardFace = (task: Task) => string[];
 
-/** What a board card shows beside its title: slug, assignee, and tags. */
-export const boardCardFace: CardFace = task => [
-  task.slug,
-  ...(task.frontmatter.assignee ? [task.frontmatter.assignee] : []),
-  ...(task.frontmatter.tags ?? []),
-];
+/** What a board card shows beside its title: slug, flag reason, assignee, and tags. */
+export const boardCardFace: CardFace = task => {
+  const reason = taskFlag(task)?.reason;
+  return [
+    task.slug,
+    ...(reason ? [reason] : []),
+    ...(task.frontmatter.assignee ? [task.frontmatter.assignee] : []),
+    ...(task.frontmatter.tags ?? []),
+  ];
+};
 
 export interface BoardSearchResult {
   /** Matching tasks in the order they were passed in, not relevance order. */

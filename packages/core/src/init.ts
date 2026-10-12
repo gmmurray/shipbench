@@ -330,6 +330,7 @@ Task description in Markdown.
 - **assignee** (optional): Freeform string label (e.g. \`claude\`, \`antigravity\`, or \`human\`). Informational only — task eligibility is governed strictly by \`status\` and \`depends_on\`. Moving a task to \`in-progress\` signals that work has started.
 - **tags** (optional): Array of freeform strings.
 - **depends_on** (optional): Array of task slugs that must be finished before this task can start. An omitted field and an empty array mean the same thing. A slug must name a task file that exists; a task may not depend on itself, and two tasks may not depend on each other.
+- **flag** (optional): Marks the task for attention without changing its column — a one-line reason, or \`true\` when there is none to give. What a flag means is this project's call. Informational only: it gates nothing, and nothing clears it automatically. Omit the field when the task is not flagged.
 - **created** (required): ISO 8601 timestamp. Set once on creation, never modify.
 - **updated** (required): ISO 8601 timestamp. Update on every modification.
 
@@ -411,6 +412,12 @@ Prose sections in a task body (\`## Depends on\`, \`## Blocked by\`, and similar
 
 Note that \`depends_on\` and the task's column are orthogonal. A column says where a task is; \`depends_on\` says what has to land first.
 
+## Flagging a Task
+
+A flag says a task needs someone's attention, whatever column it is in. It is not the same as \`--blocked\`, which means unmet \`depends_on\`. Set one with \`shipbench task flag <slug> "Short reason"\` (the reason is optional) and clear it with \`shipbench task unflag <slug>\`. Nothing clears a flag for you, not a move and not finishing the task, so whoever set it clears it once it no longer applies. \`shipbench task list --flagged --json\` lists flagged tasks.
+
+For example: if you are stuck, flag your task with a short reason and add a Task Update with the detail. Clear the flag when you resume.
+
 ## Reading Board Order
 
 \`layout.json\` is a partial, machine-managed index, not the visible order. It can omit \`done_column\`, unlisted tasks, and whole columns; retain stale slugs until another layout write; or be absent or gitignored. Reading it alone can therefore give the wrong answer.
@@ -438,6 +445,7 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 
 - **List available tasks**: \`shipbench task list --available --json\`
 - **List blocked tasks**: \`shipbench task list --blocked --json\`
+- **List flagged tasks**: \`shipbench task list --flagged --json\`
 - **Filter by tags**: \`shipbench task list --available --tag backend,auth --json\`
 - **Read one task**: \`shipbench task get <slug>\`
 - **Search tasks**: \`shipbench task search "<query>" --json\`
@@ -452,6 +460,7 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Add a multi-line update**: \`shipbench task comment <slug> --body-file update.md\`
 - **Edit an update's text**: \`shipbench task comment edit <slug> <index> "Corrected text."\` (also takes \`--body-file\`)
 - **Delete an update**: \`shipbench task comment delete <slug> <index>\`
+- **Flag a task for attention**: \`shipbench task flag <slug> "Short reason"\` (\`shipbench task unflag <slug>\` clears it)
 - **Move a task**: \`shipbench task move <slug> --to=in-progress\`
 - **Complete a task**: \`shipbench task move <slug> --to=done\`
 - **Reorder a task when explicitly asked**: \`shipbench task move <slug> --before=other-slug\` (also \`--top\`, \`--bottom\`, \`--after\`, \`--position <n>\`)
@@ -461,7 +470,7 @@ Prefer the ShipBench CLI for task mutations when it is available. The CLI routes
 - **Unarchive a task**: \`shipbench task unarchive <slug>\`
 - **Delete a task**: \`shipbench task delete <slug>\`
 - **Open the board**: \`shipbench board\`
-- **Watch the board in the terminal**: \`shipbench board terminal\` (read-only; \`--status\`, \`--tag\`, \`--assignee\`, \`--priority\` narrow it)
+- **Watch the board in the terminal**: \`shipbench board terminal\` (read-only; \`--status\`, \`--tag\`, \`--assignee\`, \`--priority\`, \`--flagged\` narrow it)
 
 ### Direct File Operations
 
@@ -472,6 +481,7 @@ Use direct edits only when the CLI is unavailable.
 - **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. \`shipbench task edit\` reaches the description and the validated metadata fields (title, priority, assignee, tags, depends_on) — use it rather than rewriting a file by hand.
 - **Add an Update without the CLI**: Append a \`### <ISO 8601 timestamp>\` heading and text below the trailing \`## Task Updates\` marker.
 - **Edit an Update without the CLI**: Change only its text; preserve the \`###\` timestamp heading and update the frontmatter \`updated\` value.
+- **Flag a task without the CLI**: Set \`flag\` to a one-line reason or \`true\`, remove the field to clear it, and update \`updated\`.
 - **Delete an Update without the CLI**: Remove its heading and text, remove an empty \`## Task Updates\` section, and update the frontmatter \`updated\` value.
 - **Delete a task**: Remove the \`.md\` file.
 

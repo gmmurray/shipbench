@@ -604,6 +604,69 @@ describe('waiting task markers', () => {
   });
 });
 
+describe('flagged task markers', () => {
+  const cfg = config(['todo', 'doing', 'done']);
+  const flagged = task('flagged', 'doing', 'medium', {
+    flag: 'Waiting on credentials',
+  });
+  const flaggedAndWaiting = task('both', 'todo', 'medium', {
+    flag: true,
+    depends_on: ['flagged'],
+  });
+  const leftOver = task('left-over', 'done', 'medium', { flag: true });
+  const plain = task('plain', 'todo');
+  const built = buildBoardModel(
+    cfg,
+    [flagged, flaggedAndWaiting, leftOver, plain],
+    [],
+  );
+  const frame = (model = built, color = false) =>
+    renderBoard(
+      model,
+      { width: 120, height: 12 },
+      { style: createStyler({ color }), config: cfg },
+    );
+
+  it('marks a flagged task in the meter separator, ahead of waiting', () => {
+    const text = frame().join('\n');
+
+    expect(text).toContain('››·!Task flagged');
+    expect(text).toContain('››·!Task both');
+    expect(text).not.toContain('~Task both');
+    expect(text).toContain('››· Task plain');
+  });
+
+  it('raises a live flag in the warning colour and dims a done one', () => {
+    const coloured = frame(built, true).join('\n');
+
+    expect(coloured).toContain('\x1b[33m!\x1b[0mTask flagged');
+    expect(coloured).toContain('\x1b[2m!\x1b[0mTask left-over');
+  });
+
+  it('counts live flags on the status line, leaving done ones out', () => {
+    expect(built.flaggedCount).toBe(2);
+    expect(frame().at(-1)).toContain('! 2 flagged');
+
+    const quiet = buildBoardModel(cfg, [leftOver, plain], []);
+    expect(quiet.flaggedCount).toBe(0);
+    expect(frame(quiet).at(-1)).not.toContain('flagged');
+  });
+
+  it('filters to flagged tasks and counts the filter as active', () => {
+    const filtered = buildBoardModel(
+      cfg,
+      [flagged, flaggedAndWaiting, leftOver, plain],
+      [],
+      { flagged: true },
+    );
+
+    expect(filtered.filtered).toBe(true);
+    expect(
+      filtered.columns.map(column => column.tasks.map(t => t.slug)),
+    ).toEqual([['both'], ['flagged'], ['left-over']]);
+  });
+});
+
 describe('status line timestamp', () => {
   it('labels the last successful read at absolute minute precision', () => {
     const cfg = config(['todo', 'done']);
