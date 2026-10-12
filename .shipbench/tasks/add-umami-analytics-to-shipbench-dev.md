@@ -1,12 +1,12 @@
 ---
 title: Add Umami analytics to shipbench.dev
-status: review
+status: done
 priority: medium
 tags:
   - site
   - shipbench-dev
 created: '2026-09-29T12:42:58.434Z'
-updated: '2026-10-12T23:00:16.891Z'
+updated: '2026-10-12T23:03:36.915Z'
 ---
 
 Add Umami page-view analytics to shipbench.dev so the owner can see which pages get read and where visitors come from. Umami is cookieless and collects no personal data, so the site needs no consent banner.
