@@ -655,6 +655,20 @@ describe('shipbench task create', () => {
     expect(data.tags).toEqual(['backend', 'api']);
   });
 
+  it('accumulates a repeated --tags and drops case-insensitive duplicates', async () => {
+    await h.run(
+      'task',
+      'create',
+      'Repeated tags',
+      '--tags=backend,api',
+      '--tags',
+      'urgent',
+      '--tags=API',
+    );
+    const raw = h.adapter.files.get('.shipbench/tasks/repeated-tags.md');
+    expect(matter(raw!).data.tags).toEqual(['backend', 'api', 'urgent']);
+  });
+
   it('errors on an invalid status', async () => {
     await expect(
       h.run('task', 'create', 'X', '--status=mystery'),

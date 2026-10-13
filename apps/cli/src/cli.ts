@@ -670,7 +670,11 @@ export function createCli(opts: CliOptions): Command {
     .option('-s, --status <status>', 'Column to place the task in')
     .option('-a, --assignee <assignee>', 'Assignee label')
     .option('-p, --priority <priority>', 'Priority value')
-    .option('-t, --tags <tags>', 'Comma-separated tags', commaList)
+    .option(
+      '-t, --tags <tags>',
+      'Tags (comma-separated, repeatable)',
+      accumulateCommaList,
+    )
     .option(
       '-d, --depends-on <slugs>',
       'Slugs this task depends on (comma-separated, repeatable)',
@@ -695,7 +699,7 @@ export function createCli(opts: CliOptions): Command {
           status: raw.status,
           assignee: raw.assignee,
           priority: raw.priority,
-          tags: raw.tags,
+          tags: raw.tags && dedupePreservingCase(raw.tags),
           depends_on: raw.dependsOn,
         },
         body,

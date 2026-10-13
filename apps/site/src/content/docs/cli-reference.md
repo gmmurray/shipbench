@@ -83,7 +83,7 @@ Creates a task, generates a collision-safe slug, and sets both timestamps.
 | `-s, --status <status>` | Initial column; defaults to `default_column`. |
 | `-a, --assignee <assignee>` | Freeform informational label. |
 | `-p, --priority <priority>` | Configured priority value. |
-| `-t, --tags <tags>` | Comma-separated tags. |
+| `-t, --tags <tags>` | Comma-separated tags; may be repeated. |
 | `-d, --depends-on <slugs>` | Comma-separated dependency slugs; may be repeated. |
 | `--body <text>` | Description as Markdown text. |
 | `--body-file <path>` | Read the description from a UTF-8 file; `-` reads stdin. |
