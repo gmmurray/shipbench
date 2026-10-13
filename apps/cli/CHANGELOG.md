@@ -1,5 +1,12 @@
 # shipbench
 
+## 0.7.1
+
+### Patch Changes
+
+- 2462ab2: `task create --tags` now accepts the flag more than once, like `task edit --tags` and `--depends-on`. `--tags a --tags b` used to keep only `b`; it now writes both. Tags that differ only by case are kept once, matching `task edit --tags`.
+- @shipbench/board@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
