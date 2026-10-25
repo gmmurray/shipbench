@@ -50,7 +50,9 @@ import {
   createCliOutput,
   formatBoardStatus,
   formatInitNextSteps,
+  formatMissingBoard,
 } from './output.js';
+import { CONFIG_PATH } from './tui/paths.js';
 import { runTui } from './tui/run.js';
 
 // Replaced at build time by tsup; falls back to '0.0.0-dev' for source runs
@@ -67,6 +69,15 @@ export interface CliOptions {
   defaultProjectName: string;
   /** Repository root served by `board`. Defaults to process.cwd(). */
   cwd?: string;
+  /**
+   * Where the board search started. When it differs from `cwd`, the board was
+   * found above it, and commands that write say which board they used.
+   */
+  searchedFrom?: string;
+  /** Said when `cwd` holds no `.shipbench/config.json`. Defaults to naming `cwd`. */
+  missingBoardMessage?: string;
+  /** A board above `cwd` in the same checkout, which `init` mentions. */
+  ancestorBoard?: string;
   /** Where command output goes. Defaults to console.log. */
   out?: (line: string) => void;
   /** Where errors go. Defaults to console.error. */
@@ -437,12 +448,25 @@ export function createCli(opts: CliOptions): Command {
     env: opts.env ?? process.env,
   });
   const { data, chrome } = output;
-  const loadCliConfig = () =>
-    loadConfig(adapter, {
-      onWarning: warning => {
-        output.warning(`${warning.path}: ${warning.message}`);
-      },
-    });
+  const missingBoardMessage =
+    opts.missingBoardMessage ?? formatMissingBoard(`in ${cwd}`);
+  const requireBoard = async () => {
+    if ((await adapter.readFileIfExists(CONFIG_PATH)) === null) {
+      throw new Error(missingBoardMessage);
+    }
+  };
+  const loadCliConfig = async () => {
+    try {
+      return await loadConfig(adapter, {
+        onWarning: warning => {
+          output.warning(`${warning.path}: ${warning.message}`);
+        },
+      });
+    } catch (error) {
+      await requireBoard();
+      throw error;
+    }
+  };
   const fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));
   const runGit = opts.runGit ?? runGitCommand;
   const readTextFile =
@@ -520,8 +544,37 @@ export function createCli(opts: CliOptions): Command {
     .version(VERSION, '-v, --version', 'output the version')
     .option(
       '-C <path>',
-      'Run as if ShipBench was started in the specified directory',
+      'Use the board in the specified directory, without searching above it',
     );
+
+  // The commands that change a task. When the board was found above the
+  // directory the command ran in, they name it before writing, so a write from
+  // a directory without a board of its own never lands somewhere unannounced.
+  const writingCommands = new Set([
+    'task create',
+    'task edit',
+    'task comment',
+    'task comment edit',
+    'task comment delete',
+    'task flag',
+    'task unflag',
+    'task move',
+    'task archive',
+    'task unarchive',
+    'task delete',
+  ]);
+  if (opts.searchedFrom !== undefined && opts.searchedFrom !== cwd) {
+    program.hook('preAction', (_root, action) => {
+      const names: string[] = [];
+      for (let command: Command | null = action; command?.parent; ) {
+        names.unshift(command.name());
+        command = command.parent;
+      }
+      if (writingCommands.has(names.join(' '))) {
+        chrome(`Using .shipbench/ from ${cwd}`);
+      }
+    });
+  }
 
   program.configureOutput({
     writeOut: line => data(line.replace(/\n$/, '')),
@@ -593,6 +646,11 @@ export function createCli(opts: CliOptions): Command {
         : 'ShipBench was already initialized and remains unchanged.';
       if (result.created) {
         chrome(`Initialized .shipbench/ for "${name}" in current directory.`);
+        if (opts.ancestorBoard !== undefined) {
+          chrome(
+            `Note: ${opts.ancestorBoard} already has a .shipbench/ board. This one is separate, and tasks on one cannot depend on tasks on the other.`,
+          );
+        }
       } else {
         chrome(`ShipBench is already initialized for "${result.config.name}".`);
       }
@@ -1801,6 +1859,7 @@ export function createCli(opts: CliOptions): Command {
     .option('--port <number>', 'Port to listen on', parsePort, 4321)
     .option('--no-open', 'Do not open the browser automatically')
     .action(async raw => {
+      await requireBoard();
       const server = await startBoardServer({
         adapter,
         cwd,
@@ -1850,6 +1909,7 @@ export function createCli(opts: CliOptions): Command {
       '\nTakes no keyboard input: Ctrl-C exits. Never writes to the board.\nWith stdout redirected it prints one 80x24 frame and exits.\n',
     )
     .action(async raw => {
+      await requireBoard();
       await runTui({
         adapter,
         cwd,

@@ -11,6 +11,7 @@ import matter from 'gray-matter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCli } from './cli.js';
 import type { GitRunner } from './harborConnect.js';
+import { formatMissingBoard } from './output.js';
 
 function memoryAdapter(
   seed: Record<string, string> = {},
@@ -3183,14 +3184,14 @@ describe('shipbench task delete', () => {
 });
 
 describe('shipbench board terminal', () => {
-  // `runTui` reads before it touches the screen, so an unscaffolded project is
-  // the one path this suite can drive without a terminal — which is also the
-  // path that has to agree with `board`.
-  const MISSING = 'No .shipbench/config.json found. Run shipbench init first.';
+  // Both board views check for a board before touching the screen or a port,
+  // so an unscaffolded project is the one path this suite can drive without a
+  // terminal — which is also the path that has to agree with `board`.
+  const MISSING = formatMissingBoard(`in ${process.cwd()}`);
 
   it('fails outside a project in the same words as the browser board', async () => {
-    const h = harness();
-    await expect(h.run('board', 'terminal')).rejects.toThrow(MISSING);
+    await expect(harness().run('board', 'terminal')).rejects.toThrow(MISSING);
+    await expect(harness().run('board', '--no-open')).rejects.toThrow(MISSING);
   });
 
   it.each(['term', 'tui'])('resolves the %s alias', async alias => {

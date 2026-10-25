@@ -3,10 +3,10 @@ title: ShipBench CLI Reference
 description: Commands, flags, JSON payloads, and agent-oriented query patterns for the ShipBench CLI.
 group: Reference
 order: 1
-updated: 2026-09-26
+updated: 2026-10-25
 ---
 
-The ShipBench CLI reads and writes the `.shipbench/` project rooted at your current directory, or at the directory selected with the global `-C` option.
+The ShipBench CLI reads and writes the nearest `.shipbench/` project at or above your current directory, or the one in the directory selected with the global `-C` option.
 
 ```bash
 shipbench --help
@@ -28,10 +28,23 @@ The CLI uses core for validation, slug creation, timestamps, dependency checks, 
 shipbench [-C <path>] <command>
 ```
 
-`-C <path>` runs any command as if ShipBench had been started in that directory.
-Relative paths resolve against the shell's current directory; absolute paths work
-as written. ShipBench exits with an error naming the path when it does not exist
-or is not a directory.
+Without `-C`, every command except `init` uses the nearest board at or above
+the current directory, so `task list` from `src/` reads the board at the project
+root. The search stops at the first `.shipbench/` directory it reaches, and at the
+top of the Git checkout it started in (a repository, a linked worktree, or a
+submodule), so it never crosses into another checkout. When the board was found
+above the current directory, commands that change a task first print
+`Using .shipbench/ from <path>` on stderr. When there is no board, ShipBench says
+where it looked and suggests `shipbench init`.
+
+`-C <path>` names the board's directory exactly: ShipBench uses the board there
+and does not search above it. Relative paths resolve against the shell's current
+directory; absolute paths work as written. ShipBench exits with an error naming
+the path when it does not exist or is not a directory.
+
+`init` creates its board where it runs, or in the `-C` directory, and never
+searches. When a board already exists above it in the same checkout, `init` still
+creates the new one and prints a note naming the existing board.
 
 The option applies to every command.
 For `init`, the default project name comes from the selected directory's

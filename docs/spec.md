@@ -375,6 +375,8 @@ _Open questions:_
 
 A terminal tool for scaffolding and managing ShipBench projects locally.
 
+**Finding the board.** Every command except `init` uses the nearest directory at or above the current one that holds `.shipbench/`. The search stops at the first `.shipbench/` it reaches (one without `config.json` is reported as missing rather than skipped) and at the first `.git` entry, which marks the top of a repository, linked worktree, or submodule. Writes resolved to a board above the current directory name it on stderr. The global `-C <path>` names the board directory exactly and never searches. `init` never searches; it notes a board above it in the same checkout and creates the new one anyway.
+
 **Commands:**
 
 - `shipbench init [-n, --name <name>]` — Creates `.shipbench/` with `config.json`, an empty `layout.json`, `README.md`, `AGENTS.md`, and a `welcome-to-shipbench.md` starter task when the project is absent. It leaves a valid existing project byte-for-byte unchanged. Default `name` is the basename of the current directory. Fully standalone — no network, no Harbor dependency.

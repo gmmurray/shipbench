@@ -1,6 +1,5 @@
 {
   "todo": [
-    "decide-whether-the-cli-finds-the-nearest-board-above-the-current-directory",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "let-tasks-reference-related-work-without-implying-a-dependency",

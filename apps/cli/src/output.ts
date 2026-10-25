@@ -19,6 +19,11 @@ export function formatInitNextSteps(harborConnected: boolean): string[] {
   ];
 }
 
+/** `location` reads as the rest of the sentence: "in <dir>". */
+export function formatMissingBoard(location: string): string {
+  return `No .shipbench/config.json found ${location}. Run shipbench init first.`;
+}
+
 export function formatBoardStatus(url: string, cwd: string): string[] {
   return [
     `Board ready at ${url}`,

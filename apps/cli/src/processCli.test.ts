@@ -2,7 +2,11 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createProcessCli, resolveProjectDirectory } from './processCli.js';
+import {
+  createProcessCli,
+  resolveBoard,
+  resolveProjectDirectory,
+} from './processCli.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -138,5 +142,172 @@ describe('createProcessCli', () => {
     await expect(
       readFile(join(shellCwd, '.shipbench', 'config.json'), 'utf8'),
     ).rejects.toThrow();
+  });
+});
+
+interface Run {
+  stdout: string[];
+  stderr: string[];
+  error?: Error;
+}
+
+async function run(shellCwd: string, ...args: string[]): Promise<Run> {
+  const result: Run = { stdout: [], stderr: [] };
+  const commandArgv = argv(...args);
+  try {
+    await createProcessCli({
+      argv: commandArgv,
+      shellCwd,
+      out: line => result.stdout.push(line),
+      err: line => result.stderr.push(line),
+      exitOverride: true,
+    }).parseAsync(commandArgv);
+  } catch (error) {
+    result.error = error as Error;
+  }
+  return result;
+}
+
+/** A checkout at `<tmp>/repo` with a board at its top level. */
+async function repositoryWithBoard(): Promise<string> {
+  const repo = join(await temporaryDirectory(), 'repo');
+  await mkdir(join(repo, '.git'), { recursive: true });
+  const init = await run(repo, 'init');
+  expect(init.error).toBeUndefined();
+  return repo;
+}
+
+describe('board discovery', () => {
+  it('finds the board above a subdirectory and names it only on writes', async () => {
+    const repo = await repositoryWithBoard();
+    const src = join(repo, 'src', 'deep');
+    await mkdir(src, { recursive: true });
+
+    expect(resolveBoard(argv('task', 'list'), src).directory).toBe(repo);
+
+    const create = await run(src, 'task', 'create', 'From below');
+    expect(create.error).toBeUndefined();
+    expect(create.stderr).toContain(`Using .shipbench/ from ${repo}`);
+    await expect(
+      readFile(join(repo, '.shipbench', 'tasks', 'from-below.md'), 'utf8'),
+    ).resolves.toContain('From below');
+
+    const list = await run(src, 'task', 'list', '--json');
+    expect(list.error).toBeUndefined();
+    expect(list.stderr.join('\n')).not.toContain('Using .shipbench/');
+    expect(JSON.parse(list.stdout.join('\n')).tasks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: 'from-below' })]),
+    );
+  });
+
+  it('says nothing extra when the command runs at the board root', async () => {
+    const repo = await repositoryWithBoard();
+    const create = await run(repo, 'task', 'create', 'At the root');
+    expect(create.error).toBeUndefined();
+    expect(create.stderr.join('\n')).not.toContain('Using .shipbench/');
+  });
+
+  it('prefers the nearest of nested boards', async () => {
+    const repo = await repositoryWithBoard();
+    const api = join(repo, 'packages', 'api');
+    await mkdir(api, { recursive: true });
+    expect((await run(api, 'init')).error).toBeUndefined();
+    const src = join(api, 'src');
+    await mkdir(src);
+
+    expect(resolveBoard(argv('task', 'list'), src).directory).toBe(api);
+    expect(
+      resolveBoard(argv('task', 'list'), join(repo, 'packages')).directory,
+    ).toBe(repo);
+  });
+
+  it('stops at a .shipbench/ without config.json instead of using the board above', async () => {
+    const repo = await repositoryWithBoard();
+    const api = join(repo, 'api');
+    await mkdir(join(api, '.shipbench', 'tasks'), { recursive: true });
+    const src = join(api, 'src');
+    await mkdir(src);
+
+    const list = await run(src, 'task', 'list');
+    expect(list.error?.message).toBe(
+      `No .shipbench/config.json found in ${api}. Run shipbench init first.`,
+    );
+  });
+
+  it('never leaves a linked worktree, even one inside the main checkout', async () => {
+    const repo = await repositoryWithBoard();
+    const worktree = join(repo, '.worktrees', 'feature');
+    await mkdir(join(worktree, 'src'), { recursive: true });
+    await writeFile(
+      join(worktree, '.git'),
+      'gitdir: ../../.git/worktrees/feature\n',
+    );
+
+    const list = await run(join(worktree, 'src'), 'task', 'list');
+    expect(list.error?.message).toBe(
+      `No .shipbench/config.json found in ${join(worktree, 'src')} or above it up to ${worktree}. Run shipbench init first.`,
+    );
+  });
+
+  it('replaces the raw ENOENT when the walk starts at the top level', async () => {
+    const repo = join(await temporaryDirectory(), 'repo');
+    await mkdir(join(repo, '.git'), { recursive: true });
+    const list = await run(repo, 'task', 'list');
+    expect(list.error?.message).toBe(
+      `No .shipbench/config.json found in ${repo}. Run shipbench init first.`,
+    );
+  });
+
+  it('uses -C exactly, without searching above it', async () => {
+    const repo = await repositoryWithBoard();
+    const src = join(repo, 'src');
+    await mkdir(src);
+
+    const list = await run(repo, '-C', 'src', 'task', 'list');
+    expect(list.error?.message).toBe(
+      `No .shipbench/config.json found in ${src}. Run shipbench init first.`,
+    );
+  });
+
+  it('applies the same message to both board views', async () => {
+    const repo = join(await temporaryDirectory(), 'repo');
+    await mkdir(join(repo, '.git'), { recursive: true });
+    const message = `No .shipbench/config.json found in ${repo}. Run shipbench init first.`;
+    expect((await run(repo, 'board', '--no-open')).error?.message).toBe(
+      message,
+    );
+    expect((await run(repo, 'board', 'terminal')).error?.message).toBe(message);
+  });
+
+  it('keeps help working outside any board', async () => {
+    const repo = join(await temporaryDirectory(), 'repo');
+    await mkdir(join(repo, '.git'), { recursive: true });
+    const help = await run(repo, 'task', '--help');
+    expect(help.stdout.join('\n')).toContain('Manage tasks');
+  });
+
+  it('creates a board in a subdirectory with init and names the one above', async () => {
+    const repo = await repositoryWithBoard();
+    const api = join(repo, 'api');
+    await mkdir(api);
+
+    const init = await run(api, 'init');
+    expect(init.error).toBeUndefined();
+    await expect(
+      readFile(join(api, '.shipbench', 'config.json'), 'utf8'),
+    ).resolves.toContain('"api"');
+    expect(init.stderr.join('\n')).toContain(
+      `Note: ${repo} already has a .shipbench/ board.`,
+    );
+  });
+
+  it('does not name a board outside the checkout init runs at the top of', async () => {
+    const repo = await repositoryWithBoard();
+    const inner = join(repo, 'vendor', 'other');
+    await mkdir(join(inner, '.git'), { recursive: true });
+
+    const init = await run(inner, 'init');
+    expect(init.error).toBeUndefined();
+    expect(init.stderr.join('\n')).not.toContain('Note:');
   });
 });
