@@ -3,7 +3,7 @@ title: 'Spike: keep scaffolded AGENTS.md and README current across ShipBench rel
 status: backlog
 priority: medium
 created: '2026-09-21T17:09:42.734Z'
-updated: '2026-09-26T21:15:34.808Z'
+updated: '2026-10-25T23:32:54.053Z'
 tags:
   - spike
   - convention
@@ -89,3 +89,8 @@ Out of scope: `config.json` (already forward-compatible through defaults), the w
 
 ### 2026-09-26T21:07:58.174Z
 it may be that we build a way for agents working with shipbench (outside of the shipbench project, but obv can still be dogfood) to know how to find the relevant changes and update the docs themselves. not sure if there is a programmatic way to do it otherwise, but still interested in potential industry standards for merging official+user edited AGENTS files
+
+### 2026-10-25T23:32:54.053Z
+Another drift case, and a candidate test. [document-running-several-shipbench-boards-in-one-repository](document-running-several-shipbench-boards-in-one-repository.md) may add a board-discovery line to the scaffold ("commands work from any subdirectory of the board; `-C` names a board exactly"), following the walk-up in [find-the-nearest-board-above-the-current-directory](find-the-nearest-board-above-the-current-directory.md). Like every scaffold change, it reaches only projects created after the release, because `init` on an existing project writes nothing.
+
+If it ships, carrying that line into this repo's customized `.shipbench/AGENTS.md` is a small, concrete case to run the proposed update procedure on.
