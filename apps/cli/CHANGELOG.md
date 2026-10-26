@@ -1,5 +1,12 @@
 # shipbench
 
+## 0.8.1
+
+### Patch Changes
+
+- 2b739d7: The `.shipbench/AGENTS.md` that `shipbench init` writes now tells agents that commands work from any subdirectory of the board, and that `-C <path>` names a board's directory exactly. Existing projects keep the file they have; add the line by hand if you want it.
+- @shipbench/board@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes
