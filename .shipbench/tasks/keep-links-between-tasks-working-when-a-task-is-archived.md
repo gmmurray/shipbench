@@ -1,6 +1,6 @@
 ---
 title: Keep links between tasks working when a task is archived
-status: backlog
+status: todo
 priority: medium
 tags:
   - core
@@ -9,7 +9,7 @@ tags:
   - convention
   - archive
 created: '2026-10-25T23:55:31.006Z'
-updated: '2026-10-25T23:55:31.006Z'
+updated: '2026-10-26T00:12:33.695Z'
 ---
 
 Task bodies link to each other with relative Markdown links such as `[the decision](some-task.md)`. `task archive` moves the file to `tasks/archive/` byte-for-byte and rewrites nothing, so any link across the live/archive line stops resolving: a live task linking to an archived one, and an archived task linking to a live one.

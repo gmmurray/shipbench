@@ -1,9 +1,9 @@
 ---
 title: 'Spike: keep scaffolded AGENTS.md and README current across ShipBench releases'
-status: backlog
+status: todo
 priority: medium
 created: '2026-09-21T17:09:42.734Z'
-updated: '2026-10-25T23:32:54.053Z'
+updated: '2026-10-26T00:12:16.860Z'
 tags:
   - spike
   - convention

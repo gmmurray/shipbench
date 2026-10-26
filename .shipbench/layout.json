@@ -1,22 +1,24 @@
 {
   "todo": [
+    "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
+    "document-running-several-shipbench-boards-in-one-repository",
+    "updating-shipbench-init-with-new-versions",
+    "let-tasks-reference-related-work-without-implying-a-dependency",
+    "keep-links-between-tasks-working-when-a-task-is-archived",
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
-    "let-tasks-reference-related-work-without-implying-a-dependency",
     "strip-rationale-comments-from-the-rest-of-the-site",
-    "refuse-to-connect-a-board-below-the-repository-root-to-harbor",
-    "document-running-several-shipbench-boards-in-one-repository"
+    "remove-shipbench-harbor-from-the-cli-packages-site-and-docs"
   ],
   "backlog": [
-    "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects",
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
-    "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
-    "updating-shipbench-init-with-new-versions",
-    "keep-links-between-tasks-working-when-a-task-is-archived"
+    "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "spike-define-harbor-s-contribution-to-choosing-and-resuming-projects"
+  ]
 }
