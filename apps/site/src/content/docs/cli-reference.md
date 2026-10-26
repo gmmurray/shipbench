@@ -70,19 +70,6 @@ Initializes a new ShipBench project. `--name` defaults to the selected project d
 
 Initialization creates `config.json`, `layout.json`, `README.md`, `AGENTS.md`, and a welcome task only when the project is absent. A valid existing project remains byte-for-byte unchanged. An incomplete, malformed, or invalid project fails before any write. If you pass `--name` for an existing project, it must match the configured name.
 
-:::harbor
-### `shipbench connect`
-
-```bash no-copy
-shipbench connect --harbor <connect-url>
-shipbench init --harbor <connect-url>
-```
-
-Connects a project to ShipBench Harbor with a signed URL that Harbor generates. Treat the URL as a short-lived credential and use the complete command Harbor displays. `connect` works on an initialized project and never modifies project files. `init --harbor` initializes first, the same way plain `init` does, and then connects.
-
-Both commands must run at the Git worktree root. They accept GitHub HTTPS, scp-style SSH, and `ssh://git@github.com/…` origins. Uncommitted or unpushed ShipBench files produce warnings because Harbor reads the remote repository, but they do not block the connection.
-:::
-
 ### `shipbench task create`
 
 ```bash no-copy

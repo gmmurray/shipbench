@@ -1,8 +1,6 @@
 ---
 // Inline SVG <symbol> definitions for the doctrine's two structural primitives.
-// Mounted once in BaseLayout. Harbor keeps its own copy in its own repository,
-// identical in shape to this one — the two apps share the doctrine, not a
-// package.
+// Mounted once in BaseLayout.
 //
 // #logo — the brand mark for in-page brand slots. Transparent and theme-aware:
 // its fills read the `silver`/`frosted` tokens, so the mark inverts with the
@@ -10,9 +8,7 @@
 // <img src="/logo.svg"> is an isolated document and inherits nothing from the
 // page. public/logo.svg and the raster icon set are generated from
 // docs/brand/logo-mark.svg by `pnpm generate:icons`; this symbol is its
-// theme-token form for page contexts. The token names differ from Harbor's copy
-// (`--silver` here, `--color-silver` there) because the two apps expose the
-// palette differently.
+// theme-token form for page contexts.
 // #chev — the pointing/gauge primitive. Currently unreferenced on this site
 // (the drawer toggles that used it moved to #disc), kept deliberately: it is a
 // doctrine primitive, the site is one breadcrumb away from needing it, and a

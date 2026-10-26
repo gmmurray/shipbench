@@ -17,7 +17,6 @@ Tasks can be managed through any combination of:
 
 - **The ShipBench CLI** (`shipbench` commands) — recommended for scripted or agent-driven changes; centralizes slug generation, validation, timestamps, and layout updates.
 - **The Board UI** (`shipbench board`) — local kanban with live file watching.
-- **Harbor** — hosted view for browsing project boards across repos.
 - **Direct file editing** — always valid; task files are plain Markdown.
 
 ## `config.json` reference
@@ -30,7 +29,7 @@ Schema version. Currently informational. Leave as `1`.
 
 ### `name`
 
-The project's display name. Every consumer (CLI, Board, Harbor) reads this for the breadcrumb root. Defaults to the basename of the current directory when `shipbench init` runs; override with `--name`.
+The project's display name. Every consumer (the CLI and the Board) reads this for the breadcrumb root. Defaults to the basename of the current directory when `shipbench init` runs; override with `--name`.
 
 ### `columns`
 
@@ -81,7 +80,7 @@ Per-column ordered list of task slugs — this is where manual within-column ord
 - The Uncategorized column and the `done_column` both ignore `layout` entirely.
 - The CLI and Board do not record `layout[done_column]`; any existing entry is removed on the next layout write.
 
-Treat `layout.json` as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but Harbor and fresh clones will then fall back to deterministic `created`-descending order for unlisted tasks.
+Treat `layout.json` as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but fresh clones will then fall back to deterministic `created`-descending order for unlisted tasks.
 
 ## Task files
 

@@ -54,19 +54,13 @@ describe('createCliOutput', () => {
 
 describe('ceremonial command copy', () => {
   it('gives a new local project three concrete next steps', () => {
-    expect(formatInitNextSteps(false)).toEqual([
+    expect(formatInitNextSteps()).toEqual([
       '',
       'Next steps:',
       '  1. Create a task: shipbench task create "My first task"',
       '  2. Open the board: shipbench board',
       '  3. Read .shipbench/README.md to learn the project workflow.',
     ]);
-  });
-
-  it('closes Harbor initialization with a Harbor-specific step', () => {
-    expect(formatInitNextSteps(true).at(-1)).toBe(
-      '  3. Open Harbor to view this ShipBench project.',
-    );
   });
 
   it('ends board startup output with the shutdown action', () => {

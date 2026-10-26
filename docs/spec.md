@@ -8,17 +8,13 @@ ShipBench uses one Markdown file per task, in a `.shipbench/` directory in the r
 
 ## Overview
 
-ShipBench is a Git-native project management system for solo developers. It consists of two decoupled products:
+ShipBench is a Git-native project management system for solo developers. At its center is a file-based task management convention that lives inside any Git repo. Tasks are Markdown files in a `.shipbench/tasks/` directory, governed by a local config. Any tool that can read and write files — a CLI, a web UI, or an autonomous agent — can interact with the board. The project system is fully self-contained; it does not require any external service.
 
-1. **The Project System** — A file-based task management convention that lives inside any Git repo. Tasks are Markdown files in a `.shipbench/tasks/` directory, governed by a local config. Any tool that can read and write files — a CLI, a web UI, or an autonomous agent — can interact with the board. The project system is fully self-contained; it does not require Harbor or any external service.
+A core library (`@shipbench/core`) handles task file manipulation for every tool built on the convention, ensuring format consistency regardless of where edits originate. The CLI and the Board UI are built on it.
 
-2. **ShipBench Harbor** — A standalone web application whose primary surface is idea management, with read-only visibility into project task boards across multiple repos via the GitHub API. Built for solo developers — each account is one developer's own workbench. Think "my workbench," not "Linear for one." (Solo-dev describes the target end user — any solo developer, the author included — not a single-user deployment.)
+User-facing surfaces are prefixed with the umbrella name, as in **ShipBench CLI**. The package namespace `@shipbench/*` mirrors this. The naming rules live in [AGENTS.md](../AGENTS.md) under "Naming and branding."
 
-The two products share a common core library (`@shipbench/core`) for task file manipulation, ensuring format consistency regardless of where edits originate.
-
-User-facing surfaces are always prefixed with the umbrella name: **ShipBench CLI** and **ShipBench Harbor**. The package namespace `@shipbench/*` mirrors this. The naming rules live in [AGENTS.md](../AGENTS.md) under "Naming and branding."
-
-**Domain:** `shipbench.dev` is the official, owned domain. Harbor lives under it (e.g. `harbor.shipbench.dev` — exact subdomain TBD), never on its own apex.
+**Domain:** `shipbench.dev` is the official, owned domain.
 
 ---
 
@@ -53,8 +49,7 @@ Conventions:
 The end-state shape once shipped:
 
 - **`@shipbench/core`, `shipbench` (CLI), and `@shipbench/board`** live in a **public** repository and publish to npm. Core and the CLI are the primary public interfaces; the CLI's binary is unscoped by convention (matches `astro`, `vite`, `next`, `wrangler`, etc.). Sub-packages are scoped `@shipbench/*`.
-- **`@shipbench/board` publishes for convenience, not for public use.** The CLI depends on it at runtime for the standalone bundle, and any out-of-repository consumer (Harbor being the obvious one) needs it available on the registry. External consumption is not a supported use case — the version stays 0.x and breaking changes go unremarked.
-- **Harbor is a deployed application, not a library.** It lives in a separate **private** repository and consumes `@shipbench/board` + `@shipbench/core` from npm. (Private code, but a multi-account hosted service — any solo dev can sign in.)
+- **`@shipbench/board` publishes for convenience, not for public use.** The CLI depends on it at runtime for the standalone bundle, and any out-of-repository host needs it available on the registry. External consumption is not a supported use case — the version stays 0.x and breaking changes go unremarked.
 - **Synchronized versioning** across the three published packages (Angular/Astro/Next model): all three release at the same version. `workspace:*` refs are rewritten to the current version at publish time. Simpler than a compatibility matrix; downstream consumers don't reason about which core version pairs with which CLI.
 - Publishing prep — `files` fields, LICENSE, READMEs, scoped package access, and repository metadata — is tracked on this repository's own board under `.shipbench/`.
 
@@ -107,7 +102,7 @@ Defines the project board structure. ShipBench provides sensible defaults — th
 }
 ```
 
-**`name` (required).** The project's display name. Every consumer (CLI, Board, Harbor) reads this field for the breadcrumb root. `shipbench init` defaults it to the basename of the current working directory; `--name "Some Name"` overrides. `name` lives in the project's own metadata for the same reason `package.json#name`, `Cargo.toml#package.name`, etc. do — the project owns its identity, hosts read it.
+**`name` (required).** The project's display name. Every consumer (the CLI and the Board) reads this field for the breadcrumb root. `shipbench init` defaults it to the basename of the current working directory; `--name "Some Name"` overrides. `name` lives in the project's own metadata for the same reason `package.json#name`, `Cargo.toml#package.name`, etc. do — the project owns its identity, hosts read it.
 
 **`columns`.** The source of truth for valid `status` values. The `id` is used in task frontmatter; the `label` is what the Board UI displays. Adding a new column (e.g., `review`) means appending to `columns` — the core library validates status values against this list.
 
@@ -130,7 +125,7 @@ Machine-managed per-column task order, containing exactly a `BoardLayout` record
 }
 ```
 
-Reads prefer `layout.json`, fall back to the legacy `config.layout` field, then `{}`. A missing file is a valid first-class state; the board uses deterministic fallback ordering. The first layout write in a legacy repo creates `layout.json` and removes only `layout` from `config.json`. Users may gitignore `layout.json` for machine-local order, with the tradeoff that Harbor and fresh clones render fallback order. Render rules and stale-slug behavior are documented in [docs/board/design.md](board/design.md#task-ordering). Summary:
+Reads prefer `layout.json`, fall back to the legacy `config.layout` field, then `{}`. A missing file is a valid first-class state; the board uses deterministic fallback ordering. The first layout write in a legacy repo creates `layout.json` and removes only `layout` from `config.json`. Users may gitignore `layout.json` for machine-local order, with the tradeoff that fresh clones render fallback order. Render rules and stale-slug behavior are documented in [docs/board/design.md](board/design.md#task-ordering). Summary:
 
 - Tasks whose slug appears in `layout[columnId]` render in that order.
 - Tasks whose status matches a column but whose slug isn't in `layout[columnId]` render below, sub-sorted by `created` desc.
@@ -138,7 +133,7 @@ Reads prefer `layout.json`, fall back to the legacy `config.layout` field, then 
 - The Uncategorized column (see below) ignores `layout` entirely and renders by `created` desc.
 - The done column (identified by `done_column`) likewise ignores `layout` and renders by `updated` desc (most-recently-touched first). Manual within-column reorder is disabled for done tasks. Cross-column drops into done still work, but no done-column order is recorded; any existing `layout[done_column]` entry is pruned on the next layout write.
 
-**Config resolution.** The core library maintains an internal `DEFAULT_CONFIG` and deep-merges the user's `config.json` over the top of it on read. Partial configs are fully supported — developers can delete any block they don't care about and the system falls back to default behavior. `shipbench init` (and Harbor's seed commit) scaffolds a fully populated config to keep options discoverable.
+**Config resolution.** The core library maintains an internal `DEFAULT_CONFIG` and deep-merges the user's `config.json` over the top of it on read. Partial configs are fully supported — developers can delete any block they don't care about and the system falls back to default behavior. `shipbench init` scaffolds a fully populated config to keep options discoverable.
 
 #### Status conflict handling
 
@@ -201,7 +196,7 @@ Any task can be archived — done tasks are just the bulk case. Archiving moves 
 - **Sort order.** Archive listings sort by `updated` desc — the same key as the done column, so the capped done column and the archive read as one continuous timeline. There is deliberately no `archived_at` field: it would break the byte-identical round-trip, and Git already records filing time (`git log --diff-filter=A -- .shipbench/tasks/archive/`).
 - **Slug namespace is unique across live + archive.** New tasks cannot reuse an archived slug (collision handling appends numeric suffixes as usual), so unarchive can never collide and `depends_on` references stay unambiguous forever.
 - **Dependents guard.** Archiving a task in `done_column` — or one no live task depends on — is silent. Archiving a non-done task with live dependents throws `ArchiveBlockedError` (listing the dependents) unless forced: `--force` in the CLI, a confirm dialog listing dependents in the Board. Consequently an archived `depends_on` entry counts as satisfied — it is either genuinely done or was force-archived deliberately.
-- **Ownership.** Archiving happens through the CLI and the Board's writable modes (detail-view action with undo toast; archive view for browse/restore). Harbor's read-only remote mode never archives — by construction, since it never writes. Nothing archives automatically; bulk archiving is always an explicit command.
+- **Ownership.** Archiving happens through the CLI and the writable Board (detail-view action with undo toast; archive view for browse/restore). A `readOnly` Board never archives. Nothing archives automatically; bulk archiving is always an explicit command.
 
 #### README.md & AGENTS.md
 
@@ -228,18 +223,17 @@ _Open questions:_
 
 A headless TypeScript library for reading, creating, updating, moving, reordering, and deleting task files according to the project convention. Published to npm. No filesystem access, no UI, no network calls — all I/O goes through a `StorageAdapter` interface.
 
-**Adapter pattern.** Core defines a two-tier adapter surface and ships two built-in implementations:
+**Adapter pattern.** Core defines a two-tier adapter surface and ships one built-in implementation:
 
 - **`FsAdapter`** — Full read/write/delete on the local filesystem. Implements the full `StorageAdapter` interface. Used directly by the CLI.
-- **`GitHubAdapter`** — Reads `.shipbench/` via the GitHub Contents API. Implements the read-only `ReadableStorageAdapter` interface; `writeFile` / `writeFiles` exist as concrete class methods but currently have no consumer — they were built for Harbor's onboarding write flows, which are deferred (Harbor makes no GitHub writes for now). Delete is intentionally unimplemented — nothing in the current or planned architecture deletes via GitHub. Cross-runtime base64 (works in Node, Cloudflare Workers, and browsers).
 
-Both adapters are exported directly from `@shipbench/core`. The surface is intentionally minimal to keep future adapters (GitLab, Bitbucket) trivial.
+It is exported directly from `@shipbench/core`. The surface is intentionally minimal so other hosts can supply their own adapter.
 
 **Adapter interfaces:**
 
 ```typescript
 // Read-only surface — the type held by consumers that only display data
-// (e.g. Harbor's remote board mode). Statically prevents write attempts.
+// (e.g. the CLI's terminal views). Statically prevents write attempts.
 interface ReadableStorageAdapter {
   readFile(path: string): Promise<string>;
   readFileIfExists(path: string): Promise<string | null>;
@@ -276,20 +270,18 @@ Consistent with "strict on write, graceful on read":
 
 **Timestamps.** Core normalizes YAML-parsed dates back to ISO strings on read (gray-matter's `js-yaml` deserializes unquoted ISO timestamps as `Date` objects; we coerce back so consumers see strings consistently).
 
-**`GitHubAdapter` scope in the current architecture.** Only Harbor uses this adapter, and only for reads — it holds it as `ReadableStorageAdapter`. The concrete `writeFile` / `writeFiles` methods were built for Harbor's onboarding flows (seed commits, workspace init, config recovery), which are now deferred; no consumer calls them today. Ongoing task CRUD never routes through `GitHubAdapter` — Harbor is read-only. Delete is not implemented on `GitHubAdapter` at all — the read-only interface it exposes doesn't require it, and no consumer would ever call it.
-
 (File watching is a consumer concern — the CLI implements its own watcher and forwards events through `onTasksChanged`. Core does not need a `watch` primitive.)
 
 ---
 
 ### 3. Board UI (`@shipbench/board`)
 
-A standalone kanban board app. Published to npm for convenience rather than public use — the CLI needs its standalone bundle at runtime, and an out-of-repository host such as Harbor needs the compiled library resolvable.
+A standalone kanban board app. Published to npm for convenience rather than public use — the CLI needs its standalone bundle at runtime, and an out-of-repository host needs the compiled library resolvable.
 
 **Two mount entries:**
 
 ```tsx
-// React component — what Harbor consumes
+// React component — what an embedding host consumes
 <Board api={api} />;
 
 // Imperative wrapper — what the CLI's static bundle uses
@@ -298,7 +290,7 @@ createBoard(rootElement, { api });
 
 `createBoard` is a thin wrapper around `createRoot().render(<Board api={api} />)`.
 
-**Distribution.** `vite build` produces the standalone static app served by `shipbench board` (`dist/standalone.html` + assets). The React library export currently points at source (`.` → `./src/index.tsx`); consumers need a TS+JSX toolchain (Harbor's Astro/Vite qualifies). A proper compiled library output lands closer to the first publish — see the top-level Distribution section for the broader shape.
+**Distribution.** `vite build` produces the standalone static app served by `shipbench board` (`dist/standalone.html` + assets). The React library export currently points at source (`.` → `./src/index.tsx`); consumers need a TS+JSX toolchain. A proper compiled library output lands closer to the first publish — see the top-level Distribution section for the broader shape.
 
 **Board API contract.** This interface is owned by `@shipbench/core` and re-exported from the Board:
 
@@ -329,15 +321,15 @@ interface BoardAPI {
   }>;
   deleteTask(slug: string): Promise<void>;
 
-  // Optional — implemented by the CLI's local server, not by Harbor's
-  // remote read-only adapter.
+  // Optional — implemented by the CLI's local server. Hosts without a
+  // change feed omit it.
   onTasksChanged?(callback: () => void): () => void;
 }
 ```
 
-`reorderTask` is the primary mutation path: cross-column moves and within-column reorders both flow through it. `moveTask` is kept as a convenience and delegates internally. `onTasksChanged` enables live watch mode when available (local CLI serving) and degrades to polling when not (Harbor's remote mode).
+`reorderTask` is the primary mutation path: cross-column moves and within-column reorders both flow through it. `moveTask` is kept as a convenience and delegates internally. `onTasksChanged` enables live watch mode when available (local CLI serving) and degrades to polling when not.
 
-**`readOnly`.** When the host (Harbor in remote mode) provides a `BoardAPI` with `readOnly: true`, the Board:
+**`readOnly`.** When a host provides a `BoardAPI` with `readOnly: true`, the Board:
 
 - Hides the "New task" button.
 - Renders the title/body/metadata fields as non-editable text.
@@ -348,12 +340,7 @@ interface BoardAPI {
 
 The mutation methods can still be implemented (or stubbed to reject) — the Board simply won't call them.
 
-**Board modes** (data flow at runtime):
-
-| Mode       | Who hosts the Board | BoardAPI source              | Writable?             | When                                                    |
-| ---------- | ------------------- | ---------------------------- | --------------------- | ------------------------------------------------------- |
-| Standalone | CLI's local server  | `FsAdapter` directly         | Yes                   | `shipbench board`, no Harbor involved.                  |
-| Remote     | Harbor              | `GitHubAdapter` (reads only) | No (`readOnly: true`) | Hosted Harbor displaying a project board from a repo.   |
+**Hosting.** `shipbench board` serves the standalone bundle from the CLI's local server, backed by `FsAdapter` and writable. Any other host embeds the React component with its own `BoardAPI`, writable or `readOnly`.
 
 **Stack and design decisions** (full detail in [docs/board/design.md](board/design.md)):
 
@@ -379,9 +366,7 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 
 **Commands:**
 
-- `shipbench init [-n, --name <name>]` — Creates `.shipbench/` with `config.json`, an empty `layout.json`, `README.md`, `AGENTS.md`, and a `welcome-to-shipbench.md` starter task when the project is absent. It leaves a valid existing project byte-for-byte unchanged. Default `name` is the basename of the current directory. Fully standalone — no network, no Harbor dependency.
-- `shipbench init --harbor=<connect-url>` — Safely initializes when needed, then connects the repo's normalized GitHub origin to a Harbor project through a signed one-time URL. It uses the same non-interactive connection path as `shipbench connect`.
-- `shipbench connect --harbor=<connect-url>` — Connects an existing ShipBench project to Harbor without changing project files. Harbor presents this explicit form for repositories that already use ShipBench.
+- `shipbench init [-n, --name <name>]` — Creates `.shipbench/` with `config.json`, an empty `layout.json`, `README.md`, `AGENTS.md`, and a `welcome-to-shipbench.md` starter task when the project is absent. It leaves a valid existing project byte-for-byte unchanged. Default `name` is the basename of the current directory. Fully standalone — no network.
 - `shipbench task create <title> [--status] [--assignee] [--priority] [--tags=a,b,c] [--body <text> | --body-file <path>]` — Creates a new slug-based task file, with its description attached when a body is supplied.
 - `shipbench task edit <slug> [description] [metadata]` — Revises the description (`--body` / `--body-file`, replaced whole; empty clears it) and/or the validated metadata: `--title` (never renames the file), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`. Every change is one `updateTask` call, so core validation runs before any write and a rejected value leaves the task untouched. `created` and the Updates section stay untouched; `status` and placement stay with `task move`.
 - `shipbench task flag <slug> [reason]` / `shipbench task unflag <slug>` — Sets, rewords, or clears a task's flag through `updateTask`. A flag that already says the same thing, or an unflag on a task with no `flag` field, writes nothing.
@@ -479,7 +464,7 @@ separate investigation.
   corpus.
 - **Staged, not in this increment.** Semantic retrieval — a dedicated task.
 
-**Harbor opt-in.** Without any `--harbor` flag, the CLI has zero knowledge of Harbor. The `--harbor` family of flags is the only surface where the CLI talks to a hosted service.
+**No network.** The CLI makes no outbound network requests. Everything it does is against the local repository, and `shipbench board` listens on `127.0.0.1` only.
 
 **Non-destructive initialization.** Core treats `.shipbench/config.json` as
 the initialization marker. An absent project receives the five scaffold
@@ -490,92 +475,7 @@ canonical ShipBench file or task exists, initialization rejects the incomplete
 state. Malformed config or layout JSON and resolved config validation errors
 also fail before any write. Ordinary task read warnings remain non-blocking.
 An explicit `--name` that differs from an existing project name fails instead
-of silently ignoring the argument.
-
-**Signed Harbor connection preflight.** Before sending one POST, both commands
-validate the connect URL, require the Git worktree root, validate the resolved
-ShipBench project, and normalize the `origin` through core's shared GitHub
-remote parser. Connect URLs require HTTPS, except that loopback development
-may use HTTP; credentials and fragments are invalid. Supported origins are
-GitHub HTTPS, scp-style SSH, and `ssh://git@github.com/...`. The CLI makes no
-network request when a local precondition fails.
-
-The CLI inspects local Git state without fetching. It warns when
-`.shipbench/config.json` is absent from `HEAD`, ShipBench files have
-uncommitted changes, the branch has no upstream, or the branch is ahead of its
-upstream. These conditions do not block connection because Harbor supports the
-intermediate connected-but-not-yet-pushed state.
-
-The CLI never retries the POST automatically or prints or persists the signed
-URL. Exit `0` means success or a confirmed idempotent replay; `2` means usage
-or a local precondition failed before the POST; `3` means Harbor definitively
-rejected the request; `4` means the remote result is unknown because of a
-transport failure, malformed response, or server error. After exit `4`, the
-user must inspect Harbor before retrying.
-
----
-
-### 5. ShipBench Harbor
-
-A web application serving as a solo developer's idea pipeline and project portfolio. Hosted as a deployed, multi-account service so it's reachable from any device — every account is one developer's isolated workspace. Self-hosting is possible but does not unlock a separate "local mode" — when self-hosted, Harbor still uses the same three board modes documented under the Board UI section (Standalone, Remote, Live).
-
-> **Harbor's source lives in a separate, private repository.** This section
-> documents Harbor as a product — what it does and why it is shaped this way —
-> because Harbor is a real client of the convention and the two are designed
-> together. Its implementation details are not part of this repository.
-
-**Positioning: ideas first, project visibility second.** Idea management is Harbor's writable product — the thing a user actually *does* in Harbor. Project boards are read-only visibility: a window, from any device, into work that happens in the repo through the CLI, the local board, and agents. This division is deliberate, not a gap. The end state it serves: a developer opens Harbor on their phone to watch the board while agents work the project on their machine. The data model reflects the same split — manual board ordering (`layout`) exists for the human board user; agents order their own work from `depends_on`, `priority`, and column semantics, all of which live in committed task data. The one honest limitation of remote visibility: a board is exactly as fresh as the repo's last push, so agent workflows that commit and push as they move tasks keep the remote view current.
-
-#### Idea Management
-
-- Ideas are organized in a directory/folder UI grouped by status. Statuses are user-configurable — defaults are `spark`, `exploring`, `committed`, `shelved`, but users can create, rename, reorder, and delete status folders with OS-like folder UX (drag ideas between folders, create new folders inline).
-- Create, tag, and annotate project ideas with descriptions, tech stack notes, and related ideas.
-- Ideas are their own entity in the data model — not a project, not a task. They are the brainstorming layer.
-
-#### Project Management
-
-- Projects are a separate entity linked to an idea (optionally — a project can exist without an originating idea).
-- A project record stores the GitHub repo URL once connected.
-- A project may exist in an **intermediate state** — created (e.g., promoted from an idea) but with no repo connected yet. Harbor renders a "Connect a repo" prompt for projects in this state instead of a board.
-- Once a project has a repo, Harbor renders the Board UI in remote mode (read-only).
-
-#### Project creation flow
-
-Creating a project requires a Git repo eventually, but Harbor allows the project record to exist before the repo is connected. The end-to-end flow:
-
-1. User promotes an idea to a project in Harbor (or creates a project from scratch).
-2. Harbor creates a project record with `github_url = null`.
-3. Harbor generates a **signed connect URL** and displays two commands: `shipbench init --harbor=<connect-url>` for a new or unknown local state, and `shipbench connect --harbor=<connect-url>` for an existing ShipBench project.
-4. The user runs one command from the Git worktree root. Manual public GitHub URL entry remains available as an alternate path when the CLI is unavailable.
-5. The CLI safely initializes when needed, validates the local project and normalized GitHub origin, and sends one POST to the signed URL. The URL itself is the credential, so the CLI needs no separate auth step.
-6. Harbor associates the project record with the repo and switches to displaying the board.
-
-The intermediate "no repo connected" state is a deliberate design choice — it lets users brainstorm and queue projects in Harbor before committing to a repo, while still preserving the "every active project has a backing repo" invariant once they're actually working.
-
-Both CLI commands consume the same connect endpoint and share one connection implementation. The signed URL is single-use: replaying it against the same repository confirms the original connection rather than repeating it, and pointing it at a different repository is rejected.
-
-Harbor does not require a repository to be unique per account — separate project records may intentionally reference the same GitHub repository.
-
-#### Harbor never writes to GitHub
-
-**Decision (2026-07).** The originally planned one-time setup writes (seed commit, "Initialize ShipBench workspace?", "Recreate Default Config") were dropped so that Harbor never needs write permissions on a user's repositories. Repo setup happens locally instead: run `shipbench init` in the repo and push.
-
-On board open, the core library checks for `.shipbench/config.json`. If it returns a 404, Harbor renders read-only guidance in place of the board — explaining that the repo isn't initialized and pointing the user at `shipbench init` locally. No write affordances are offered.
-
-This is the single most consequential thing to know about Harbor's permissions posture: **login uses GitHub OAuth through Clerk with low-privilege scopes (`read:user`, `user:email`), board reads use the signed-in user's OAuth token, and Harbor never asks for repository write access.** Board viewing therefore covers public repositories only.
-
-#### Board Integration
-
-Harbor hosts the Board UI and provides a `BoardAPI` implementation. In MVP, Harbor always operates in **remote mode**:
-
-- `BoardAPI` is backed by `GitHubAdapter` for reads only.
-- `readOnly: true` is set on the API; the Board hides all create/edit/drag affordances.
-- The full kanban view, task detail, breadcrumbs, search, and sync indicators all render — it's a complete viewing experience, just not editable.
-- Ongoing task edits happen elsewhere: the CLI for local work, or agents writing directly to files.
-
-#### Tech Stack
-
-Astro on Cloudflare Workers, with Cloudflare D1 for Harbor's own data and Clerk for authentication.
+of silently ignoring the argument. Every refusal exits `2` without writing.
 
 ---
 
@@ -583,6 +483,7 @@ Astro on Cloudflare Workers, with Cloudflare D1 for Harbor's own data and Clerk 
 
 Decisions made against these features. Not "we'll get to them later" — "we've considered them and chosen not to." Listed here so future contributors don't reopen settled questions without new information.
 
-- **Collaboration / teams.** Not a goal. ShipBench targets solo developers — Harbor supports many accounts, but each account is one developer's isolated workspace. (Don't read "solo dev" as "single user" — the auth layer is multi-account by design.) Team features — shared boards, assignees with meaning, permissions — would rewrite the auth model, the file-lock story, and Harbor's whole shape. If the product ever pivots to a team tool, this whole spec changes.
+- **Collaboration / teams.** Not a goal. ShipBench targets solo developers. Team features — shared boards, assignees with meaning, permissions — would need an auth model and a file-lock story ShipBench deliberately doesn't have. If the product ever pivots to a team tool, this whole spec changes.
+- **A hosted client.** ShipBench has no account, server, or hosted web app. An earlier design, ShipBench Harbor, paired a hosted idea store with read-only views of pushed boards. It was [retired before launch](../.shipbench/tasks/archive/spike-define-harbor-s-contribution-to-choosing-and-resuming-projects.md): the boards it could show were limited to public repositories and as stale as the last push, while working locally already sees uncommitted work in private repositories. Viewing a board away from the machine is covered by the repository host's own file view. Tools that span several repositories can be built on the published packages without becoming part of ShipBench.
 - **Agentic orchestration baked into core.** The project convention (`AGENTS.md`, CLI commands, clean file format) is designed to be agent-friendly by default. Purpose-built agent features layer on through extensible config and external tool definitions (Claude Code skills, MCP servers, etc.) rather than baked-in infrastructure. The agent landscape moves too fast to embed opinions.
 - **Bundled platform-specific agent tooling.** Skills / rules for specific agents (Claude Code, Cursor, etc.) live in the ShipBench repo as reference material users can copy — they don't ship in the `shipbench init` scaffold. Every attempted bundle would drift or bloat.

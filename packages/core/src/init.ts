@@ -197,7 +197,6 @@ Tasks can be managed through any combination of:
 - **The ShipBench CLI** (\`shipbench\` commands) — recommended for scripted or agent-driven changes; centralizes slug generation, validation, timestamps, and layout updates.
 - **The Board UI** (\`shipbench board\`) — local kanban in your browser, with live file watching.
 - **The terminal board** (\`shipbench board terminal\`) — the same board as a read-only live view, for leaving open in a pane beside your work.
-- **Harbor** — hosted view for browsing project boards across repos.
 - **Direct file editing** — always valid; task files are plain Markdown.
 
 ## \`config.json\` reference
@@ -210,7 +209,7 @@ Schema version. Currently informational. Leave as \`1\`.
 
 ### \`name\`
 
-The project's display name. Every consumer (CLI, Board, Harbor) reads this for the breadcrumb root. Defaults to the basename of the current directory when \`shipbench init\` runs; override with \`--name\`.
+The project's display name. Every consumer (the CLI and the Board) reads this for the breadcrumb root. Defaults to the basename of the current directory when \`shipbench init\` runs; override with \`--name\`.
 
 ### \`columns\`
 
@@ -264,7 +263,7 @@ Visible order comes from \`config.json\`, the task files, and this partial index
 - The Uncategorized column and the \`done_column\` both ignore \`layout\` entirely.
 - The CLI and Board do not record \`layout[done_column]\`; any existing entry is removed on the next layout write.
 
-Do not read \`layout.json\` alone to determine board order. \`shipbench task list --json\` returns live tasks in canonical board order, including each task's zero-based \`position\` within its column. Direct file readers must apply the rules above. Treat the index as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but Harbor and fresh clones will then fall back to deterministic \`created\`-descending order for unlisted tasks.
+Do not read \`layout.json\` alone to determine board order. \`shipbench task list --json\` returns live tasks in canonical board order, including each task's zero-based \`position\` within its column. Direct file readers must apply the rules above. Treat the index as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but fresh clones will then fall back to deterministic \`created\`-descending order for unlisted tasks.
 
 ## Task files
 
@@ -545,8 +544,8 @@ export async function initProject(
   const { layout: _layout, ...defaultConfig } = DEFAULT_CONFIG;
   const config = { ...defaultConfig, name: options.name };
 
-  // Batched so a future GitHubAdapter Trees API implementation can produce
-  // a single atomic seed commit for Harbor's onboarding flows.
+  // Batched so an adapter that can write several files atomically scaffolds
+  // the project in one step.
   await adapter.writeFiles(
     new Map([
       ['.shipbench/config.json', `${JSON.stringify(config, null, 2)}\n`],

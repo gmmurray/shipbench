@@ -1,5 +1,5 @@
 // Bundled fonts for the self-contained standalone build. Embedded hosts
-// (Harbor) load the same families themselves, so the library entry
+// load the same families themselves, so the library entry
 // (index.tsx) deliberately does not import these.
 import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
@@ -102,7 +102,8 @@ const api: BoardAPI = {
   // pay: an editor deep link (`vscode://file/…`) assumes an editor, and serving
   // them turns the board server into an arbitrary-repo-file server. Repo links
   // render as plain visible paths instead — honest, and readable enough to act
-  // on. Harbor, which has a real destination, implements the method.
+  // on. A host with a real destination, such as a repository web view,
+  // implements the method.
 };
 
 const rootElement = document.getElementById('root');

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { CliExitError } from './harborConnect.js';
+import { CliExitError } from './errors.js';
 import { createProcessCli } from './processCli.js';
 
 async function main(): Promise<void> {

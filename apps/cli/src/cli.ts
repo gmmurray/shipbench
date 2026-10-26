@@ -10,7 +10,6 @@ import {
   editComment,
   getTask,
   initProject,
-  inspectProjectInitialization,
   isTaskFlagged,
   listArchivedTasks,
   listAvailableTasks,
@@ -39,13 +38,7 @@ import {
   resolveBoardBundleDir,
   startBoardServer,
 } from './boardServer.js';
-import {
-  CliExitError,
-  connectPreparedProjectToHarbor,
-  type GitRunner,
-  prepareHarborConnection,
-  runGitCommand,
-} from './harborConnect.js';
+import { CliExitError } from './errors.js';
 import {
   createCliOutput,
   formatBoardStatus,
@@ -82,10 +75,6 @@ export interface CliOptions {
   out?: (line: string) => void;
   /** Where errors go. Defaults to console.error. */
   err?: (line: string) => void;
-  /** HTTP client used by Harbor connect commands. Defaults to global fetch. */
-  fetch?: typeof fetch;
-  /** Git command runner used by Harbor connect commands. */
-  runGit?: GitRunner;
   /** Reads a `--body-file` path as UTF-8. Defaults to node:fs/promises. */
   readTextFile?: (path: string) => Promise<string>;
   /** Reads stdin for `--body-file -`. Defaults to consuming process.stdin. */
@@ -467,8 +456,6 @@ export function createCli(opts: CliOptions): Command {
       throw error;
     }
   };
-  const fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));
-  const runGit = opts.runGit ?? runGitCommand;
   const readTextFile =
     opts.readTextFile ?? ((path: string) => readFile(path, 'utf8'));
   const readStdin = opts.readStdin ?? readProcessStdin;
@@ -590,36 +577,16 @@ export function createCli(opts: CliOptions): Command {
       '-n, --name <name>',
       'Project name (defaults to current directory name)',
     )
-    .option(
-      '--harbor <connect-url>',
-      'Safely initialize, then connect the repository origin to Harbor with a signed URL',
-    )
     .action(async raw => {
       const name =
         (raw.name ?? defaultProjectName).trim() || defaultProjectName;
-      let prepared:
-        | Awaited<ReturnType<typeof prepareHarborConnection>>
-        | undefined;
-      if (raw.harbor) {
-        try {
-          prepared = await prepareHarborConnection(raw.harbor, cwd, runGit);
-        } catch (error) {
-          if (error instanceof CliExitError) {
-            throw new CliExitError(
-              `ShipBench initialization did not run, and Harbor was not contacted. ${error.message}`,
-              error.exitCode,
-            );
-          }
-          throw error;
-        }
-      }
 
       let result: Awaited<ReturnType<typeof initProject>>;
       try {
         result = await initProject(adapter, { name });
       } catch (error) {
         throw new CliExitError(
-          `ShipBench files were not modified, and Harbor was not contacted. ${
+          `ShipBench files were not modified. ${
             error instanceof Error ? error.message : 'Initialization failed.'
           }`,
           2,
@@ -632,7 +599,7 @@ export function createCli(opts: CliOptions): Command {
         result.config.name !== name
       ) {
         throw new CliExitError(
-          `ShipBench files were not modified, and Harbor was not contacted. Existing project name "${result.config.name}" does not match --name "${name}".`,
+          `ShipBench files were not modified. Existing project name "${result.config.name}" does not match --name "${name}".`,
           2,
         );
       }
@@ -641,9 +608,6 @@ export function createCli(opts: CliOptions): Command {
         output.warning(formatProjectWarning(warning));
       }
 
-      const operationStatus = result.created
-        ? 'ShipBench initialization completed.'
-        : 'ShipBench was already initialized and remains unchanged.';
       if (result.created) {
         chrome(`Initialized .shipbench/ for "${name}" in current directory.`);
         if (opts.ancestorBoard !== undefined) {
@@ -655,70 +619,9 @@ export function createCli(opts: CliOptions): Command {
         chrome(`ShipBench is already initialized for "${result.config.name}".`);
       }
 
-      if (prepared) {
-        const message = await connectPreparedProjectToHarbor({
-          prepared,
-          runGit,
-          fetch: fetchImpl,
-          warn: chrome,
-          operationStatus,
-        });
-        chrome(message);
-      }
       if (result.created) {
-        for (const line of formatInitNextSteps(Boolean(prepared))) chrome(line);
+        for (const line of formatInitNextSteps()) chrome(line);
       }
-    });
-
-  program
-    .command('connect')
-    .description(
-      'Connect an existing ShipBench project to Harbor without modifying project files',
-    )
-    .requiredOption('--harbor <connect-url>', 'Signed Harbor connect URL')
-    .action(async raw => {
-      let prepared: Awaited<ReturnType<typeof prepareHarborConnection>>;
-      try {
-        prepared = await prepareHarborConnection(raw.harbor, cwd, runGit);
-      } catch (error) {
-        if (error instanceof CliExitError) {
-          throw new CliExitError(
-            `ShipBench project files were not modified, and Harbor was not contacted. ${error.message}`,
-            error.exitCode,
-          );
-        }
-        throw error;
-      }
-
-      const state = await inspectProjectInitialization(adapter);
-      if (state.kind === 'missing') {
-        throw new CliExitError(
-          'ShipBench project files were not modified, and Harbor was not contacted. This repository is not initialized. Run shipbench init first.',
-          2,
-        );
-      }
-      if (state.kind !== 'initialized') {
-        const detail =
-          state.kind === 'incomplete'
-            ? `ShipBench project is incomplete because .shipbench/config.json is missing while these files exist: ${state.paths.join(', ')}.`
-            : `ShipBench project is ${state.kind}: ${state.errors.join(' ')}`;
-        throw new CliExitError(
-          `ShipBench project files were not modified, and Harbor was not contacted. ${detail}`,
-          2,
-        );
-      }
-
-      for (const warning of state.warnings) {
-        output.warning(formatProjectWarning(warning));
-      }
-      const message = await connectPreparedProjectToHarbor({
-        prepared,
-        runGit,
-        fetch: fetchImpl,
-        warn: chrome,
-        operationStatus: 'ShipBench project files remain unchanged.',
-      });
-      chrome(message);
     });
 
   const task = program.command('task').description('Manage tasks');

@@ -156,22 +156,22 @@ describe('Board document title', () => {
   });
 
   it('leaves the tab title alone for embedded hosts that own their routing', async () => {
-    document.title = 'Harbor';
+    document.title = 'Host App';
     render(<Board api={api()} />);
 
     await screen.findByText('Setup auth');
-    expect(document.title).toBe('Harbor');
+    expect(document.title).toBe('Host App');
   });
 
   it('restores the host title when the board unmounts', async () => {
-    document.title = 'Harbor';
+    document.title = 'Host App';
     const { unmount } = render(<Board api={api()} documentTitle />);
 
     await waitFor(() => {
       expect(document.title).toBe('Test Project — ShipBench Board');
     });
     unmount();
-    expect(document.title).toBe('Harbor');
+    expect(document.title).toBe('Host App');
   });
 });
 

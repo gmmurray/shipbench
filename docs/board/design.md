@@ -3,7 +3,7 @@
 The Board UI (`@shipbench/board`) is the kanban surface. It is consumed by:
 
 - the CLI (`shipbench board`), which serves it as a static bundle pointed at a local HTTP server, and
-- Harbor, which embeds it as a React component pointed at the GitHub API.
+- any other host, which embeds it as a React component with its own `BoardAPI`.
 
 The Board never imports adapters or business logic from `@shipbench/core` — only types (`BoardAPI`, `Task`, `ShipbenchConfig`).
 
@@ -30,7 +30,7 @@ No router. No global state library beyond Zustand. No CSS-in-JS.
 The Board ships two entry points:
 
 ```tsx
-// React component — what Harbor consumes
+// React component — what an embedding host consumes
 import { Board } from '@shipbench/board';
 <Board api={api} />
 
@@ -121,7 +121,7 @@ Search hides cards and never reorders them. Columns keep their layout order, and
 Three triggers, one effect — all converge on `store.refresh()`:
 
 - **Polling**: every 60s when the tab is visible. Pause when hidden.
-- **On-focus**: `visibilitychange` → "visible" immediately calls `refresh()`. This handles the case where the developer leaves Harbor to edit a task via CLI or agent, then returns.
+- **On-focus**: `visibilitychange` → "visible" immediately calls `refresh()`. This handles the case where the developer leaves the board to edit a task via CLI or agent, then returns.
 - **Manual**: a "Sync" button in the header. Shows `Synced 2m ago` (relative time), click forces `refresh()`.
 
 If `BoardAPI.onTasksChanged` is defined (the CLI's local-server case), it **replaces** the 60s polling — file watcher events drive `refresh()` directly. Focus and manual still apply.
@@ -142,7 +142,7 @@ A single sticky row across the top of the Board. Breadcrumb on the left, toolbar
 
 - `{project-name}` is `config.name` — every project has one (required field in `ShipbenchConfig`). Clicking it has no effect (it's the root identity, not a navigation step).
 - "Tasks" is the only intermediate segment. When detail mode is open it's clickable and closes detail.
-- No ShipBench-branded chrome inside the Board — host (CLI tab title, Harbor's page) carries the umbrella identity. Keeps the Board embed-friendly without theming conflicts.
+- No ShipBench-branded chrome inside the Board — host (the CLI's tab title, or an embedding page) carries the umbrella identity. Keeps the Board embed-friendly without theming conflicts.
 
 ### Board mode (default)
 
@@ -192,7 +192,7 @@ A Linear-style in-place swap. The header stays; the board area becomes the detai
 └──────────────────────────────────────────┴──────────────────────┘
 ```
 
-Detail mode is driven by `selectedTaskSlug` — there is no internal route. Harbor can lift this to its own URL via props for deep linking; the CLI doesn't bother.
+Detail mode is driven by `selectedTaskSlug` — there is no internal route. An embedding host can lift this to its own URL via props for deep linking; the CLI doesn't bother.
 
 The left pane renders parsed Task Updates below the editable description as a separate chronological timeline. Each entry shows a locally formatted timestamp in mono, exposes the exact ISO 8601 value on hover, and renders its Markdown text in the normal reading face. The Board does not merge Task Updates back into the description editor. In writable mode, a compact composer appends through `BoardAPI.addComment`, and per-entry controls edit text or confirm deletion through zero-based indices. Core supplies and preserves the authoritative timestamp. Read-only hosts render no mutation controls.
 
@@ -202,7 +202,7 @@ When core reports the section as unreadable (`Task.unreadableUpdates`), the pane
 
 ### Markdown links
 
-Descriptions and Task Updates render through one `Markdown` component (`ui/Markdown.tsx`), so both surfaces behave identically. `urlTransform` stays at react-markdown's default — Harbor's content comes from a GitHub repo, so that sanitization matters — and every decision happens in the `a` override, after it.
+Descriptions and Task Updates render through one `Markdown` component (`ui/Markdown.tsx`), so both surfaces behave identically. `urlTransform` stays at react-markdown's default — task bodies are whatever a repository holds, so that sanitization matters — and every decision happens in the `a` override, after it.
 
 Task bodies mostly link to files in the same repo, written relative for someone reading the raw Markdown next to a checkout. `utils/links.ts` resolves those to repo-root-relative paths. The convention fixes the base: task files live at `.shipbench/tasks/<slug>.md`. Bare paths (`apps/site/index.astro`) are the one ambiguity — Markdown says file-relative, authors mean repo root, and repo root is what the Board uses.
 
@@ -215,7 +215,7 @@ Four outcomes:
 | External `http(s)` | New tab, `rel="noopener noreferrer"`, href untouched |
 | In-page anchor | Default behaviour |
 
-`resolveRepoLink` is optional, like `onTasksChanged`. Harbor returns a `blob/HEAD` URL on the project's repo. The CLI board omits it — the files are on disk, but an editor deep link assumes an editor and serving them would turn the board server into an arbitrary-repo-file server. Without it, repo links render as plain visible paths, which is honest and still readable.
+`resolveRepoLink` is optional, like `onTasksChanged`. A host with a web view of the repository can return a URL there. The CLI board omits it — the files are on disk, but an editor deep link assumes an editor and serving them would turn the board server into an arbitrary-repo-file server. Without it, repo links render as plain visible paths, which is honest and still readable.
 
 ## Error model
 
@@ -234,7 +234,6 @@ Four outcomes:
 
 ## Non-goals (for now)
 
-- Light mode / theme toggle. Dark-only until Harbor gets a design pass.
 - URL routing inside Board.
 - Filter UI beyond search. Status filter via column visibility, no priority/assignee filters in v1.
 - A rich-text editor for the body — `react-markdown` + plain textarea suffices.
@@ -252,7 +251,7 @@ Tasks are manually orderable within each column. Order is stored centrally in th
 }
 ```
 
-Core reads `layout.json` when present, falls back to the legacy `config.layout` field, then to `{}`. A missing file is valid: unlisted tasks use the deterministic fallback order. The first layout write migrates a legacy config by creating `layout.json` and removing only the old `layout` key. Users may gitignore the file for machine-local ordering, accepting that Harbor and fresh clones will use fallback order.
+Core reads `layout.json` when present, falls back to the legacy `config.layout` field, then to `{}`. A missing file is valid: unlisted tasks use the deterministic fallback order. The first layout write migrates a legacy config by creating `layout.json` and removing only the old `layout` key. Users may gitignore the file for machine-local ordering, accepting that fresh clones will use fallback order.
 
 **Render rules:**
 
@@ -268,7 +267,7 @@ Core reads `layout.json` when present, falls back to the legacy `config.layout` 
 - A column's order can be inspected and edited as one structure.
 - Layout is board-level metadata, not task-level — it travels with the board, not the task.
 
-**Trade-off — non-atomic cross-column moves.** A cross-column drag both flips the task's `status` (a task-file write) AND updates `layout.json`. The two are sequential, not atomic. If the second write fails after the first succeeds, the on-disk state is partial; the store rolls back its optimistic state and toasts an error, but the user will need to manually correct the partial write. For solo dev with `FsAdapter`, this is exceedingly rare; for the GitHub adapter, hosted Harbor MVP is read-only so the path isn't exercised. A future Trees API batch write would tighten this.
+**Trade-off — non-atomic cross-column moves.** A cross-column drag both flips the task's `status` (a task-file write) AND updates `layout.json`. The two are sequential, not atomic. If the second write fails after the first succeeds, the on-disk state is partial; the store rolls back its optimistic state and toasts an error, but the user will need to manually correct the partial write. For solo dev with `FsAdapter`, this is exceedingly rare.
 
 **Why this came out of the "must resolve before launch" question.** An earlier draft of this doc deferred the ordering decision, noting that adding a model later (manual order vs. `blocked_by` semantic dependencies) is destructive — boards populated before the change would need migration. The decision was made: manual order via `layout`, with `blocked_by` deferred. Two tasks with identical status + priority that have a meaningful ordering (e.g. dependent work) need *some* way to express it, and a manual order is simpler to implement and reason about than auto-derived dependency order.
 

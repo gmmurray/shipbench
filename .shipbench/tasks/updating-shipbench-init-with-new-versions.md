@@ -3,7 +3,7 @@ title: 'Spike: keep scaffolded AGENTS.md and README current across ShipBench rel
 status: todo
 priority: medium
 created: '2026-09-21T17:09:42.734Z'
-updated: '2026-10-26T00:12:16.860Z'
+updated: '2026-10-26T00:49:51.563Z'
 tags:
   - spike
   - convention
@@ -55,7 +55,7 @@ These combine. All of them need the first.
 3. **Agent-applied update** (the owner's idea in the Update below). Document a procedure: read the stamp, print the current scaffold, read the changelog entries since the stamped version, and carry the changes into the project's file while keeping its customizations. Scaffold changesets would need a consistent marker so the relevant entries can be found. This depends on agent judgment: without the old pristine text, the only way to tell a project's edit from stale base text is the changelog.
 4. **Exact three-way merge.** Core keeps each published version's pristine templates (they're small, and they double as release snapshots), so the CLI can compute base → new, apply it to the project's copy, and write conflicts beside the file (`AGENTS.md.new`) rather than inline. This is the most machinery. Prose also merges badly, because each template line is often a whole paragraph.
 5. **Ownership split with managed markers.** ShipBench owns a marked region and regenerates it freely. Project rules go outside the markers or in the root `AGENTS.md`. Refresh becomes simple, but the dogfood diff shows the catch: project rules often *contradict* base text ("move to `done`" against "never move to `done`"). Either the base text becomes config-aware (for example, the finishing rule is generated from whether a review column exists), or the file states that project rules override the base and agents reliably honour that.
-6. **Thin file, CLI as the source.** `.shipbench/AGENTS.md` shrinks to a pointer plus project rules, and the CLI prints the mechanics on demand, so they always match the installed version. This conflicts with the convention being self-contained. Agents without the CLI, and Harbor's read-only view, need the file itself to explain direct file operations.
+6. **Thin file, CLI as the source.** `.shipbench/AGENTS.md` shrinks to a pointer plus project rules, and the CLI prints the mechanics on demand, so they always match the installed version. This conflicts with the convention being self-contained. Agents without the CLI need the file itself to explain direct file operations.
 
 ## Initial lean, to test rather than adopt
 

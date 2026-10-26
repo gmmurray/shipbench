@@ -7,17 +7,17 @@ user-facing; this file holds the things only a contributor needs.
 
 ```
 src/
-  cli.ts                       # command definitions and core orchestration
-  harborConnect.ts             # signed-URL, Git, warning, and HTTP preflight
-  cli.test.ts                  # in-memory command tests
-  cli.git.integration.test.ts  # temporary-repository Git integration tests
-  index.ts                     # process entry point and exit-code mapping
-tsup.config.ts                 # bundle config (see "Build" below)
+  cli.ts                            # command definitions and core orchestration
+  errors.ts                         # CliExitError, for refusals with a set exit code
+  cli.test.ts                       # in-memory command tests
+  cli.worktree.integration.test.ts  # temporary-repository Git worktree tests
+  index.ts                          # process entry point and exit-code mapping
+tsup.config.ts                      # bundle config (see "Build" below)
 ```
 
 `cli.ts` exports `createCli`. `index.ts` wires it to the real filesystem. Most
-tests inject an in-memory adapter and Git runner; focused integration tests use
-temporary Git repositories.
+tests inject an in-memory adapter; focused integration tests use temporary Git
+repositories.
 
 ## Development workflow
 

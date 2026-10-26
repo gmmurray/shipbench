@@ -33,9 +33,7 @@ assertPaletteShape(doctrine);
 
 for (const surface of SURFACES) {
   describe(surface.name, () => {
-    const states = readThemeStates(readFileSync(surface.path, 'utf8'), {
-      defaultBlock: surface.defaultBlock,
-    });
+    const states = readThemeStates(readFileSync(surface.path, 'utf8'));
 
     it('declares all four theme states', () => {
       const empty = THEME_STATES.filter(state => states[state].size === 0);

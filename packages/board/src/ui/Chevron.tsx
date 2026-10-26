@@ -6,7 +6,7 @@
 // Fold/unfold is NOT one of its jobs; that belongs to the doctrine's `#disc`
 // marker. The Board has no disclosure toggles, so it declares no `#disc`.
 
-// Distinct from Harbor's `#chev` so the embedded Board never depends on (or
+// Distinct from a host's own `#chev` so the embedded Board never depends on (or
 // collides with) symbols the host page may or may not define.
 const SYMBOL_ID = 'sb-chev';
 

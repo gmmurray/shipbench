@@ -6,8 +6,6 @@ import { satteri } from '@astrojs/markdown-satteri';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import { defineConfig, fontProviders } from 'astro/config';
-import { HARBOR_ENABLED } from './src/config/flags.ts';
-import harborGate from './src/utils/satteri-harbor-gate.mjs';
 import copyMeta from './src/utils/shiki-copy-meta.mjs';
 import tableRegions from './src/utils/satteri-table-regions.mjs';
 
@@ -62,8 +60,6 @@ export default defineConfig({
 
   markdown: {
     processor: satteri({
-      features: { directive: true },
-      mdastPlugins: [harborGate({ enabled: HARBOR_ENABLED })],
       hastPlugins: [tableRegions],
     }),
     // Dual themes make Shiki emit a CSS custom property per token instead of a

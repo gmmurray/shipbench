@@ -29,7 +29,6 @@ No account or API key needed. The [quickstart guide](https://shipbench.dev/docs/
 - **The convention.** A `.shipbench/` directory of Markdown tasks with YAML frontmatter and a small config file. Anything that can read a file can read the board. [Specification](https://shipbench.dev/docs/convention-spec).
 - **ShipBench CLI.** Create, list, search, move, and check tasks from a terminal or a coding agent. [Reference](https://shipbench.dev/docs/cli-reference).
 - **The local board.** `shipbench board` opens a Kanban board in the browser that updates when files change, and `shipbench board terminal` draws a read-only one in a terminal.
-- **ShipBench Harbor.** An optional hosted client for shaping ideas before a repository exists and viewing public GitHub-backed boards read-only. Tasks never leave their repository. Harbor isn't deployed yet.
 
 ## Repository layout
 

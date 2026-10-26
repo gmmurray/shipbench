@@ -2,24 +2,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { isDocVisible, renderedMarkdown } from '../utils/docs';
 
-// A docs page can be gated out of the build (SITE_CONFIG.harborEnabled is the
-// first one), and the links pointing at it live in Markdown, which cannot
-// branch on a flag. So the two failure modes are symmetric, and both are
-// silent:
-//
-//   flag off, link kept    -> the link 404s in production.
-//   flag on, link missing  -> the page ships unreachable, and the launch step
-//                             that was meant to restore the link is forgotten.
-//
-// The first is the damaging one, and it is caught per file: every link to a
-// page this build omits fails, wherever it is written. The second is the one a
-// person has to remember, and it is caught only as reachability — one link
-// anywhere clears a page, so if two hand-authored links were dropped together,
-// restoring either turns this suite green with the other still missing. It
-// tells you a flag flip left prose behind; the flag's own comment in
-// src/config/flags.ts lists which.
+// Two silent failures: a link to a docs page that does not exist 404s in
+// production, and a page nothing links to is reachable only through search.
+// The first is caught per file, wherever the link is written. The second is
+// caught as reachability, so one hand-authored link anywhere clears a page.
 //
 // This is the routing counterpart to internal-links.test.ts. That one holds the
 // trailing-slash *form* of every internal link; this one holds that the route
@@ -60,26 +47,23 @@ function docIds(): string[] {
 }
 
 function docRoutesIn(source: string): string[] {
-  // `/docs/${id}/` is a computed link over the already-filtered collection, so
-  // it cannot name a gated page. Flatten it to a single segment rather than
-  // reading `${id}` as a literal slug.
+  // `/docs/${id}/` is a computed link over the collection, so it cannot name a
+  // missing page. Flatten it to a single segment rather than reading `${id}`
+  // as a literal slug.
   const flattened = source.replace(/\$\{[^{}]*\}/g, 'X');
   DOCS_ROUTE.lastIndex = 0;
   return [...flattened.matchAll(DOCS_ROUTE)].map(match => match[1]);
 }
 
-/** `/docs/harbor/#anchor` -> `harbor`. `X` marks a flattened interpolation. */
+/** `/docs/overview/#anchor` -> `overview`. `X` marks a flattened interpolation. */
 function slugOf(route: string): string | null {
   const [path] = route.split('#');
   const slug = path.replace(/^\/docs\//, '').replace(/\/$/, '');
   return slug === '' || slug === 'X' ? null : slug;
 }
 
-// Markdown is read as the build renders it, so a link inside a `:::harbor`
-// block only counts when Harbor is enabled.
 function slugsLinkedIn(file: string): string[] {
-  const source = readFileSync(file, 'utf8');
-  return docRoutesIn(file.endsWith('.md') ? renderedMarkdown(source) : source)
+  return docRoutesIn(readFileSync(file, 'utf8'))
     .map(slugOf)
     .filter((slug): slug is string => slug !== null);
 }
@@ -91,28 +75,25 @@ describe('docs routes', () => {
   it('scans the source tree, the README, and the docs collection', () => {
     expect(files.length).toBeGreaterThan(10);
     expect(existsSync(README)).toBe(true);
-    expect(ids).toContain('harbor');
+    expect(ids).toContain('overview');
   });
 
-  it.each(files.map(file => [relative(SRC, file), file] as const))(
-    '%s links only to docs pages this build publishes',
-    (_name, file) => {
-      const unbuilt = slugsLinkedIn(file).filter(
-        slug => !ids.includes(slug) || !isDocVisible(slug),
-      );
+  it.each(
+    files.map(file => [relative(SRC, file), file] as const),
+  )('%s links only to docs pages that exist', (_name, file) => {
+    const unbuilt = slugsLinkedIn(file).filter(slug => !ids.includes(slug));
 
-      expect(unbuilt).toEqual([]);
-    },
-  );
+    expect(unbuilt).toEqual([]);
+  });
 
   // The other direction. A page nobody links to is unreachable except through
-  // search, and the sidebar does not count: it is generated from the same
-  // filtered collection, so it would call every page reachable by construction
+  // search, and the sidebar does not count: it is generated from the
+  // collection, so it would call every page reachable by construction
   // and prove nothing. Computed `/docs/${id}/` links are flattened away for
   // exactly that reason, which leaves only hand-authored links standing here.
-  it('links to every docs page this build publishes', () => {
+  it('links to every docs page', () => {
     const linked = new Set(files.flatMap(slugsLinkedIn));
-    const orphans = ids.filter(id => isDocVisible(id) && !linked.has(id));
+    const orphans = ids.filter(id => !linked.has(id));
 
     expect(orphans).toEqual([]);
   });

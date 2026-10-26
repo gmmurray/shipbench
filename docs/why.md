@@ -4,5 +4,5 @@ The account of why ShipBench exists is published at [shipbench.dev/docs/why](htt
 
 ## Where to go next
 
-- [Product spec](spec.md): the design of the convention, core, the board, and the CLI, plus what ShipBench Harbor is.
-- [Design doctrine](design-doctrine.md): the visual system shared by Harbor, the board, and the site.
+- [Product spec](spec.md): the design of the convention, core, the board, and the CLI, plus the non-goals this project has settled.
+- [Design doctrine](design-doctrine.md): the visual system shared by the board and the site.

@@ -1,7 +1,7 @@
 // Doctrine: Theming. Standalone-only three-state theme control (System / Light /
 // Dark). The standalone board is a client-only SPA with no server, so the
 // explicit choice persists in localStorage (the embedded board has no toggle —
-// it inherits the Harbor host's `data-theme`). "System" follows the OS via the
+// it inherits the host's `data-theme`). "System" follows the OS via the
 // CSS media query.
 
 import { useState } from 'react';

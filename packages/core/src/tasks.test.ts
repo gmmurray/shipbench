@@ -1135,7 +1135,7 @@ Raised priority after the customer call.
 Pivoted to the adapter approach.
 
 - It preserves the storage boundary.
-- It keeps Harbor read-only.`,
+- It keeps the board read-only.`,
       ),
     });
 
@@ -1154,7 +1154,7 @@ Pivoted to the adapter approach.
           text: `Pivoted to the adapter approach.
 
 - It preserves the storage boundary.
-- It keeps Harbor read-only.`,
+- It keeps the board read-only.`,
         },
       ],
     });

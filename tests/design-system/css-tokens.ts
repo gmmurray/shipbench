@@ -105,24 +105,13 @@ function merge(bodies: string[]): Map<string, string> {
   return merged;
 }
 
-export interface ReadOptions {
-  /**
-   * Where the dark defaults live. Harbor puts them in Tailwind's `@theme`
-   * at-rule; the site and Board use a plain `:root`.
-   */
-  defaultBlock: 'root' | 'theme';
-}
-
 export function readThemeStates(
   source: string,
-  options: ReadOptions,
 ): Record<ThemeState, Map<string, string>> {
   const css = stripComments(source);
 
-  // `@theme\s*\{` deliberately does not match `@theme inline {`, which holds
-  // font aliases rather than palette values.
-  const defaultHeader =
-    options.defaultBlock === 'theme' ? /@theme\s*\{/g : /:root\s*\{/g;
+  // The dark defaults live in a plain `:root` on every surface.
+  const defaultHeader = /:root\s*\{/g;
 
   const mediaBlocks = blocksMatching(
     css,

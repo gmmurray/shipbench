@@ -60,13 +60,3 @@ export function parseGithubRemoteUrl(
     return null;
   }
 }
-
-export function normalizeGithubUrl(input: string): string | null {
-  const parsed = parseGithubUrl(input);
-  return parsed ? `https://github.com/${parsed.owner}/${parsed.repo}` : null;
-}
-
-export function normalizeGithubRemoteUrl(input: string): string | null {
-  const parsed = parseGithubRemoteUrl(input);
-  return parsed ? `https://github.com/${parsed.owner}/${parsed.repo}` : null;
-}

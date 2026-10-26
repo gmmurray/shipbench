@@ -1,6 +1,6 @@
 ---
 title: 'Spike: define Harbor''s contribution to choosing and resuming projects'
-status: review
+status: done
 priority: medium
 tags:
   - spike
@@ -8,7 +8,7 @@ tags:
   - product
   - research
 created: '2026-09-05T21:33:41.892Z'
-updated: '2026-10-26T00:28:21.356Z'
+updated: '2026-10-26T00:34:13.733Z'
 ---
 
 A plan inside every repository helps after a developer chooses a project. It does not by itself answer which project deserves attention. Investigate the distinct role ShipBench Harbor should play in that decision, and where continuity between ideas, repositories, and ongoing work matters.

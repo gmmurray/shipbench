@@ -291,10 +291,6 @@
   font-size: 0.9em;
 }
 
-.harbor p {
-  margin-bottom: 24px;
-}
-
 @media (max-width: 960px) {
   .hero {
     grid-template-columns: minmax(0, 1fr);

@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Three-state theme control — System / Light / Dark, mirroring Harbor's
-  // ThemeToggle. See docs/design-doctrine.md › Theming.
+  // Three-state theme control — System / Light / Dark, mirroring the board's
+  // theme toggle. See docs/design-doctrine.md › Theming.
   //
   // This component owns the *choice*, not the initial application: the page is
   // statically built, so a blocking inline script in BaseLayout.astro sets

@@ -579,8 +579,8 @@ function TaskUpdatesSection({
   useUnsavedDraft('edited-update', !readOnly && editDraft.dirty);
 
   // A section that would not parse has no entries, so the read-only shortcut
-  // would hide the one thing worth saying about this task. Harbor is read-only
-  // everywhere, which makes it the host that most needs to keep this visible.
+  // would hide the one thing worth saying about this task. A host that is
+  // read-only everywhere is the one that most needs to keep this visible.
   if (comments.length === 0 && readOnly && !unreadableUpdates) return null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

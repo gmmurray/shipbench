@@ -1,8 +1,8 @@
 // ── Storage Adapter ──────────────────────────────────────────────
 
 /**
- * Read-only surface. Consumers that only display data (e.g. Harbor's
- * remote board mode) hold this type so the compiler prevents accidental
+ * Read-only surface. Consumers that only display data (e.g. the CLI's
+ * terminal views) hold this type so the compiler prevents accidental
  * write attempts.
  */
 export interface ReadableStorageAdapter {

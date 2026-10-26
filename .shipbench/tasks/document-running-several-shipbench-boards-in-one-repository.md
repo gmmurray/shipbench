@@ -7,7 +7,7 @@ tags:
   - site
   - convention
 created: '2026-09-26T19:44:04.592Z'
-updated: '2026-10-25T23:32:53.969Z'
+updated: '2026-10-26T00:49:51.735Z'
 ---
 
 Several boards in one repository already work: each subdirectory gets its own
@@ -30,7 +30,6 @@ built CLI.
   port, or use `--port`.
 - `depends_on` cannot cross boards. Link to a sibling board's task file in the
   description instead.
-- Harbor shows only the board at the repository root.
 - With worktrees, `-C` targets the board's directory inside the canonical
   checkout.
 
@@ -45,3 +44,6 @@ Scope addition, agreed with the owner: decide whether the scaffolded `.shipbench
 Why here: [find-the-nearest-board-above-the-current-directory](find-the-nearest-board-above-the-current-directory.md) left the scaffold alone and called it a separate decision. This page already writes the routing block for root agent instructions, so the board's own `AGENTS.md` line is the same subject seen from the other side, and deciding them together keeps the two consistent. The current scaffold is not wrong (it never says to run from the board root), so this adds a line rather than fixing one.
 
 The outline above predates the walk-up. Revise it to match: `cd` anywhere inside a board's directory reaches that board without `-C`; writes from below a board print `Using .shipbench/ from <path>`; `init` below an existing board warns and still creates the new one; `connect` refuses below the repository root once [refuse-to-connect-a-board-below-the-repository-root-to-harbor](refuse-to-connect-a-board-below-the-repository-root-to-harbor.md) lands.
+
+### 2026-10-26T00:49:51.735Z
+Harbor was retired and `shipbench connect` removed, so drop the connect clause from the outline in the previous Update. The other three points still stand.

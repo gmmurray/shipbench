@@ -18,9 +18,9 @@ const RESULTS = [
     excerpt: 'Install the <mark>cli</mark>',
   },
   {
-    url: '/docs/harbor/',
-    title: 'Using Harbor',
-    excerpt: 'Harbor hosts the board',
+    url: '/docs/cli-reference/',
+    title: 'CLI reference',
+    excerpt: 'Every command the CLI runs',
   },
   {
     url: '/docs/overview/',
@@ -168,7 +168,7 @@ describe('SearchDialog', () => {
 
     await user.keyboard('{ArrowDown}{Enter}');
 
-    expect(navigatedTo).toBe('/docs/harbor/');
+    expect(navigatedTo).toBe('/docs/cli-reference/');
     expect(dialog().open).toBe(true);
   });
 

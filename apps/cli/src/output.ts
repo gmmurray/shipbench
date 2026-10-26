@@ -7,15 +7,13 @@ export interface CliOutputOptions {
   env: NodeJS.ProcessEnv;
 }
 
-export function formatInitNextSteps(harborConnected: boolean): string[] {
+export function formatInitNextSteps(): string[] {
   return [
     '',
     'Next steps:',
     '  1. Create a task: shipbench task create "My first task"',
     '  2. Open the board: shipbench board',
-    harborConnected
-      ? '  3. Open Harbor to view this ShipBench project.'
-      : '  3. Read .shipbench/README.md to learn the project workflow.',
+    '  3. Read .shipbench/README.md to learn the project workflow.',
   ];
 }
 

@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 
-/* Harbor consumes Board from a linked workspace package, which Tailwind does
- * not scan automatically. Keep this stylesheet self-contained and deterministic
+/* An embedding host consumes Board as a package, which Tailwind does not
+ * scan automatically. Keep this stylesheet self-contained and deterministic
  * in both the standalone and embedded builds. */
 @source ".";
 @source "../demo";
@@ -59,8 +59,8 @@
   --sb-warning: #e3a34a;
 }
 
-/* Light theme — "blueprint paper". Values validated in spike-harbor-light-theme
- * (WCAG-checked). Accent + semantics are per-theme: the inversion flips (dark =
+/* Light theme — "blueprint paper". Values WCAG-checked when the light theme was
+ * designed. Accent + semantics are per-theme: the inversion flips (dark =
  * lighter indigo on dark ground; light = darker indigo on light ground). Button
  * text stays `sb-canvas`, which itself flips, so text-on-accent stays legible in
  * both themes with no per-component conditional. `system` = no data-theme attr,
@@ -192,7 +192,7 @@
 }
 
 /* Blueprint-grid canvas treatment. Applied to the Board root so the grid
- * shows in both the standalone bundle and the Harbor embed. */
+ * shows in both the standalone bundle and an embedded board. */
 .sb-canvas-grid {
   background-color: var(--sb-canvas);
   background-image:

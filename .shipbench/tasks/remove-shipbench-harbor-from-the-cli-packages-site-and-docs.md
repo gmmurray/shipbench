@@ -1,6 +1,6 @@
 ---
 title: 'Remove ShipBench Harbor from the CLI, packages, site, and docs'
-status: todo
+status: review
 priority: medium
 tags:
   - harbor
@@ -9,10 +9,10 @@ tags:
   - site
   - docs
 created: '2026-10-26T00:28:10.641Z'
-updated: '2026-10-26T00:28:10.641Z'
+updated: '2026-10-26T00:52:39.185Z'
 ---
 
-ShipBench Harbor is retired. The decision and its reasons are in [the Harbor-role spike](spike-define-harbor-s-contribution-to-choosing-and-resuming-projects.md). Remove Harbor's surface from this repository so the CLI, packages, site, and docs describe only what exists.
+ShipBench Harbor is retired. The decision and its reasons are in [the Harbor-role spike](archive/spike-define-harbor-s-contribution-to-choosing-and-resuming-projects.md). Remove Harbor's surface from this repository so the CLI, packages, site, and docs describe only what exists.
 
 Harbor was never deployed, so nothing here has to keep working for it. The site already hides it behind `HARBOR_ENABLED = false`, and that gate goes too.
 
@@ -27,7 +27,7 @@ Harbor was never deployed, so nothing here has to keep working for it. The site 
 - `normalizeGithubRemoteUrl` has no caller once `connect` is gone, so remove it and its export. **Keep `parseGithubRemoteUrl`.** Radar uses it for project identity.
 - `GitHubAdapter` and `GitHubApiError`: Harbor was their only consumer. The recommendation is to remove them, with `adapters/github.ts` and its tests, but that shrinks the documented two-adapter surface, so confirm with the owner first.
 - Keep `ReadableStorageAdapter`, because the TUI uses it. Reword its doc comment in `types.ts`.
-- In `init.ts`, reword the seed-commit comment (it batches writes "for Harbor's onboarding flows") and the scaffolded README text that names Harbor: the "Harbor —" bullet, "CLI, Board, Harbor", and "Harbor and fresh clones". `.shipbench/README.md` mirrors that scaffold, so update it to match. This touches the same generated files as [updating-shipbench-init-with-new-versions](updating-shipbench-init-with-new-versions.md), so check that task's state before editing them.
+- In `init.ts`, reword the seed-commit comment (it batches writes "for Harbor's onboarding flows") and the scaffolded README text that names Harbor: the "Harbor â€”" bullet, "CLI, Board, Harbor", and "Harbor and fresh clones". `.shipbench/README.md` mirrors that scaffold, so update it to match. This touches the same generated files as [updating-shipbench-init-with-new-versions](updating-shipbench-init-with-new-versions.md), so check that task's state before editing them.
 
 ## Board
 
@@ -39,14 +39,14 @@ Delete `HARBOR_ENABLED` and everything that reads it: [flags.ts](../../apps/site
 
 ## Docs
 
-- **AGENTS.md:** the product overview, which becomes one product plus the site. In Naming and branding: the "ShipBench Harbor" product name, the client framing, the `@shipbench/harbor` package line, the `harborEnabled` line, and the `harbor.shipbench.dev` domain line. Also the dependency-graph note, the "ShipBench Harbor — a consumer" section, and the Cloudflare and multi-account bullets under Architectural boundaries. The board-publishing rationale needs a new example of an out-of-repository host. Ask the owner whether to name Radar or keep it generic.
+- **AGENTS.md:** the product overview, which becomes one product plus the site. In Naming and branding: the "ShipBench Harbor" product name, the client framing, the `@shipbench/harbor` package line, the `harborEnabled` line, and the `harbor.shipbench.dev` domain line. Also the dependency-graph note, the "ShipBench Harbor â€” a consumer" section, and the Cloudflare and multi-account bullets under Architectural boundaries. The board-publishing rationale needs a new example of an out-of-repository host. Ask the owner whether to name Radar or keep it generic.
 - **[docs/spec.md](../../docs/spec.md):** section 5, the Remote row of the board-modes table, the `GitHubAdapter` scope note, the `connect` and `init --harbor` command entries, "Harbor opt-in", and "Signed Harbor connection preflight". Add a non-goal recording that ShipBench has no hosted client, and link the spike.
 - Also: `docs/design-doctrine.md`, `docs/why.md`, `docs/brand/README.md`, the root `README.md` Harbor bullet, and `.changeset/README.md`. In the site docs: `cli-reference.md`, `convention-spec.md`, `overview.md`, and `recipe-gitignore-layout.md`.
 - Leave historical records alone: `docs/audits/`, the CHANGELOGs, and `tasks/archive/`.
 
 ## Board tasks
 
-- Archive [refuse-to-connect-a-board-below-the-repository-root-to-harbor](refuse-to-connect-a-board-below-the-repository-root-to-harbor.md). It's moot once `connect` is gone.
+- Archive [refuse-to-connect-a-board-below-the-repository-root-to-harbor](archive/refuse-to-connect-a-board-below-the-repository-root-to-harbor.md). It's moot once `connect` is gone.
 - Archive the Harbor-role spike once the owner marks it done.
 - Edit the live tasks that still assume Harbor: [document-running-several-shipbench-boards-in-one-repository](document-running-several-shipbench-boards-in-one-repository.md) (the "Harbor shows only the root board" bullet and the `connect` clause), [keep-links-between-tasks-working-when-a-task-is-archived](keep-links-between-tasks-working-when-a-task-is-archived.md) ("and Harbor through `resolveRepoLink`"), option 6 of [updating-shipbench-init-with-new-versions](updating-shipbench-init-with-new-versions.md) ("Harbor's read-only view"), and the Harbor comparison and boundary deliverables in [the local-workbench spike](spike-explore-a-local-workbench-across-shipbench-repositories.md). Now that Radar exists, that spike probably needs re-scoping, but that is the owner's separate call.
 - Leave done tasks as they are. Also leave the cross-project reporting spike's "Harbor as an inbox" rejection, which still records why that path was ruled out.
@@ -63,3 +63,8 @@ Removing `connect`, `init --harbor`, and core exports is a breaking change. Add 
 - A changeset is present.
 
 Work outside this repository (archiving the private Harbor repository, removing its Cloudflare, Clerk, and DNS resources) belongs to the owner and isn't part of this task.
+
+## Task Updates
+
+### 2026-10-26T00:34:55.588Z
+Owner decisions: remove GitHubAdapter and GitHubApiError. Don't name Radar anywhere public; it's a personal extension built on ShipBench, not a ShipBench product, so the board-publishing rationale stays generic (an out-of-repository host).

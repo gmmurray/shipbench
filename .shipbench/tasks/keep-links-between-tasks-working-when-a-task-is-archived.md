@@ -9,7 +9,7 @@ tags:
   - convention
   - archive
 created: '2026-10-25T23:55:31.006Z'
-updated: '2026-10-26T00:12:33.695Z'
+updated: '2026-10-26T00:49:51.475Z'
 ---
 
 Task bodies link to each other with relative Markdown links such as `[the decision](some-task.md)`. `task archive` moves the file to `tasks/archive/` byte-for-byte and rewrites nothing, so any link across the live/archive line stops resolving: a live task linking to an archived one, and an archived task linking to a live one.
@@ -37,7 +37,7 @@ Also seen: `strengthen-shipbench-messaging-across-docs-and-public-pages-then-ass
 
 These can combine.
 
-1. **Resolve on read.** When a body links to `<slug>.md` and that file is missing, the Board, and Harbor through `resolveRepoLink`, try `archive/<slug>.md` (or `../<slug>.md` from the archive) before giving up. No file changes. Plain Git viewers like GitHub still show the link as broken.
+1. **Resolve on read.** When a body links to `<slug>.md` and that file is missing, the Board tries `archive/<slug>.md` (or `../<slug>.md` from the archive) before giving up. No file changes. Plain Git viewers like GitHub still show the link as broken.
 2. **Warn on archive.** `task archive` names the live tasks whose bodies link to the task being archived, the way it already guards live `depends_on` dependents. The person archiving gets the information without being blocked.
 3. **Report it.** [expose-a-consistent-cli-project-validation-report](expose-a-consistent-cli-project-validation-report.md) lists task-to-task links that don't resolve, with the fix (the archived path) when one exists.
 4. **Prefer `related` for references between tasks.** Once that field exists, a slug in frontmatter survives archiving because it is resolved against live tasks and the archive. Prose links stay for context but stop being the only record.

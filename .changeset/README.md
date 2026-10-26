@@ -32,7 +32,7 @@ Naming a package puts the entry in that package's changelog. Packages you leave 
 
 - **`shipbench`**: anything a CLI user sees. That includes a command, flag, or output, a file `shipbench init` scaffolds, and the board, which people mostly reach through `shipbench board`.
 - **`@shipbench/core`**: a change to the library's exported API or its behaviour for code that calls it.
-- **`@shipbench/board`**: a change to the embeddable component's props, exports, or behaviour for a host such as Harbor.
+- **`@shipbench/board`**: a change to the embeddable component's props, exports, or behaviour for a host that embeds it.
 
 A board behaviour change therefore usually names both `@shipbench/board` and `shipbench`.
 

@@ -167,18 +167,6 @@ const withCode = (text: string) =>
         <a class="text-link" href="/docs/quickstart/">Full quickstart guide</a>
       </div>
     </section>
-
-    {SITE_CONFIG.harborEnabled && (
-      <section class="band page-width" aria-labelledby="harbor-heading">
-        <h2 id="harbor-heading">ShipBench Harbor</h2>
-        <div class="band-body harbor">
-          <p>
-            ShipBench Harbor is the optional hosted client. Capture and organize ideas, then view public GitHub-backed project boards in read-only mode. Every ShipBench task stays in its repository.
-          </p>
-          <a class="button primary" href={SITE_CONFIG.harborUrl} target="_blank" rel="noopener">Open ShipBench Harbor</a>
-        </div>
-      </section>
-    )}
   </main>
 
   <Footer />

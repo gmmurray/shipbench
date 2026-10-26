@@ -160,10 +160,6 @@ Both strategies are valid. A missing or gitignored `layout.json` makes ShipBench
 git rm --cached .shipbench/layout.json
 ```
 
-:::harbor
-ShipBench Harbor reads the repository through the GitHub API, so it sees only what is committed. Commit `layout.json` if you want your drag order to appear in Harbor.
-:::
-
 Tracked or ignored, `layout.json` stores a partial index of manual placements as a record of column IDs to task slugs:
 
 ```json

@@ -6,11 +6,11 @@ import './styles.css';
 export interface CreateBoardOptions {
   api: BoardAPI;
   /** Show the standalone theme toggle (System/Light/Dark). Hosts that own their
-   *  own theme (e.g. Harbor, which the embed inherits from) leave this off. */
+   *  own theme, which the embed inherits, leave this off. */
   themeControl?: boolean;
   /** Name the browser tab after the project, so boards for several repos are
-   *  distinguishable. Hosts that own their own routing and tab title (e.g.
-   *  Harbor) leave this off. The name itself always comes from `config.name`. */
+   *  distinguishable. Hosts that own their own routing and tab title leave
+   *  this off. The name itself always comes from `config.name`. */
   documentTitle?: boolean;
 }
 

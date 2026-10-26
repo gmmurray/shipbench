@@ -1,8 +1,8 @@
 # ShipBench Design Doctrine
 
-Ground truth for ShipBench's visual language across every surface — Harbor, the Board UI, and anything that comes later. Every design-related task implements against _this file_, not against a mockup, and not against anything an LLM produces without checking here first.
+Ground truth for ShipBench's visual language across every surface — the Board UI, the site, and anything that comes later. Every design-related task implements against _this file_, not against a mockup, and not against anything an LLM produces without checking here first.
 
-Harbor and the Board both implement this doctrine today. New surfaces adopt it; nobody invents a parallel theme. (The doctrine grew up inside Harbor, so its examples lean on Harbor screens — the rules are product-wide regardless.)
+The Board and the site both implement this doctrine today. New surfaces adopt it; nobody invents a parallel theme.
 
 ## How to read this doc
 
@@ -151,7 +151,7 @@ The focus ring is one of the accent's core jobs — focus is a _doing_ state.
 
 ### Interaction states
 
-Every interactive element defines these; expression is fixed so states read consistently across Harbor and Board.
+Every interactive element defines these; expression is fixed so states read consistently across every surface.
 
 | State           | Expression                                                             |
 | --------------- | --------------------------------------------------------------------- |
@@ -227,7 +227,7 @@ Usage rules:
 
 **Dark is the signature default.** The system is built dark-first and dark stays the identity. Light is a first-class second theme, not a fallback.
 
-- Tokens are the theming seam. The Board routes every color through `--sb-*` custom properties; Harbor exposes them as Tailwind `@theme` tokens; the site uses plain custom properties. **Style through tokens, never hard-coded hex in components** — that is what makes a second theme possible without touching component code.
+- Tokens are the theming seam. The Board routes every color through `--sb-*` custom properties; a Tailwind app would expose them as `@theme` tokens; the site uses plain custom properties. **Style through tokens, never hard-coded hex in components** — that is what makes a second theme possible without touching component code.
 - The light palette is _not_ an inversion. It is derived separately and contrast-checked against the same bars as dark (4.5:1 text, ≥3:1 structural borders); both columns are in [Palette](#palette) above.
 
 **Three states, one attribute.** The control is System / Light / Dark:
@@ -249,7 +249,7 @@ Usage rules:
 
 **Applying it before first paint is a per-app concern.** The rule is the same everywhere — no flash of the wrong theme — but the mechanism depends on the rendering model:
 
-- **Server-rendered (Harbor):** persist the choice in a cookie, read it in the layout, and render `data-theme` into the initial HTML. Nothing runs on the client before paint.
+- **Server-rendered:** persist the choice in a cookie, read it in the layout, and render `data-theme` into the initial HTML. Nothing runs on the client before paint.
 - **Statically built (the site):** there is no server to read a cookie, so a **blocking inline script in `<head>`** reads the stored choice and sets `data-theme` before the first paint. It must be inline and synchronous; a module script, an island, or an `astro:page-load` hook all run too late and flash.
 
 Either way, if the app uses view transitions, re-apply the stored choice after a swap — the root element survives, but a full document replacement does not.
@@ -327,7 +327,7 @@ Drop-in for `tailwind.config` (or Tailwind v4 CSS-first equivalent). Dark values
 }
 ```
 
-Font loading: fontsource packages. Harbor loads the families via Astro's [Fonts API](https://docs.astro.build/en/reference/font-provider-reference) (fontsource provider); the Board bundles `@fontsource/*` CSS directly in its standalone entry.
+Font loading: fontsource packages. The site loads the families via Astro's [Fonts API](https://docs.astro.build/en/reference/font-provider-reference) (fontsource provider); the Board bundles `@fontsource/*` CSS directly in its standalone entry.
 
 Global CSS (in the project's global stylesheet):
 
@@ -551,21 +551,16 @@ Slim bordered top bar. Backdrop stays crisp (no blur). Structural bottom border 
     <a href="/" class="flex items-center gap-2.5">
       <svg class="h-5 w-5" aria-hidden="true"><use href="#logo" /></svg>
       <span class="text-[15px] font-semibold tracking-tight text-frosted"
-        >ShipBench Harbor</span
+        >ShipBench</span
       >
     </a>
     <nav
       class="flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-silver"
     >
       <a
-        href="/ideas"
+        href="/docs/overview/"
         class="rounded px-2.5 py-1.5 transition-colors hover:bg-surface hover:text-frosted"
-        >Ideas</a
-      >
-      <a
-        href="/projects"
-        class="rounded px-2.5 py-1.5 transition-colors hover:bg-surface hover:text-frosted"
-        >Projects</a
+        >Docs</a
       >
     </nav>
   </div>
@@ -719,9 +714,9 @@ For task title/body inputs inside detail views. The field is flush with the canv
 ## Not adopted (explicit non-goals)
 
 - **P1/P2/P3 priority labels.** ShipBench uses `low/medium/high` (configurable via `config.json`). Any UI showing priority must read from config, not invent tiers.
-- **Task IDs like `HARBOR-18`.** ShipBench uses slugs derived from title. There are no numeric IDs.
+- **Task IDs like `SHIP-18`.** ShipBench uses slugs derived from title. There are no numeric IDs.
 - **Column names beyond user config.** Default columns are `todo / in-progress / done` and are user-configurable. Do not hardcode `Merged`, `In Review`, or any other names.
-- **Branch names, commit hashes, git ops on cards.** Harbor is read-only against GitHub and does not surface branch/commit metadata on cards.
+- **Branch names, commit hashes, git ops on cards.** Cards show task data only; ShipBench does not surface branch/commit metadata on them.
 - **Filename extensions in metadata.** Tasks are `.md` with YAML frontmatter, not `.toml`.
 - **Any glow, halo, drop shadow, or soft blur.** Even for focus, dialogs, dropdowns, or drag ghosts. The system is flat — this survived the theme→system refresh unchanged.
 - **Color outside the three lanes.** No fourth accent, no decorative hues, no semantic color on priority/status/chrome. Color that means nothing is noise.

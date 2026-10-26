@@ -26,7 +26,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { HARBOR_ENABLED } from '../src/config/flags';
 
 const DIST = fileURLToPath(new URL('./../dist/client/', import.meta.url));
 const CLI_VERSION = (
@@ -35,9 +34,6 @@ const CLI_VERSION = (
   ) as { version: string }
 ).version;
 
-// Gated behind SITE_CONFIG.harborEnabled: built and linked when Harbor is
-// live, absent from dist/ entirely when it is not. Read from the flag rather
-// than listed, so this file needs no edit either way.
 /**
  * The `<pre>` ... `</pre>` whose *rendered text* contains `needle`, or null.
  *
@@ -74,7 +70,6 @@ const DOC_PAGES = [
   'docs/cli-reference',
   'docs/convention-spec',
   'docs/decision-trail',
-  ...(HARBOR_ENABLED ? ['docs/harbor'] : []),
   'docs/workflows',
   'docs/solo-trunk-workflow',
   'docs/concurrent-agents',
@@ -420,7 +415,7 @@ test('docs tables ship as accessible scroll regions before JavaScript runs', () 
 });
 
 test.describe('landing-page flow survives the build', () => {
-  test('renders each section, with Harbor only behind its flag', () => {
+  test('renders each section', () => {
     const home = html('');
 
     expect(home).toContain('Plans that ship with the work.');
@@ -435,39 +430,6 @@ test.describe('landing-page flow survives the build', () => {
     expect(home.match(/class="use"/g) ?? []).toHaveLength(8);
     expect(home).not.toContain('One Task, Followed Through');
     expect(home).not.toContain('visual-tabs');
-
-    // Flagged off, the Harbor section has to be gone from the markup, not
-    // just unlinked.
-    if (HARBOR_ENABLED) {
-      expect(home).toContain('ShipBench Harbor is the optional hosted client');
-    } else {
-      expect(home).not.toContain(
-        'ShipBench Harbor is the optional hosted client',
-      );
-    }
-  });
-
-  test('links to Harbor only when Harbor is live', () => {
-    for (const route of ALL_PAGES) {
-      const page = html(route);
-      const links = page.includes('https://harbor.shipbench.dev');
-
-      expect(links, `${route || '/'} links to harbor.shipbench.dev`).toBe(
-        HARBOR_ENABLED,
-      );
-    }
-  });
-
-  // The docs source keeps Harbor passages in :::harbor blocks, which the build
-  // drops while the flag is off. This checks the rendered text, not the source.
-  test('no built page mentions Harbor while Harbor is disabled', () => {
-    test.skip(HARBOR_ENABLED, 'Harbor is enabled, so its passages render.');
-    for (const route of ALL_PAGES) {
-      const text = html(route)
-        .replace(/<(script|style)[\s\S]*?<\/\1>/g, '')
-        .replace(/<[^>]+>/g, ' ');
-      expect(text, `${route || '/'} mentions Harbor`).not.toMatch(/harbor/i);
-    }
   });
 
   test('credits the author on every page, and bylines only the why page', () => {

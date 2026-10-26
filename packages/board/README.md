@@ -1,8 +1,8 @@
 # @shipbench/board
 
 The React kanban surface for [ShipBench](https://github.com/gmmurray/shipbench).
-ShipBench Harbor embeds the component; the ShipBench CLI serves the standalone
-bundle from `dist/standalone.html`.
+The ShipBench CLI serves the standalone bundle from `dist/standalone.html`, and
+other hosts can embed the component.
 
 > **Published for convenience, not for public use.** This package exists on npm
 > because the ShipBench CLI depends on it at runtime and out-of-repo hosts need

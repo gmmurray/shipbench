@@ -16,10 +16,6 @@ When your workflow is worktree-heavy and merges keep conflicting on board order 
 
 Keep it committed if you rely on manual ordering across machines. That's what ignoring it costs.
 
-:::harbor
-Keep it committed as well if you view boards in ShipBench Harbor and want your drag order to appear there.
-:::
-
 ## The block
 
 Add to `.gitignore`:
@@ -58,9 +54,5 @@ asks for it.
 ## Tradeoffs
 
 **Manual ordering stops being shared.** It becomes a local view preference. A fresh clone and a second machine both fall back to deterministic ordering rather than your arrangement.
-
-:::harbor
-**Harbor shows a different board than you do.** ShipBench Harbor reads the repository through the GitHub API, so it sees whatever is committed. With `layout.json` ignored, that is nothing, and Harbor's ordering will not match the board on your machine. If you use Harbor to view boards, that mismatch is the real cost of this recipe.
-:::
 
 **It removes a conflict rather than resolving one.** If manual ordering matters enough that you would have wanted to keep one side of those merges, ignoring the file does not give you that — it gives you neither side. Take `--ours` on the conflict instead and leave the file committed.

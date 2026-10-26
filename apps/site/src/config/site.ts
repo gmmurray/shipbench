@@ -1,5 +1,3 @@
-import { HARBOR_ENABLED } from './flags';
-
 declare const __SHIPBENCH_VERSION__: string;
 
 export const SITE_CONFIG = {
@@ -12,8 +10,6 @@ export const SITE_CONFIG = {
   description:
     'Keep each task as a Markdown file in the repository it belongs to, with a CLI and a local board on top. One command to set up, no account.',
   url: 'https://shipbench.dev',
-  harborEnabled: HARBOR_ENABLED,
-  harborUrl: 'https://harbor.shipbench.dev',
   githubUrl: 'https://github.com/gmmurray/shipbench',
   npmUrl: 'https://www.npmjs.com/package/shipbench',
   author: { name: 'Greg', url: 'https://thedevelopergreg.com' },

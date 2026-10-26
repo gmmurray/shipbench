@@ -45,7 +45,7 @@ export function displayWidth(text: string): number {
  * ellipsis when anything was removed.
  *
  * The cut falls at the end: task titles on real boards are front-loaded
- * ("Harbor first-run onboarding cohesion pass…"), so keeping the prefix keeps
+ * ("Board first-run onboarding cohesion pass…"), so keeping the prefix keeps
  * the identifying words. Trailing whitespace and separator punctuation are
  * trimmed before the ellipsis so a cut never reads as "word …".
  */

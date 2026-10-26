@@ -38,11 +38,9 @@ await createTask(adapter, config, {
 
 ## Adapters
 
-Two implementations ship with the package:
+One implementation ships with the package:
 
 - **`FsAdapter`** — full read/write against the local filesystem.
-- **`GitHubAdapter`** — reads `.shipbench/` through the GitHub Contents API.
-  Cross-runtime, so it works in Node, browsers, and Cloudflare Workers.
 
 The interface is deliberately small so additional hosts stay easy to add:
 

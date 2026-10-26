@@ -12,7 +12,7 @@ const FALLBACK_TITLE = 'ShipBench Board';
  * The name is `config.name` — the same value the header breadcrumb renders, so
  * the tab and the breadcrumb cannot disagree. It is deliberately not a host-
  * supplied option: a second source would let the CLI report the checkout
- * directory while Harbor reported the repository name, for one project.
+ * directory while another host reported the repository name, for one project.
  *
  * `DEFAULT_CONFIG.name` ("Untitled Project") is rendered as-is rather than
  * special-cased back to the fallback — comparing against a default value is

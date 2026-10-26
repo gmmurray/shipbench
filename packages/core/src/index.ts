@@ -2,7 +2,6 @@
 
 // Adapters
 export { FsAdapter } from './adapters/fs.js';
-export { GitHubAdapter, GitHubApiError } from './adapters/github.js';
 export type { TaskAvailabilityOptions } from './availability.js';
 // Availability
 export {
@@ -32,12 +31,7 @@ export type { TaskFlag } from './flag.js';
 export { isTaskFlagged, taskFlag } from './flag.js';
 // GitHub URLs
 export type { GithubRepositoryParts } from './github-url.js';
-export {
-  normalizeGithubRemoteUrl,
-  normalizeGithubUrl,
-  parseGithubRemoteUrl,
-  parseGithubUrl,
-} from './github-url.js';
+export { parseGithubRemoteUrl } from './github-url.js';
 // Init
 export type {
   InitProjectOptions,

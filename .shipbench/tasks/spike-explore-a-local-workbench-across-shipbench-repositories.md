@@ -8,7 +8,7 @@ tags:
   - cli
   - multi-repo
 created: '2026-09-06T18:33:00.222Z'
-updated: '2026-09-20T18:12:47.820Z'
+updated: '2026-10-26T00:49:51.819Z'
 ---
 
 Investigate a local client that queries registered repositories' actual working copies while each repository continues to own its tasks. Useful questions include what needs review, where work is available, what changed across projects, and where a related decision was previously recorded.
@@ -21,7 +21,7 @@ A design discussion narrowed this before any investigation ran. These are inputs
 
 **The option to beat is zero code.** A project's `.shipbench/AGENTS.md` can name its siblings by relative path and tell an agent to use `-C`. That covers the common two-repository case with nothing built. Any proposal has to beat that, not merely beat nothing.
 
-**A registry does not grant access.** Where an agent's filesystem reach is restricted, a registered path is blocked exactly as a guessed one is — the lookup changes where the path came from, not the syscall. Registration solves discovery and naming only. Access can be relocated but not removed: out-of-process and local (an MCP server or daemon outside the restriction, handing back answers rather than reads), or out-of-process and remote (Harbor, which needs no local reach at all because it reads pushed state through the GitHub API). Do not argue for a registry on sandboxing grounds.
+**A registry does not grant access.** Where an agent's filesystem reach is restricted, a registered path is blocked exactly as a guessed one is — the lookup changes where the path came from, not the syscall. Registration solves discovery and naming only. Access can be relocated but not removed: out-of-process and local (an MCP server or daemon outside the restriction, handing back answers rather than reads). Do not argue for a registry on sandboxing grounds.
 
 **Paths are machine-local; identity is not.** A relative sibling path committed into a repository is a machine-local claim stored in a machine-independent medium: it travels, and it may be false on arrival. It fails by being present and wrong, and its worst case is resolving to a real but different directory. A registry fails by being absent, which announces itself and is repaired in one command. The shape that follows is portable identity in Git, machine-local resolution outside it — the committed side names which project, the local side says where it is here. Neither layer can do the other's job. A repository with no remote has no portable identity and needs a locally declared fallback id, meaningful only on machines where it was declared.
 
@@ -47,10 +47,9 @@ Offered as the leading candidate to argue with, not a commitment.
 
 ## Deliverables
 
-- Concrete user scenarios and a comparison with today's per-repository CLI and Harbor's documented remote role.
+- Concrete user scenarios and a comparison with today's per-repository CLI.
 - Options and tradeoffs for project registration, querying, indexing, and presentation.
 - A minimal proposed increment or a reason to defer, with prototype observations where useful.
-- A clear boundary between local capabilities and Harbor; coordinate with [the Harbor-role spike](spike-define-harbor-s-contribution-to-choosing-and-resuming-projects.md). The working split is that Harbor answers what is on `main` across projects while a local client answers what is on disk right now.
 - A decision on whether cross-board writes belong here, since [the cross-project reporting spike](spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects.md) asks whether its narrow case generalizes into this one.
 
 Cross-repository task dependencies, automatic project discovery, and hosted synchronization are separate decisions, not assumed requirements. Cross-project references in task frontmatter are specifically out of scope: a committed reference that only resolves through an unversioned local registry would break the invariant that a repository's `.shipbench/` is self-contained.
@@ -59,3 +58,6 @@ Cross-repository task dependencies, automatic project discovery, and hosted sync
 
 ### 2026-09-20T18:12:47.820Z
 Narrowed by a design discussion before any investigation ran. The starting point moved: -C already solves cross-repository addressing, so registration is about naming and identity rather than reach. Recorded the inputs that follow from that, ruled cross-project frontmatter references out of scope, and added a leading candidate shape to argue with. Still undecided whether to build any of it.
+
+### 2026-10-26T00:49:51.819Z
+Harbor was retired (see spike-define-harbor-s-contribution-to-choosing-and-resuming-projects in the archive), so the comparison with Harbor's remote role and the Harbor boundary deliverable are gone. The owner now uses a personal local tool, built on the published packages, that hosts several registered boards at once. That may already answer much of this spike; whether to re-scope or close it is open.

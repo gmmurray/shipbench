@@ -167,13 +167,13 @@ describe('searchTasks', () => {
           },
           {
             timestamp: '2026-08-02T09:00:00.000Z',
-            text: 'Reversed course: the GitHub adapter ships first because Harbor needs it.',
+            text: 'Reversed course: the GitHub adapter ships first because the mobile client needs it.',
           },
         ],
       }),
     ];
 
-    const [match] = searchTasks(tasks, 'harbor');
+    const [match] = searchTasks(tasks, 'mobile');
 
     expect(match?.slug).toBe('recorded-decision');
     expect(match?.status).toBe('done');
@@ -183,7 +183,9 @@ describe('searchTasks', () => {
       index: 1,
       timestamp: '2026-08-02T09:00:00.000Z',
     });
-    expect(match?.update_matches?.[0]?.snippet).toContain('Harbor needs it.');
+    expect(match?.update_matches?.[0]?.snippet).toContain(
+      'mobile client needs it.',
+    );
   });
 
   it('matches a quarantined unreadable Updates section as an updates source', () => {

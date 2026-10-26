@@ -9,9 +9,8 @@ import { classifyLink } from '../utils/links.js';
  * way to ship this half-broken.
  *
  * `urlTransform` is deliberately not overridden. `defaultUrlTransform`
- * sanitizes hrefs against react-markdown's safe-protocol allowlist, and in
- * Harbor's remote mode this content arrives from a GitHub repo, so that
- * filtering matters. Relative paths pass through it untouched, which leaves
+ * sanitizes hrefs against react-markdown's safe-protocol allowlist, and task
+ * bodies are whatever a repository holds, so that filtering matters. Relative paths pass through it untouched, which leaves
  * every link decision to `components.a` below — after sanitization, not
  * instead of it.
  */

@@ -8,9 +8,8 @@ import {
   type StorageAdapter,
 } from '@shipbench/core';
 import matter from 'gray-matter';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createCli } from './cli.js';
-import type { GitRunner } from './harborConnect.js';
 import { formatMissingBoard } from './output.js';
 
 function memoryAdapter(
@@ -86,11 +85,8 @@ interface Harness {
 }
 
 interface HarnessOptions {
-  fetch?: typeof fetch;
   readTextFile?: (path: string) => Promise<string>;
   readStdin?: () => Promise<string>;
-  getGitRemoteOrigin?: (cwd: string) => Promise<string>;
-  runGit?: GitRunner;
   isInteractive?: boolean;
   env?: NodeJS.ProcessEnv;
 }
@@ -102,52 +98,13 @@ function harness(
   const adapter = memoryAdapter(seed);
   const stdout: string[] = [];
   const stderr: string[] = [];
-  const runGit: GitRunner =
-    options.runGit ??
-    (async (cwd, args) => {
-      const command = args.join(' ');
-      if (command === 'rev-parse --show-toplevel') {
-        return { exitCode: 0, stdout: cwd };
-      }
-      if (command === 'remote get-url origin') {
-        try {
-          return {
-            exitCode: 0,
-            stdout: options.getGitRemoteOrigin
-              ? await options.getGitRemoteOrigin(cwd)
-              : 'https://github.com/shipbench/shipbench',
-          };
-        } catch {
-          return { exitCode: 2, stdout: '' };
-        }
-      }
-      if (command === 'cat-file -e HEAD:.shipbench/config.json') {
-        return { exitCode: 0, stdout: '' };
-      }
-      if (
-        command === 'status --porcelain=v1 --untracked-files=all -- .shipbench'
-      ) {
-        return { exitCode: 0, stdout: '' };
-      }
-      if (
-        command === 'rev-parse --abbrev-ref --symbolic-full-name @{upstream}'
-      ) {
-        return { exitCode: 0, stdout: 'origin/main' };
-      }
-      if (command === 'rev-list --count @{upstream}..HEAD') {
-        return { exitCode: 0, stdout: '0' };
-      }
-      throw new Error(`Unexpected git command: ${command}`);
-    });
   const program = createCli({
     adapter,
     defaultProjectName: 'test-project',
     out: line => stdout.push(line),
     err: line => stderr.push(line),
-    fetch: options.fetch,
     readTextFile: options.readTextFile,
     readStdin: options.readStdin,
-    runGit,
     isInteractive: options.isInteractive,
     env: options.env,
     exitOverride: true,
@@ -216,18 +173,6 @@ describe('shipbench init', () => {
     expect(config.name).toBe('Acme Widgets');
   });
 
-  it('states that Harbor was not contacted when connect preflight fails', async () => {
-    const h = harness();
-
-    await expect(h.run('init', '--harbor=not-a-url')).rejects.toMatchObject({
-      exitCode: 2,
-      message: expect.stringContaining(
-        'ShipBench initialization did not run, and Harbor was not contacted.',
-      ),
-    });
-    expect(h.adapter.files.size).toBe(0);
-  });
-
   it('keeps an existing project readable and warns about malformed layout metadata', async () => {
     const h = harness({
       '.shipbench/config.json': '{}\n',
@@ -243,132 +188,6 @@ describe('shipbench init', () => {
       ),
       'ShipBench is already initialized for "Untitled Project".',
     ]);
-  });
-
-  it('posts the Git origin to Harbor after scaffolding', async () => {
-    const calls: Array<{ input: string; init?: RequestInit }> = [];
-    const connectUrl =
-      'https://harbor.shipbench.dev/projects/project-1/connect?token=secret';
-    const h = harness(undefined, {
-      getGitRemoteOrigin: async () => 'git@github.com:shipbench/shipbench.git',
-      fetch: (async (input, init) => {
-        calls.push({ input: String(input), init });
-        return Response.json({
-          project_id: 'project-1',
-          project_name: 'ShipBench',
-          github_url: 'https://github.com/shipbench/shipbench',
-          message:
-            'Connected https://github.com/shipbench/shipbench to ShipBench in Harbor.',
-        });
-      }) as typeof fetch,
-    });
-
-    await h.run('init', `--harbor=${connectUrl}`);
-
-    expect(h.adapter.files.has('.shipbench/config.json')).toBe(true);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.input).toBe(connectUrl);
-    expect(calls[0]?.init).toMatchObject({
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        remote_url: 'https://github.com/shipbench/shipbench',
-      }),
-    });
-    expect(h.stdout).toEqual([]);
-    expect(h.stderr.at(-1)).toBe(
-      '  3. Open Harbor to view this ShipBench project.',
-    );
-    expect(h.stderr).toContain(
-      'Connected https://github.com/shipbench/shipbench to ShipBench in Harbor.',
-    );
-  });
-
-  it.each([
-    [
-      410,
-      'CONNECT_TOKEN_EXPIRED',
-      'This connect URL has expired. Generate a new URL in Harbor.',
-    ],
-    [401, 'INVALID_CONNECT_TOKEN', 'This connect URL is invalid.'],
-    [
-      400,
-      'INVALID_REMOTE_URL',
-      'The origin remote is not a supported GitHub repository URL.',
-    ],
-  ])('reports Harbor connection errors (HTTP %i, %s)', async (status, code, error) => {
-    const h = harness(undefined, {
-      getGitRemoteOrigin: async () => 'git@github.com:shipbench/shipbench.git',
-      fetch: (async () =>
-        Response.json({ code, error }, { status })) as typeof fetch,
-    });
-
-    await expect(
-      h.run(
-        'init',
-        '--harbor=https://harbor.shipbench.dev/projects/project-1/connect?token=secret',
-      ),
-    ).rejects.toMatchObject({
-      exitCode: 3,
-      message: expect.stringContaining(error),
-    });
-    expect(h.adapter.files.has('.shipbench/config.json')).toBe(true);
-  });
-
-  it('directs already-connected users to inspect Harbor before retrying', async () => {
-    const h = harness(undefined, {
-      getGitRemoteOrigin: async () => 'https://github.com/shipbench/shipbench',
-      fetch: (async () =>
-        Response.json(
-          {
-            code: 'PROJECT_ALREADY_CONNECTED',
-            error: 'This project is already connected to a repository.',
-          },
-          { status: 409 },
-        )) as typeof fetch,
-    });
-
-    await expect(
-      h.run(
-        'init',
-        '--harbor=https://harbor.shipbench.dev/projects/project-1/connect?token=secret',
-      ),
-    ).rejects.toMatchObject({ exitCode: 3 });
-  });
-
-  it('reports a missing origin without sending the signed URL', async () => {
-    const connectUrl =
-      'https://harbor.shipbench.dev/projects/project-1/connect?token=secret';
-    const h = harness(undefined, {
-      getGitRemoteOrigin: async () => {
-        throw new Error(
-          'Could not read Git remote origin. Add a GitHub origin remote, then run this command again.',
-        );
-      },
-    });
-
-    await expect(h.run('init', `--harbor=${connectUrl}`)).rejects.toThrow(
-      'No GitHub origin remote was found',
-    );
-    expect(h.stderr.join('\n')).not.toContain(connectUrl);
-    expect(h.stdout.join('\n')).not.toContain(connectUrl);
-  });
-
-  it('does not expose the signed URL when the request fails', async () => {
-    const connectUrl =
-      'https://harbor.shipbench.dev/projects/project-1/connect?token=secret';
-    const h = harness(undefined, {
-      getGitRemoteOrigin: async () => 'https://github.com/shipbench/shipbench',
-      fetch: (async () => {
-        throw new Error(`request to ${connectUrl} failed`);
-      }) as typeof fetch,
-    });
-
-    await expect(h.run('init', `--harbor=${connectUrl}`)).rejects.toThrow(
-      "Harbor's result is unknown.",
-    );
-    expect(h.stderr.join('\n')).not.toContain(connectUrl);
-    expect(h.stdout.join('\n')).not.toContain(connectUrl);
   });
 
   it('reports a no-op and preserves every byte on repeated init', async () => {
@@ -388,181 +207,47 @@ describe('shipbench init', () => {
     expect(h.adapter.files).toEqual(before);
   });
 
-  it('routes init --harbor through the existing-project connection path', async () => {
-    const fetch = vi.fn(async () =>
-      Response.json({ message: 'Connected without reinitializing.' }),
-    );
-    const h = harness(undefined, {
-      fetch: fetch as typeof globalThis.fetch,
+  it('rejects an explicit --name mismatch without writing', async () => {
+    const h = harness();
+    await h.run('init');
+    const before = new Map(h.adapter.files);
+
+    await expect(h.run('init', '--name=Another Name')).rejects.toMatchObject({
+      exitCode: 2,
+      message: expect.stringContaining('ShipBench files were not modified.'),
     });
-    await h.run('init');
-    h.adapter.files.set('.shipbench/AGENTS.md', '# Custom instructions\r\n');
-    const before = new Map(h.adapter.files);
-    h.stdout.length = 0;
-    h.stderr.length = 0;
-
-    await h.run(
-      'init',
-      '--harbor=https://harbor.shipbench.dev/projects/project-1/connect?token=secret',
-    );
 
     expect(h.adapter.files).toEqual(before);
-    expect(h.stdout).toEqual([]);
-    expect(h.stderr).toEqual([
-      'ShipBench is already initialized for "test-project".',
-      'Connected without reinitializing.',
-    ]);
-    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects an explicit --name mismatch without writing or fetching', async () => {
-    const fetch = vi.fn();
-    const h = harness(undefined, { fetch: fetch as typeof globalThis.fetch });
-    await h.run('init');
+  it('rejects an incomplete project without writing', async () => {
+    const h = harness({
+      '.shipbench/README.md': '# Existing partial project\r\n',
+    });
     const before = new Map(h.adapter.files);
 
-    await expect(
-      h.run(
-        'init',
-        '--name=Another Name',
-        '--harbor=https://harbor.shipbench.dev/projects/project-1/connect?token=secret',
-      ),
-    ).rejects.toMatchObject({ exitCode: 2 });
+    await expect(h.run('init')).rejects.toMatchObject({ exitCode: 2 });
 
     expect(h.adapter.files).toEqual(before);
-    expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects an incomplete project without writing or fetching', async () => {
-    const fetch = vi.fn();
-    const h = harness(
-      { '.shipbench/README.md': '# Existing partial project\r\n' },
-      { fetch: fetch as typeof globalThis.fetch },
-    );
-    const before = new Map(h.adapter.files);
+  it('no longer accepts --harbor', async () => {
+    const h = harness();
 
     await expect(
-      h.run(
-        'init',
-        '--harbor=https://harbor.shipbench.dev/projects/project-1/connect?token=secret',
-      ),
-    ).rejects.toMatchObject({ exitCode: 2 });
-
-    expect(h.adapter.files).toEqual(before);
-    expect(fetch).not.toHaveBeenCalled();
+      h.run('init', '--harbor=https://example.com/connect'),
+    ).rejects.toMatchObject({ code: 'commander.unknownOption' });
+    expect(h.adapter.files.size).toBe(0);
   });
 });
 
-describe('shipbench connect', () => {
-  const connectUrl =
-    'https://harbor.shipbench.dev/projects/project-1/connect?token=secret';
-
-  it('connects an existing project without modifying ShipBench files', async () => {
-    const fetch = vi.fn(async () =>
-      Response.json({ message: 'Connected existing project.' }),
-    );
-    const h = harness(undefined, {
-      fetch: fetch as typeof globalThis.fetch,
-    });
-    await h.run('init');
-    h.adapter.files.set('.shipbench/README.md', '# User-owned README\r\n');
-    const before = new Map(h.adapter.files);
-    h.stdout.length = 0;
-    h.stderr.length = 0;
-
-    await h.run('connect', `--harbor=${connectUrl}`);
-
-    expect(h.stdout).toEqual([]);
-    expect(h.stderr).toContain('Connected existing project.');
-    expect(h.adapter.files).toEqual(before);
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('states that files were unchanged when connect preflight fails', async () => {
+describe('removed commands', () => {
+  it('rejects connect as an unknown command', async () => {
     const h = harness();
 
-    await expect(h.run('connect', '--harbor=not-a-url')).rejects.toMatchObject({
-      exitCode: 2,
-      message: expect.stringContaining(
-        'ShipBench project files were not modified, and Harbor was not contacted.',
-      ),
-    });
-  });
-
-  it('rejects a missing project before fetch', async () => {
-    const fetch = vi.fn();
-    const h = harness(undefined, { fetch: fetch as typeof globalThis.fetch });
-
     await expect(
-      h.run('connect', `--harbor=${connectUrl}`),
-    ).rejects.toMatchObject({ exitCode: 2 });
-
-    expect(fetch).not.toHaveBeenCalled();
-    expect(h.adapter.files.size).toBe(0);
-  });
-
-  it('rejects malformed and invalid projects before fetch', async () => {
-    const fetch = vi.fn();
-    const malformed = harness(
-      { '.shipbench/config.json': '{"name":' },
-      { fetch: fetch as typeof globalThis.fetch },
-    );
-    await expect(
-      malformed.run('connect', `--harbor=${connectUrl}`),
-    ).rejects.toMatchObject({ exitCode: 2 });
-
-    const invalid = harness(
-      {
-        '.shipbench/config.json': JSON.stringify({
-          done_column: 'unknown',
-        }),
-      },
-      { fetch: fetch as typeof globalThis.fetch },
-    );
-    await expect(
-      invalid.run('connect', `--harbor=${connectUrl}`),
-    ).rejects.toMatchObject({ exitCode: 2 });
-
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it('prints task read warnings and continues', async () => {
-    const h = harness(undefined, {
-      fetch: (async () =>
-        Response.json({ message: 'Connected with warnings.' })) as typeof fetch,
-    });
-    await h.run('init');
-    h.adapter.files.set(
-      '.shipbench/tasks/warning.md',
-      `---
-title: Warning
-status: unknown
-created: 2026-01-01T00:00:00.000Z
-updated: 2026-01-01T00:00:00.000Z
----
-`,
-    );
-    h.stdout.length = 0;
-    h.stderr.length = 0;
-
-    await h.run('connect', `--harbor=${connectUrl}`);
-
-    expect(h.stdout).toEqual([]);
-    expect(h.stderr.join('\n')).toMatch(/warning.*unknown status/i);
-    expect(h.stderr).toContain('Connected with warnings.');
-  });
-
-  it('documents the explicit command and required signed URL', async () => {
-    const h = harness();
-
-    await expect(h.run('connect', '--help')).rejects.toMatchObject({
-      code: 'commander.helpDisplayed',
-      exitCode: 0,
-    });
-    expect(h.stdout.join('\n')).toMatch(
-      /Connect an existing ShipBench project to Harbor/i,
-    );
-    expect(h.stdout.join('\n')).toMatch(/--harbor <connect-url>/);
+      h.run('connect', '--harbor=https://example.com/connect'),
+    ).rejects.toMatchObject({ code: 'commander.unknownCommand' });
   });
 });
 

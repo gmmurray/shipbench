@@ -14,9 +14,6 @@ in-page symbol mirrors the same geometry with theme-token fills:
 | Standalone | `apps/site/public/logo.svg` | `canvas` tile | baked, generated |
 | Raster | the site's platform icon PNGs | `canvas` tile | baked, generated |
 
-Harbor lives in its own repository and keeps its own generated set cut from the
-same source. The mark is the shared artifact; the generators are not.
-
 The split exists because an `<img src="/logo.svg">` is an isolated document: it
 inherits neither custom properties nor `currentColor`, so a mark used that way
 cannot follow the theme. Contexts with a page use the symbol; contexts without
@@ -43,7 +40,7 @@ The site ships a 32px PNG favicon alongside its preferred SVG one, the 180px
 Apple touch icon, and 192px/512px manifest icons. There is intentionally no 16px
 output: 20px is the mark's documented floor, and the owner chose omission over
 an invented optical variant. There is no `.ico` either — the site never needed
-one, and the encoder that built Harbor's went with Harbor.
+one.
 
 ## OpenGraph cards
 

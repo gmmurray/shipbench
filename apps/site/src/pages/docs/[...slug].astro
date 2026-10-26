@@ -5,10 +5,10 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import DocsSearch from '../../components/DocsSearch.astro';
 import { SITE_CONFIG } from '../../config/site';
-import { formatDate, getReadingTime, renderedMarkdown, visibleDocs } from '../../utils/docs';
+import { formatDate, getReadingTime } from '../../utils/docs';
 
 export async function getStaticPaths() {
-  const docs = visibleDocs(await getCollection('docs'));
+  const docs = await getCollection('docs');
   return docs.map((doc) => ({
     params: { slug: doc.id },
     props: { doc },
@@ -19,13 +19,11 @@ const { doc } = Astro.props;
 const { Content, headings } = await render(doc);
 
 // Dynamic reading time and date formatting
-const readTime = getReadingTime(renderedMarkdown(doc.body || ''));
+const readTime = getReadingTime(doc.body || '');
 const formattedDate = formatDate(doc.data.updated);
 
-// Fetch all docs for navigation and pagination. Same filter as the route
-// generation above, so the sidebar and prev/next never offer a page that has
-// no build output behind it.
-const allDocs = visibleDocs(await getCollection('docs'));
+// Fetch all docs for navigation and pagination
+const allDocs = await getCollection('docs');
 
 // Group docs for sidebar
 const groupsMap = new Map<string, typeof allDocs>();
