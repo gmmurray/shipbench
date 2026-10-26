@@ -1,5 +1,12 @@
 # @shipbench/board
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [0f38185]
+  - @shipbench/core@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes
