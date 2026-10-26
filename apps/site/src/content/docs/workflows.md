@@ -32,6 +32,7 @@ A recipe is one optional convention with the exact text to paste. Each page cove
 - [Recipe: multi-agent worktree rules](/docs/recipe-worktree-rules/) — keep task status truthful while agents work on branches.
 - [Recipe: human review gate](/docs/recipe-review-gate/) — let agents submit finished work without marking it complete.
 - [Recipe: gitignore `layout.json`](/docs/recipe-gitignore-layout/) — drop the most conflict-prone file in `.shipbench/`.
+- [Recipe: several boards in one repository](/docs/recipe-several-boards/) — give each part of a repository its own board, and tell agents which one to use.
 
 Each one is an option with tradeoffs, and using none of them is fine.
 

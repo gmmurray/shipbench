@@ -1,6 +1,5 @@
 {
   "todo": [
-    "document-running-several-shipbench-boards-in-one-repository",
     "updating-shipbench-init-with-new-versions",
     "let-tasks-reference-related-work-without-implying-a-dependency",
     "keep-links-between-tasks-working-when-a-task-is-archived",

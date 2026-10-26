@@ -440,6 +440,8 @@ Ordering is a human judgment call, so reorder only when the user explicitly asks
 
 Prefer the ShipBench CLI for task mutations when it is available. The CLI routes through core, so slug generation, validation, timestamps, collision handling, and layout updates stay consistent.
 
+Commands work from any subdirectory of the board: the CLI uses the nearest \`.shipbench/\` at or above the current directory. \`-C <path>\` names a board's directory exactly.
+
 ### Preferred CLI Operations
 
 - **List available tasks**: \`shipbench task list --available --json\`

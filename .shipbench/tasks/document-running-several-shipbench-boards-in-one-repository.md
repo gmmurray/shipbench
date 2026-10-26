@@ -1,13 +1,13 @@
 ---
 title: Document running several ShipBench boards in one repository
-status: todo
+status: done
 priority: medium
 tags:
   - docs
   - site
   - convention
 created: '2026-09-26T19:44:04.592Z'
-updated: '2026-10-26T00:49:51.735Z'
+updated: '2026-10-26T02:21:46.106Z'
 ---
 
 Several boards in one repository already work: each subdirectory gets its own
@@ -47,3 +47,16 @@ The outline above predates the walk-up. Revise it to match: `cd` anywhere inside
 
 ### 2026-10-26T00:49:51.735Z
 Harbor was retired and `shipbench connect` removed, so drop the connect clause from the outline in the previous Update. The other three points still stand.
+
+### 2026-10-26T01:45:23.467Z
+Done, ready for review.
+
+**Page.** A new recipe, `apps/site/src/content/docs/recipe-several-boards.md` ("Recipe: Several Boards in One Repository"), in the Workflows group after the gitignore recipe. The recipe shape fits because the page centres on a block to paste. It is linked from the Workflows recipe list and added to the e2e page list. It covers every point in the outline, revised for the walk-up as the first Update asked (the connect clause is dropped): tags versus nested boards, `-C <dir> init` and its ancestor note, reaching a board with `cd` anywhere inside it or with `-C`, the `Using .shipbench/ from <path>` write notice, the routing block, two browser boards with port fallback or `--port`, linking to a sibling board's task file in place of `depends_on`, and `-C` into the canonical checkout with worktrees.
+
+One addition the outline didn't name: a directory with no board of its own reaches the nearest board above it, so commands run in `site/` with no `site/.shipbench/` write to the root board. The walk-up makes that true, and a nested-board user is the reader who would trip on it.
+
+**Scaffold decision: yes, one line.** It goes under Operations in the scaffolded `.shipbench/AGENTS.md`: "Commands work from any subdirectory of the board: the CLI uses the nearest `.shipbench/` at or above the current directory. `-C <path>` names a board's directory exactly." It matches the routing block, which tells agents to use `-C`. It ships with a patch changeset (`scaffold-board-discovery.md`, naming `shipbench`) and an `init.test.ts` assertion. I added the same line to this repo's `.shipbench/AGENTS.md` to keep it close to the scaffold.
+
+**Verified against the built CLI** in a throwaway repo with a root board and `packages/api/`: the nested `init` note, a list and a create from `packages/api/src/` (the create printed the notice), a root `depends_on` on the api slug rejected with `Unknown dependency`, a board-less `site/` reaching the root board, and two `board web` servers at once on 4321 and 4322, each serving its own directory. The board renders a cross-board link as a plain path and doesn't open it in place. I checked that in `Markdown.tsx` and `links.ts`; it isn't probed.
+
+**Checks.** Core tests (394), site vitest (122), typecheck, and lint pass. The site builds, and `built-output.spec.ts` passes (77), including the new page.

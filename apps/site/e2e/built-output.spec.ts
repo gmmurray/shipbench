@@ -76,6 +76,7 @@ const DOC_PAGES = [
   'docs/recipe-worktree-rules',
   'docs/recipe-review-gate',
   'docs/recipe-gitignore-layout',
+  'docs/recipe-several-boards',
 ];
 
 const ALL_PAGES = ['', ...DOC_PAGES];

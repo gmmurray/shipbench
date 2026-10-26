@@ -124,6 +124,10 @@ describe('initProject', () => {
     await initProject(adapter, { name: 'Test Project' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
     expect(agents).toContain('Prefer the ShipBench CLI');
+    expect(agents).toContain(
+      'Commands work from any subdirectory of the board',
+    );
+    expect(agents).toContain("`-C <path>` names a board's directory exactly.");
     expect(agents).toContain('shipbench task list');
     expect(agents).toContain(
       'shipbench task create "Task title" --status=todo',
