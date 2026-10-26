@@ -16,7 +16,5 @@
     "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects"
   ],
   "in-progress": [],
-  "review": [
-    "remove-shipbench-harbor-from-the-cli-packages-site-and-docs"
-  ]
+  "review": []
 }

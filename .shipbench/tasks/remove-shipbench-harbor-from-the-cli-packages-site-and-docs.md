@@ -1,6 +1,6 @@
 ---
 title: 'Remove ShipBench Harbor from the CLI, packages, site, and docs'
-status: review
+status: done
 priority: medium
 tags:
   - harbor
@@ -9,7 +9,7 @@ tags:
   - site
   - docs
 created: '2026-10-26T00:28:10.641Z'
-updated: '2026-10-26T00:52:39.185Z'
+updated: '2026-10-26T01:33:05.910Z'
 ---
 
 ShipBench Harbor is retired. The decision and its reasons are in [the Harbor-role spike](archive/spike-define-harbor-s-contribution-to-choosing-and-resuming-projects.md). Remove Harbor's surface from this repository so the CLI, packages, site, and docs describe only what exists.
