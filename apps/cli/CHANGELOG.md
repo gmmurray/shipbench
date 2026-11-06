@@ -1,5 +1,34 @@
 # shipbench
 
+## 0.9.0
+
+### Minor Changes
+
+- 64b7c27: `shipbench task list`, `shipbench task search`, and `shipbench board terminal` take `--exclude-tag`. It leaves out any task carrying one of the listed tags, so `task list --available --exclude-tag plan` returns ready work without the tasks that aren't work items. It takes comma-separated or repeated values, matches case-insensitively, and combines with every other filter. Unlike `--tag`, which keeps tasks carrying every listed tag, one match is enough to drop a task.
+  
+  The `.shipbench/AGENTS.md` that `shipbench init` writes now describes the flag. Existing projects keep the file they have.
+- 08ab2d1: `shipbench task graph <slug>` shows the dependency chain around one task instead of the whole graph: what it waits on, what lies behind those blockers, and what finishing it would unblock. `--blockers` and `--dependents` limit it to one side, and `--depth <n>` bounds the walk. When `--depth` cuts a branch, the output says so. Readiness matches `task list --available`, so an archived dependency counts as satisfied with or without `--archived`, which only decides whether the walk continues through archived tasks. Interactive terminals get a tree, and redirected output and `--json` get JSON. `shipbench task graph` with no slug is unchanged.
+- 391fbfc: Every `shipbench task` command now accepts `--json`. `task get` used to reject it as an unknown option, even though its output is already JSON. It now accepts the flag and prints the same output either way.
+  
+  The commands that write a task (`move`, `comment` and its `edit` and `delete`, `flag`, `unflag`, `archive`, and `unarchive`) print the resulting task on stdout with `--json`, in the `task get` shape, instead of the confirmation on stderr. `task archive --done --json` prints an array of the archived tasks, and `task delete --json` prints `{ "slug": "<slug>", "deleted": true }`. Without `--json`, output is unchanged.
+  
+  The `.shipbench/AGENTS.md` that `shipbench init` writes now mentions the flag. Existing projects keep the file they have.
+- 37f2e13: Tasks can point at related work without depending on it. The optional `related` field lists other tasks' slugs, live or archived. It never affects `--available`, `--blocked`, archiving, or `task graph`.
+  
+  `task create` takes `--related`. `task edit` takes `--related`, `--add-related`, `--remove-related`, and `--clear-related`, applied in the same validated write as the other edits. Removing a link that the other task's file records is rejected, and the error names the task to edit.
+  
+  `task list --json` adds `related` and `related_tasks` to each task, and `task search --json` adds `related_tasks` to each match. `related_tasks` covers both directions and gives each target's title, status, and whether it is archived. The board's detail view edits the field and shows associations recorded on other tasks as read-only.
+  
+  **Breaking:** scripts that compare `task list` or `task search` JSON objects exactly will see the new keys.
+  
+  The `.shipbench/AGENTS.md` that `shipbench init` writes now describes the field. Existing projects keep the file they have.
+
+### Patch Changes
+
+- 2b739d7: The `.shipbench/AGENTS.md` that `shipbench init` writes now tells agents that commands work from any subdirectory of the board, and that `-C <path>` names a board's directory exactly. Existing projects keep the file they have; add the line by hand if you want it.
+- Updated dependencies [37f2e13]
+  - @shipbench/board@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
