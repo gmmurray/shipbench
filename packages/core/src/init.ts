@@ -314,6 +314,7 @@ priority: medium
 assignee:
 tags: []
 depends_on: []
+related: []
 created: 2024-01-01T00:00:00.000Z
 updated: 2024-01-01T00:00:00.000Z
 ---
@@ -329,6 +330,7 @@ Task description in Markdown.
 - **assignee** (optional): Freeform string label (e.g. \`claude\`, \`antigravity\`, or \`human\`). Informational only — task eligibility is governed strictly by \`status\` and \`depends_on\`. Moving a task to \`in-progress\` signals that work has started.
 - **tags** (optional): Array of freeform strings.
 - **depends_on** (optional): Array of task slugs that must be finished before this task can start. An omitted field and an empty array mean the same thing. A slug must name a task file that exists; a task may not depend on itself, and two tasks may not depend on each other.
+- **related** (optional): Array of task slugs this task is associated with — the spike behind a decision, a sibling task sharing a surface. It points at other work without ordering it: it gates nothing, never blocks archiving, and stays out of the dependency graph. A slug must name a live or archived task file, and a task may not name itself. The association reads in both directions: JSON from \`task list\` and \`task search\` shows it from either task in \`related_tasks\`, while \`task get\` reports the file as written. Use \`depends_on\` when one task has to finish first, and \`related\` when the other task only explains or shares context.
 - **flag** (optional): Marks the task for attention without changing its column — a one-line reason, or \`true\` when there is none to give. What a flag means is this project's call. Informational only: it gates nothing, and nothing clears it automatically. Omit the field when the task is not flagged.
 - **created** (required): ISO 8601 timestamp. Set once on creation, never modify.
 - **updated** (required): ISO 8601 timestamp. Update on every modification.
@@ -407,6 +409,8 @@ Following that principle, add \`--include-body\` to a JSON \`task list\` only wh
 
 A task with unfinished dependencies is not ready, even if nothing prevents you from editing it — \`depends_on\` is data, not a lock.
 
+\`related\` never affects readiness. It names work worth reading for context, not work that has to land first.
+
 Prose sections in a task body (\`## Depends on\`, \`## Blocked by\`, and similar) are commentary. Read them for context, but do not treat them as the dependency graph.
 
 Note that \`depends_on\` and the task's column are orthogonal. A column says where a task is; \`depends_on\` says what has to land first.
@@ -455,8 +459,9 @@ Commands work from any subdirectory of the board: the CLI uses the nearest \`.sh
 - **Create a task**: \`shipbench task create "Task title" --status=todo\`
 - **Create a task with a description**: \`shipbench task create "Task title" --body-file=description.md\` (or \`--body "One-line description."\`)
 - **Rewrite a description**: \`shipbench task edit <slug> --body-file=description.md\` (replaces it whole; \`--body ""\` clears it)
-- **Revise task metadata**: \`shipbench task edit <slug> --priority=high --assignee=agent --add-tag=urgent --remove-tag=stale\` (also \`--title\`, \`--tags\`, \`--clear-tags\`, \`--clear-assignee\`, \`--depends-on\`, \`--add-depends-on\`, \`--remove-depends-on\`, \`--clear-depends-on\`). Every flag is applied in one validated write, so a rejected value leaves the task untouched. A title edit keeps the existing slug and filename. Status and board placement stay with \`task move\`.
+- **Revise task metadata**: \`shipbench task edit <slug> --priority=high --assignee=agent --add-tag=urgent --remove-tag=stale\` (also \`--title\`, \`--tags\`, \`--clear-tags\`, \`--clear-assignee\`, \`--depends-on\`, \`--add-depends-on\`, \`--remove-depends-on\`, \`--clear-depends-on\`, \`--related\`, \`--add-related\`, \`--remove-related\`, \`--clear-related\`). Every flag is applied in one validated write, so a rejected value leaves the task untouched. The related flags edit only this task's own list; removing a link the other task's file records is rejected with the task to edit instead. A title edit keeps the existing slug and filename. Status and board placement stay with \`task move\`.
 - **Create a dependent task**: \`shipbench task create "Task title" --depends-on=other-slug,another-slug\`
+- **Link related work**: \`shipbench task create "Task title" --related=spike-slug\` (or \`task edit <slug> --add-related=other-slug\`)
 - **Add a time-anchored update**: \`shipbench task comment <slug> "What changed and why."\`
 - **Add a multi-line update**: \`shipbench task comment <slug> --body-file update.md\`
 - **Edit an update's text**: \`shipbench task comment edit <slug> <index> "Corrected text."\` (also takes \`--body-file\`)
@@ -479,7 +484,7 @@ Use direct edits only when the CLI is unavailable.
 
 - **Create a task**: Add a new \`.md\` file in \`tasks/\` following the format above.
 - **Move a task**: Change the \`status\` field and update the \`updated\` timestamp.
-- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. \`shipbench task edit\` reaches the description and the validated metadata fields (title, priority, assignee, tags, depends_on) — use it rather than rewriting a file by hand.
+- **Edit a task**: Modify frontmatter fields and/or the description above \`## Task Updates\`. Always update \`updated\`. \`shipbench task edit\` reaches the description and the validated metadata fields (title, priority, assignee, tags, depends_on, related) — use it rather than rewriting a file by hand.
 - **Add an Update without the CLI**: Append a \`### <ISO 8601 timestamp>\` heading and text below the trailing \`## Task Updates\` marker.
 - **Edit an Update without the CLI**: Change only its text; preserve the \`###\` timestamp heading and update the frontmatter \`updated\` value.
 - **Flag a task without the CLI**: Set \`flag\` to a one-line reason or \`true\`, remove the field to clear it, and update \`updated\`.

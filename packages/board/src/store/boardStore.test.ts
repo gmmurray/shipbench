@@ -292,6 +292,27 @@ describe('createBoardStore', () => {
     expect(store.getState().config?.layout.todo).toEqual([]);
   });
 
+  it('tracks archived slugs from the live read through archive and restore', async () => {
+    const boardApi = api({
+      listTasks: vi.fn(async () => ({
+        tasks: [task()],
+        warnings: [],
+        unreadable: [],
+        archivedSlugs: ['old-spike'],
+      })),
+    });
+    const store = createBoardStore(boardApi);
+
+    await store.getState().refresh();
+    expect(store.getState().archivedSlugs).toEqual(['old-spike']);
+
+    await store.getState().archiveTask('setup-auth');
+    expect(store.getState().archivedSlugs).toEqual(['old-spike', 'setup-auth']);
+
+    await store.getState().unarchiveTask('setup-auth');
+    expect(store.getState().archivedSlugs).toEqual(['old-spike']);
+  });
+
   it('optimistically archives a task and exposes an Undo toast action', async () => {
     let resolveArchive: (() => void) | undefined;
     const archiveTask = vi.fn(

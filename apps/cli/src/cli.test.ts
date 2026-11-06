@@ -758,6 +758,188 @@ describe('shipbench task create --depends-on (repeated)', () => {
   });
 });
 
+describe('related tasks', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    await h.run('task', 'create', 'Api');
+    await h.run('task', 'create', 'Schema');
+    await h.run('task', 'create', 'Spike', '--status=done');
+    await h.run('task', 'archive', 'spike');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+  });
+
+  const frontmatter = (slug: string) =>
+    matter(h.adapter.files.get(`.shipbench/tasks/${slug}.md`)!).data;
+
+  const listJson = async (...args: string[]) => {
+    h.stdout.length = 0;
+    await h.run('task', 'list', '--json', ...args);
+    return JSON.parse(h.stdout.join('\n'));
+  };
+
+  it('creates a task with live and archived related tasks', async () => {
+    await h.run(
+      'task',
+      'create',
+      'Wire it up',
+      '--related=api',
+      '--related=spike',
+    );
+    expect(frontmatter('wire-it-up').related).toEqual(['api', 'spike']);
+  });
+
+  it('replaces, adds, removes, and clears in validated writes', async () => {
+    await h.run('task', 'edit', 'api', '--related=schema');
+    expect(frontmatter('api').related).toEqual(['schema']);
+
+    await h.run('task', 'edit', 'api', '--add-related=spike');
+    expect(frontmatter('api').related).toEqual(['schema', 'spike']);
+
+    await h.run('task', 'edit', 'api', '--remove-related=schema');
+    expect(frontmatter('api').related).toEqual(['spike']);
+    expect(h.stderr.at(-1)).toBe(
+      'Updated api: related [schema, spike] → [spike]',
+    );
+
+    await h.run('task', 'edit', 'api', '--clear-related');
+    expect(frontmatter('api').related).toBeUndefined();
+  });
+
+  it('rejects an unknown slug and leaves the task untouched', async () => {
+    await h.run('task', 'edit', 'api', '--related=schema');
+    const before = h.adapter.files.get('.shipbench/tasks/api.md');
+
+    await expect(
+      h.run('task', 'edit', 'api', '--add-related=ghost', '--priority=high'),
+    ).rejects.toThrow(/Unknown related task "ghost"/);
+    expect(h.adapter.files.get('.shipbench/tasks/api.md')).toBe(before);
+  });
+
+  it('rejects removing a link recorded on the other task', async () => {
+    await h.run('task', 'edit', 'schema', '--related=api');
+    const before = h.adapter.files.get('.shipbench/tasks/api.md');
+
+    await expect(
+      h.run('task', 'edit', 'api', '--remove-related=schema'),
+    ).rejects.toThrow(/recorded in schema's file/);
+    expect(h.adapter.files.get('.shipbench/tasks/api.md')).toBe(before);
+  });
+
+  it('rejects removing a link recorded on an archived task', async () => {
+    const path = '.shipbench/tasks/archive/spike.md';
+    const parsed = matter(h.adapter.files.get(path)!);
+    parsed.data.related = ['api'];
+    h.adapter.files.set(path, matter.stringify(parsed.content, parsed.data));
+
+    await expect(
+      h.run('task', 'edit', 'api', '--remove-related=spike'),
+    ).rejects.toThrow(/archived task spike's file.*Unarchive spike/);
+  });
+
+  it('rejects the related flags in conflicting combinations', async () => {
+    await expect(
+      h.run('task', 'edit', 'api', '--related=schema', '--clear-related'),
+    ).rejects.toMatchObject({ code: 'commander.conflictingOption' });
+  });
+
+  it('shows both directions in list JSON, resolved and shown once', async () => {
+    await h.run('task', 'edit', 'api', '--related=schema,spike');
+    await h.run('task', 'edit', 'schema', '--related=api');
+
+    const payload = await listJson();
+    const bySlug = new Map(
+      payload.tasks.map((task: { slug: string }) => [task.slug, task]),
+    );
+
+    expect(bySlug.get('api')).toMatchObject({
+      related: ['schema', 'spike'],
+      related_tasks: [
+        {
+          slug: 'schema',
+          direction: 'both',
+          title: 'Schema',
+          status: 'todo',
+          archived: false,
+        },
+        {
+          slug: 'spike',
+          direction: 'outgoing',
+          title: 'Spike',
+          status: 'done',
+          archived: true,
+        },
+      ],
+    });
+    expect(bySlug.get('schema')).toMatchObject({
+      related: ['api'],
+      related_tasks: [{ slug: 'api', direction: 'both', title: 'Api' }],
+    });
+    expect(payload.warnings).toEqual([]);
+  });
+
+  it('shows the incoming side on an archived task in list --archived JSON', async () => {
+    await h.run('task', 'edit', 'api', '--related=spike');
+
+    const payload = await listJson('--archived');
+
+    expect(payload.tasks[0]).toMatchObject({
+      slug: 'spike',
+      related: [],
+      related_tasks: [
+        {
+          slug: 'api',
+          direction: 'incoming',
+          title: 'Api',
+          status: 'todo',
+          archived: false,
+        },
+      ],
+    });
+  });
+
+  it('shows related tasks in search JSON', async () => {
+    await h.run('task', 'edit', 'schema', '--related=api');
+    h.stdout.length = 0;
+
+    await h.run('task', 'search', 'Api', '--json');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(payload.matches[0]).toMatchObject({
+      slug: 'api',
+      related_tasks: [{ slug: 'schema', direction: 'incoming' }],
+    });
+  });
+
+  it('reports the frontmatter as written from task get', async () => {
+    await h.run('task', 'edit', 'schema', '--related=api');
+    h.stdout.length = 0;
+
+    await h.run('task', 'get', 'api');
+    const payload = JSON.parse(h.stdout.join('\n'));
+
+    expect(payload.frontmatter).not.toHaveProperty('related');
+    expect(payload).not.toHaveProperty('related_tasks');
+  });
+
+  it('keeps related out of availability and the dependency graph', async () => {
+    await h.run('task', 'move', 'schema', '--to=in-progress');
+    await h.run('task', 'edit', 'api', '--related=schema');
+
+    const available = await listJson('--available');
+    expect(available.tasks.map((task: { slug: string }) => task.slug)).toEqual([
+      'api',
+    ]);
+
+    h.stdout.length = 0;
+    await h.run('task', 'graph', '--json');
+    expect(h.stdout.join('\n')).not.toContain('related');
+  });
+});
+
 describe('shipbench task flag and unflag', () => {
   let h: Harness;
   beforeEach(async () => {
@@ -2199,6 +2381,7 @@ describe('shipbench task search', () => {
         status: 'todo',
         location: 'live',
         matched_fields: ['title'],
+        related_tasks: [],
       },
       {
         slug: 'tagged-match',
@@ -2206,6 +2389,7 @@ describe('shipbench task search', () => {
         status: 'todo',
         location: 'live',
         matched_fields: ['tags'],
+        related_tasks: [],
       },
       {
         slug: 'body-match',
@@ -2213,6 +2397,7 @@ describe('shipbench task search', () => {
         status: 'todo',
         location: 'live',
         matched_fields: ['body'],
+        related_tasks: [],
         snippet: 'First paragraph. The NEEDLE is in this Markdown body.',
       },
     ]);

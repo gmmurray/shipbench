@@ -1460,6 +1460,136 @@ describe('Board', () => {
     });
   });
 
+  it('shows related tasks in both directions with their column or archive state', async () => {
+    const relatedTask: Task = {
+      ...tasks[0]!,
+      frontmatter: {
+        ...tasks[0]!.frontmatter,
+        related: ['spike', 'gone-task'],
+      },
+    };
+    const pointsBack: Task = {
+      ...tasks[2]!,
+      frontmatter: { ...tasks[2]!.frontmatter, related: ['setup-auth'] },
+    };
+    render(
+      <Board
+        api={api({
+          listTasks: vi.fn(async () => ({
+            tasks: [relatedTask, pointsBack],
+            warnings: [
+              {
+                slug: 'setup-auth',
+                field: 'related',
+                message:
+                  'Dangling related task "gone-task" — no live or archived task file matches that slug.',
+              },
+            ],
+            unreadable: [],
+            archivedSlugs: ['spike'],
+          })),
+        })}
+      />,
+    );
+
+    await userEvent.click(await screen.findByText('Setup auth'));
+
+    const related = screen.getByRole('list', { name: 'Related tasks' });
+    const items = within(related).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('spikeArchived');
+    expect(items[1]).toHaveTextContent('gone-taskUnresolved');
+    expect(items[2]).toHaveTextContent(
+      'Write testswrite-tests · To Do · recorded on write-tests',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Remove related task spike' }),
+    ).toBeInTheDocument();
+    // The incoming link lives in write-tests' file, which saving this task
+    // never writes.
+    expect(
+      screen.queryByRole('button', { name: 'Remove related task write-tests' }),
+    ).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Dangling related task "gone-task"',
+    );
+  });
+
+  it('keeps unresolved related targets when another one is removed', async () => {
+    const user = userEvent.setup();
+    const relatedTask: Task = {
+      ...tasks[0]!,
+      frontmatter: {
+        ...tasks[0]!.frontmatter,
+        related: ['spike', 'write-tests', 'gone-task'],
+      },
+    };
+    const updateTask = vi.fn(async (_slug, fields) => ({
+      task: {
+        ...relatedTask,
+        frontmatter: { ...relatedTask.frontmatter, ...fields },
+      },
+    }));
+    render(
+      <Board
+        api={api({
+          listTasks: vi.fn(async () => ({
+            tasks: [relatedTask, tasks[2]!],
+            warnings: [],
+            unreadable: [],
+            archivedSlugs: ['spike'],
+          })),
+          updateTask,
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Remove related task write-tests' }),
+    );
+
+    await waitFor(() => {
+      expect(updateTask).toHaveBeenLastCalledWith(
+        'setup-auth',
+        { related: ['spike', 'gone-task'] },
+        undefined,
+      );
+    });
+  });
+
+  it('adds a related task from search and opens a live one', async () => {
+    const user = userEvent.setup();
+    const updateTask = vi.fn(async (_slug, fields) => ({
+      task: {
+        ...tasks[0]!,
+        frontmatter: { ...tasks[0]!.frontmatter, ...fields },
+      },
+    }));
+    render(<Board api={api({ updateTask })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const input = screen.getByRole('combobox', { name: 'Related' });
+    await user.type(input, 'write');
+    expect(screen.getByRole('option')).toHaveTextContent('To Do');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    await waitFor(() => {
+      expect(updateTask).toHaveBeenCalledWith(
+        'setup-auth',
+        { related: ['write-tests'] },
+        undefined,
+      );
+    });
+
+    await user.click(
+      within(screen.getByRole('list', { name: 'Related tasks' })).getByRole(
+        'button',
+        { name: 'Write tests' },
+      ),
+    );
+    expect(await screen.findByDisplayValue('Write tests')).toBeInTheDocument();
+  });
+
   it('treats omitted readOnly as writable', async () => {
     render(<Board api={api()} />);
 

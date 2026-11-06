@@ -6,6 +6,10 @@ import type {
 import { type TaskFlag, taskFlag } from '@shipbench/core/flag';
 import { orderedTasksForColumn } from '@shipbench/core/layout';
 import {
+  createRelatedIndex,
+  relatedSlugs as relatedSlugsOf,
+} from '@shipbench/core/related';
+import {
   type FormEvent,
   type KeyboardEvent,
   useEffect,
@@ -31,7 +35,11 @@ import { localDateTime, relativeTime } from '../utils/time.js';
 import { ArchiveTaskDialog } from './ArchiveTaskDialog.js';
 import { Chevron } from './Chevron.js';
 import { Markdown } from './Markdown.js';
-import { DependencyMultiSelect, TagInput } from './MetadataInputs.js';
+import {
+  DependencyMultiSelect,
+  RelatedMultiSelect,
+  TagInput,
+} from './MetadataInputs.js';
 import { Select, type SelectOption } from './Select.js';
 import { useAutosizeTextarea } from './useAutosizeTextarea.js';
 import { useBoardKeydown } from './useBoardKeydown.js';
@@ -53,6 +61,8 @@ export function DetailView({ slug }: { slug: string }) {
   const readOnly = useBoardStore(state => state.readOnly);
   const tasks = useBoardStore(state => state.tasks);
   const warnings = useBoardStore(state => state.warnings);
+  const archivedTasks = useBoardStore(state => state.archivedTasks);
+  const archivedSlugs = useBoardStore(state => state.archivedSlugs);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
   const tagSuggestions = useMemo(
@@ -70,6 +80,26 @@ export function DetailView({ slug }: { slug: string }) {
           )
         : [],
     [task, tasks],
+  );
+
+  const archivedSlugSet = useMemo(
+    () => new Set(archivedSlugs),
+    [archivedSlugs],
+  );
+  const relatedEntries = useMemo(
+    () =>
+      task
+        ? createRelatedIndex({
+            tasks,
+            archivedTasks: archivedTasks ?? [],
+            archivedSlugs,
+          })(task)
+        : [],
+    [archivedSlugs, archivedTasks, task, tasks],
+  );
+  const relatedCandidates = useMemo(
+    () => [...tasks, ...(archivedTasks ?? [])],
+    [archivedTasks, tasks],
   );
 
   const columnNavigation = useMemo(() => {
@@ -274,6 +304,23 @@ export function DetailView({ slug }: { slug: string }) {
               onChange={depends_on =>
                 void updateTask(task.slug, { depends_on })
               }
+            />
+            <RelatedMultiSelect
+              readOnly={readOnly}
+              currentTaskSlug={task.slug}
+              related={relatedSlugsOf(task)}
+              entries={relatedEntries}
+              tasks={relatedCandidates}
+              archivedSlugs={archivedSlugSet}
+              columns={config.columns}
+              warnings={warnings
+                .filter(
+                  warning =>
+                    warning.slug === task.slug && warning.field === 'related',
+                )
+                .map(warning => warning.message)}
+              onChange={related => void updateTask(task.slug, { related })}
+              onOpenTask={selectTask}
             />
 
             <dl className="space-y-1.5 border-t border-sb-iron pt-4 font-mono text-[11px] text-sb-silver">

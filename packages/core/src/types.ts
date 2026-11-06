@@ -95,6 +95,14 @@ export interface TaskFrontmatter {
    */
   depends_on?: string[];
   /**
+   * Slugs of tasks this one is associated with: the spike behind a decision, a
+   * sibling sharing a surface. Points at work without ordering it — nothing in
+   * core gates, blocks, or moves a task based on this. Undirected: a read that
+   * holds both tasks shows the association from either side. Unlike
+   * `depends_on`, an archived target is valid.
+   */
+  related?: string[];
+  /**
    * Marks the task for attention, independent of its column: a one-line reason,
    * or `true` when there is none to give. What a flag means is the project's
    * call. Informational only: nothing in core gates or clears it. Omit the field
@@ -175,6 +183,12 @@ export interface TaskReadResult {
    * `frontmatter` entry in `warnings`, but only this carries the file itself.
    */
   unreadable: UnreadableTaskFile[];
+  /**
+   * Slugs of every file in `tasks/archive/`, set by live reads. The archive is
+   * listed, not parsed, so a host can tell an archived `related` target from an
+   * unresolved one without loading the archive.
+   */
+  archivedSlugs?: string[];
 }
 
 // ── Board API (consumed by @shipbench/board) ────────────────────

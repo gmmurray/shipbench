@@ -65,6 +65,7 @@ priority: high
 assignee: agent
 tags: [auth, backend]
 depends_on: [choose-auth-provider]
+related: [spike-oauth-providers]
 created: 2026-07-21T03:49:00.000Z
 updated: 2026-07-24T20:00:00.000Z
 ---
@@ -87,6 +88,7 @@ The YAML frontmatter carries structured data. The content below it is the task d
 | `assignee` | No | Freeform informational label. It does not claim or lock work. |
 | `tags` | No | Array of freeform strings. |
 | `depends_on` | No | Array of task slugs that must finish first. |
+| `related` | No | Array of task slugs this task is associated with. Points at work without ordering it. See [Related tasks](#related-tasks). |
 | `flag` | No | Marks the task for attention: a one-line reason, or `true`. See [Flags](#flags). |
 | `created` | Yes | ISO 8601 timestamp recorded when the task is created and never changed. |
 | `updated` | Yes | ISO 8601 timestamp changed by task-content and status mutations. Layout-only reorders and archiving leave the task file unchanged. |
@@ -107,6 +109,14 @@ A dependency is satisfied when it is:
 - present in `tasks/archive/`.
 
 Use `shipbench task list --available` to select tasks whose dependencies are satisfied, `--blocked` to find tasks still waiting, and `shipbench task graph` to inspect forward and reverse relationships.
+
+## Related tasks
+
+`related` records that two tasks are associated: the spike that produced a decision, a sibling task sharing a surface, the audit that explains a constraint. `depends_on` orders work; `related` only points at it. It never affects availability, never blocks archiving, never enters the dependency graph, and never moves a task.
+
+Writes reject a self-reference and a slug matching no task file. Unlike `depends_on`, an archived target is valid, because pointing at finished work is the ordinary reason to link, while an archived prerequisite is already satisfied. Only slugs a write adds are checked, so a link that went dangling after it was written survives an edit to the rest of the list. Two files naming each other is normal; there are no cycle rules. Reads keep a task with a dangling or malformed value visible and report a warning.
+
+The association is undirected, but a file stores one direction, and writing one task never changes another task's file. Tools that read the whole project show both directions and list an association recorded on both files once. A single-task read reports the frontmatter as written. An association recorded on the other task's file is removed by editing that task.
 
 ## Flags
 

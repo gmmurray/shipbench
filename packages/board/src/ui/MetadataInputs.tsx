@@ -1,9 +1,11 @@
-import type { Task } from '@shipbench/core';
+import type { ColumnDef, RelatedTask, Task } from '@shipbench/core';
 import { type KeyboardEvent, useId, useMemo, useState } from 'react';
 import {
+  RxArchive,
   RxCheckCircled,
   RxCircle,
   RxCross2,
+  RxLink2,
   RxQuestionMarkCircled,
 } from 'react-icons/rx';
 
@@ -473,6 +475,300 @@ export function DependencyMultiSelect({
       <LiveAnnouncement>{announcement}</LiveAnnouncement>
     </div>
   );
+}
+
+/**
+ * Edits `related`, which only points at other work. Shows both directions: an
+ * association recorded on the other task's file is listed but cannot be removed
+ * here, because saving this task never writes that file.
+ *
+ * `related` is this task's own list as written. It is passed back whole on
+ * every change, so a target the board cannot resolve right now — archived and
+ * not yet loaded, or gone — survives an edit to some other entry.
+ */
+export function RelatedMultiSelect({
+  readOnly,
+  currentTaskSlug,
+  related,
+  entries,
+  tasks,
+  archivedSlugs,
+  columns,
+  warnings,
+  onChange,
+  onOpenTask,
+}: {
+  readOnly: boolean;
+  currentTaskSlug: string;
+  related: string[];
+  /** Both directions, resolved, from `createRelatedIndex`. */
+  entries: RelatedTask[];
+  /** Tasks that can be added: live ones, plus archived ones once loaded. */
+  tasks: Task[];
+  archivedSlugs: ReadonlySet<string>;
+  columns: ColumnDef[];
+  warnings: string[];
+  onChange: (related: string[]) => void;
+  onOpenTask: (slug: string) => void;
+}) {
+  const inputId = useId();
+  const listboxId = `${inputId}-tasks`;
+  const helpId = `${inputId}-help`;
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [announcement, setAnnouncement] = useState('');
+
+  const columnLabels = useMemo(
+    () => new Map(columns.map(column => [column.id, column.label])),
+    [columns],
+  );
+  const candidates = useMemo(() => {
+    const shown = new Set(entries.map(entry => entry.slug));
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+
+    if (!normalizedQuery) return [];
+
+    return tasks
+      .filter(task => task.slug !== currentTaskSlug && !shown.has(task.slug))
+      .filter(task =>
+        `${task.slug} ${task.frontmatter.title}`
+          .toLocaleLowerCase()
+          .includes(normalizedQuery),
+      )
+      .sort((a, b) => a.slug.localeCompare(b.slug));
+  }, [currentTaskSlug, entries, query, tasks]);
+
+  const addRelated = (task: Task) => {
+    onChange([...related, task.slug]);
+    setQuery('');
+    setIsOpen(false);
+    setActiveIndex(-1);
+    setAnnouncement(`Added related task ${task.slug}.`);
+  };
+
+  const removeRelated = (slug: string) => {
+    onChange(related.filter(candidate => candidate !== slug));
+    setActiveIndex(-1);
+    setAnnouncement(`Removed related task ${slug}.`);
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown' && candidates.length) {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex(index => (index + 1) % candidates.length);
+      return;
+    }
+
+    if (event.key === 'ArrowUp' && candidates.length) {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex(index => (index <= 0 ? candidates.length - 1 : index - 1));
+      return;
+    }
+
+    if (event.key === 'Enter' && activeIndex >= 0) {
+      const candidate = candidates[activeIndex];
+      if (candidate) {
+        event.preventDefault();
+        addRelated(candidate);
+      }
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    if (event.key === 'Backspace' && !query && related.length) {
+      event.preventDefault();
+      const last = related.at(-1);
+      if (last) removeRelated(last);
+    }
+  };
+
+  const selectedTokens = entries.length ? (
+    <ul className="grid gap-1.5" aria-label="Related tasks">
+      {entries.map(entry => {
+        const { label, Icon } = getRelatedPresentation(entry, columnLabels);
+        const incoming = entry.direction === 'incoming';
+        const unresolved = entry.title === null && !entry.archived;
+        const live = entry.title !== null && !entry.archived;
+
+        return (
+          <li
+            className={`sb-metadata-token flex min-w-0 items-center gap-2 ${
+              unresolved ? 'border-sb-ironlit' : ''
+            }`}
+            key={entry.slug}
+          >
+            <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+            <span className="grid min-w-0 flex-1">
+              {live ? (
+                <button
+                  className="truncate text-left transition-colors hover:text-sb-frosted"
+                  type="button"
+                  onClick={() => onOpenTask(entry.slug)}
+                >
+                  {entry.title}
+                </button>
+              ) : (
+                <span className="truncate">{entry.title ?? entry.slug}</span>
+              )}
+              <span className="truncate text-[11px] text-sb-silver">
+                {[
+                  entry.title === null ? null : entry.slug,
+                  label,
+                  incoming ? `recorded on ${entry.slug}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </span>
+            {readOnly || incoming ? null : (
+              <button
+                className="sb-token-action"
+                type="button"
+                aria-label={`Remove related task ${entry.slug}`}
+                onClick={() => removeRelated(entry.slug)}
+              >
+                <RxCross2 aria-hidden="true" className="h-3 w-3" />
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <ReadonlyEmpty />
+  );
+
+  return (
+    <div className="relative grid gap-1.5">
+      {readOnly ? (
+        <span className="sb-metadata-label">Related</span>
+      ) : (
+        <label className="sb-metadata-label" htmlFor={inputId}>
+          Related
+        </label>
+      )}
+      {readOnly ? null : (
+        <>
+          <span id={helpId} className="font-mono text-[11px] text-sb-silver">
+            Points at other work without ordering it. Search tasks, then use
+            arrow keys and Enter to select.
+          </span>
+          <div className="sb-form-control flex items-center gap-2 px-3 py-2">
+            <input
+              id={inputId}
+              className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-sb-frosted outline-none placeholder:text-sb-silver"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls={listboxId}
+              aria-describedby={helpId}
+              aria-expanded={isOpen && query.trim().length > 0}
+              aria-activedescendant={
+                activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined
+              }
+              autoComplete="off"
+              placeholder="Search tasks"
+              value={query}
+              onBlur={() => setIsOpen(false)}
+              onChange={event => {
+                setQuery(event.target.value);
+                setIsOpen(true);
+                setActiveIndex(-1);
+              }}
+              onFocus={() => setIsOpen(true)}
+              onKeyDown={onKeyDown}
+            />
+          </div>
+          {isOpen && query.trim() ? (
+            <div
+              className="sb-combobox-list"
+              id={listboxId}
+              role="listbox"
+              aria-label="Task suggestions"
+            >
+              {candidates.length ? (
+                candidates.map((candidate, index) => {
+                  const { label, Icon } = getRelatedPresentation(
+                    {
+                      title: candidate.frontmatter.title,
+                      status: candidate.frontmatter.status,
+                      archived: archivedSlugs.has(candidate.slug),
+                    },
+                    columnLabels,
+                  );
+
+                  return (
+                    <button
+                      id={`${listboxId}-${index}`}
+                      className="sb-combobox-option grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 text-left"
+                      role="option"
+                      aria-selected={index === activeIndex}
+                      key={candidate.slug}
+                      type="button"
+                      tabIndex={-1}
+                      onMouseDown={event => event.preventDefault()}
+                      onClick={() => addRelated(candidate)}
+                    >
+                      <span className="truncate text-sb-frosted">
+                        {candidate.slug}
+                      </span>
+                      <span className="row-span-2 inline-flex items-center gap-1.5 text-[11px] text-sb-silver">
+                        <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                        {label}
+                      </span>
+                      <span className="truncate text-[11px] text-sb-silver">
+                        {candidate.frontmatter.title}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p
+                  className="px-3 py-2 font-mono text-[11px] text-sb-silver"
+                  role="status"
+                >
+                  No matching tasks.
+                </p>
+              )}
+            </div>
+          ) : null}
+        </>
+      )}
+      {selectedTokens}
+      {warnings.map(message => (
+        <p
+          key={message}
+          className="font-mono text-[11px] leading-5 text-sb-frosted"
+          role="alert"
+        >
+          {message}
+        </p>
+      ))}
+      <LiveAnnouncement>{announcement}</LiveAnnouncement>
+    </div>
+  );
+}
+
+/** A related target's column, or that it is archived or unresolved. */
+function getRelatedPresentation(
+  entry: Pick<RelatedTask, 'title' | 'status' | 'archived'>,
+  columnLabels: ReadonlyMap<string, string>,
+): { label: string; Icon: typeof RxLink2 } {
+  if (entry.archived) return { label: 'Archived', Icon: RxArchive };
+  if (entry.status === null) {
+    return { label: 'Unresolved', Icon: RxQuestionMarkCircled };
+  }
+  return {
+    label: columnLabels.get(entry.status) ?? entry.status,
+    Icon: RxLink2,
+  };
 }
 
 function getDependencyState(

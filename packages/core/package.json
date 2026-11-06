@@ -44,6 +44,10 @@
     "./flag": {
       "types": "./src/flag.ts",
       "import": "./src/flag.ts"
+    },
+    "./related": {
+      "types": "./src/related.ts",
+      "import": "./src/related.ts"
     }
   },
   "publishConfig": {
@@ -66,12 +70,16 @@
       "./flag": {
         "types": "./dist/flag.d.ts",
         "import": "./dist/flag.js"
+      },
+      "./related": {
+        "types": "./dist/related.d.ts",
+        "import": "./dist/related.js"
       }
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts --format esm --dts",
-    "dev": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts --format esm --dts --watch",
+    "build": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts src/related.ts --format esm --dts",
+    "dev": "tsup src/index.ts src/layout.ts src/search.ts src/flag.ts src/related.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

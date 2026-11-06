@@ -53,6 +53,14 @@ export {
   orderedTasksForColumn,
 } from './layout.js';
 
+// Related
+export type {
+  RelatedDirection,
+  RelatedIndexInput,
+  RelatedTask,
+} from './related.js';
+export { createRelatedIndex, relatedSlugs } from './related.js';
+
 // Search
 export type {
   TaskSearchField,

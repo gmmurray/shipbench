@@ -1,6 +1,7 @@
 import matter from 'gray-matter';
 import { taskFlag } from './flag.js';
 import { layoutAfterMove, layoutWithoutTask } from './layout.js';
+import { relatedSlugs } from './related.js';
 import { assertTaskSlug, resolveSlugCollision, slugify } from './slug.js';
 import type {
   BoardLayout,
@@ -91,6 +92,7 @@ const KNOWN_FRONTMATTER_FIELDS = new Set<string>([
   'assignee',
   'tags',
   'depends_on',
+  'related',
   'flag',
   'created',
   'updated',
@@ -448,7 +450,7 @@ function assertValidPriority(priority: string, config: ShipbenchConfig): void {
 }
 
 /**
- * Normalizes a `depends_on` value to a deduped slug list. Absent, empty, and
+ * Normalizes a `depends_on` or `related` value to a deduped slug list. Absent, empty, and
  * all-blank values collapse to `undefined` so the field is omitted on write
  * rather than serialized as an empty array.
  */
@@ -483,6 +485,50 @@ function normalizeFlag(value: unknown): string | true | undefined {
     );
   }
   return reason;
+}
+
+/**
+ * Write-time `related` validation. Rejects self-reference and slugs matching no
+ * live or archived task file. An archived target is valid, unlike for
+ * `depends_on`: a finished prerequisite is already satisfied and rarely worth
+ * writing, while pointing at finished work is the ordinary reason to link.
+ *
+ * Only slugs the write adds are checked against the files. One the task already
+ * carries may have gone dangling since it was written, which is a read warning;
+ * rejecting it here would make every edit to the field fail until someone also
+ * removed a link they did not touch.
+ */
+async function assertValidRelated(
+  adapter: ReadableStorageAdapter,
+  slug: string,
+  related: string[] | undefined,
+  existing: readonly string[] = [],
+): Promise<void> {
+  if (!related || related.length === 0) return;
+
+  if (related.includes(slug)) {
+    throw new Error(`Task "${slug}" cannot be related to itself.`);
+  }
+
+  const added = related.filter(target => !existing.includes(target));
+  if (added.length === 0) return;
+
+  const [liveFiles, archivedFiles] = await Promise.all([
+    adapter.listFiles(TASKS_DIR),
+    adapter.listFiles(ARCHIVE_DIR),
+  ]);
+  const known = new Set(
+    [...liveFiles, ...archivedFiles]
+      .filter(file => file.endsWith('.md'))
+      .map(file => file.replace(/\.md$/, '')),
+  );
+  for (const target of added) {
+    if (!known.has(target)) {
+      throw new Error(
+        `Unknown related task "${target}" — no live or archived task file matches that slug.`,
+      );
+    }
+  }
 }
 
 /**
@@ -543,6 +589,7 @@ function validateTask(
   task: Task,
   config: ShipbenchConfig,
   knownSlugs: Set<string>,
+  knownRelatedSlugs: Set<string>,
 ): TaskValidationWarning[] {
   const warnings: TaskValidationWarning[] = [];
   const validStatuses = new Set(config.columns.map(c => c.id));
@@ -592,6 +639,31 @@ function validateTask(
     }
   }
 
+  // `related` resolves against the archive as well, because an archived target
+  // is a valid one. Only a slug matching no file at all is dangling.
+  const related = (task.frontmatter as { related?: unknown }).related;
+  if (
+    related !== undefined &&
+    related !== null &&
+    (!Array.isArray(related) ||
+      related.some(entry => typeof entry !== 'string'))
+  ) {
+    warnings.push({
+      slug: task.slug,
+      field: 'related',
+      message: 'Expected related to be a list of task slugs.',
+    });
+  }
+  for (const target of relatedSlugs(task)) {
+    if (!knownRelatedSlugs.has(target)) {
+      warnings.push({
+        slug: task.slug,
+        field: 'related',
+        message: `Dangling related task "${target}" — no live or archived task file matches that slug.`,
+      });
+    }
+  }
+
   // An empty `flag:` parses as null and means what an omitted field means, as
   // an empty `assignee:` does. Anything else that does not flag is a mistake.
   const flag = (task.frontmatter as { flag?: unknown }).flag;
@@ -622,7 +694,8 @@ async function listTasksInDirectory(
   config: ShipbenchConfig,
   directory: string,
   additionalKnownSlugs: Awaitable<Iterable<string>> = [],
-): Promise<TaskReadResult> {
+  otherDirectorySlugs: Awaitable<Iterable<string>> = [],
+): Promise<Omit<TaskReadResult, 'archivedSlugs'>> {
   const files = await adapter.listFiles(directory);
   const mdFiles = files.filter(f => f.endsWith('.md'));
 
@@ -655,12 +728,17 @@ async function listTasksInDirectory(
   // full set of task-file slugs to spot dangling references. Include files
   // whose frontmatter could not be parsed: the dependency target still exists,
   // even though this read cannot return it as a valid Task.
+  const directorySlugs = mdFiles.map(file => file.replace(/\.md$/, ''));
   const knownSlugs = new Set([
     ...(await additionalKnownSlugs),
-    ...mdFiles.map(file => file.replace(/\.md$/, '')),
+    ...directorySlugs,
+  ]);
+  const knownRelatedSlugs = new Set([
+    ...(await otherDirectorySlugs),
+    ...directorySlugs,
   ]);
   for (const task of tasks) {
-    warnings.push(...validateTask(task, config, knownSlugs));
+    warnings.push(...validateTask(task, config, knownSlugs, knownRelatedSlugs));
   }
 
   return { tasks, warnings, unreadable };
@@ -678,7 +756,22 @@ export async function listTasks(
     ...tasks.map(task => task.slug),
     ...fileSlugs,
   ]);
-  return listTasksInDirectory(adapter, config, TASKS_DIR, archivedSlugs);
+  // Listed, never parsed: enough to resolve a `related` target as archived.
+  const archiveFiles = adapter
+    .listFiles(ARCHIVE_DIR)
+    .then(files =>
+      files
+        .filter(file => file.endsWith('.md'))
+        .map(file => file.replace(/\.md$/, '')),
+    );
+  const result = await listTasksInDirectory(
+    adapter,
+    config,
+    TASKS_DIR,
+    archivedSlugs,
+    archiveFiles,
+  );
+  return { ...result, archivedSlugs: await archiveFiles };
 }
 
 export async function getTask(
@@ -704,7 +797,13 @@ export async function listArchivedTasks(
   const liveSlugs = liveFiles
     .filter(file => file.endsWith('.md'))
     .map(file => file.replace(/\.md$/, ''));
-  return listTasksInDirectory(adapter, config, ARCHIVE_DIR, liveSlugs);
+  return listTasksInDirectory(
+    adapter,
+    config,
+    ARCHIVE_DIR,
+    liveSlugs,
+    liveSlugs,
+  );
 }
 
 /**
@@ -757,6 +856,9 @@ export async function createTask(
   const dependsOn = normalizeDependsOn(fields?.depends_on);
   await assertValidDependsOn(adapter, config, slug, dependsOn);
 
+  const related = normalizeDependsOn(fields?.related);
+  await assertValidRelated(adapter, slug, related);
+
   const flag = normalizeFlag(fields?.flag);
 
   const task: Task = {
@@ -768,6 +870,7 @@ export async function createTask(
       assignee: fields?.assignee,
       tags: fields?.tags,
       depends_on: dependsOn,
+      related,
       flag,
       created: now,
       updated: now,
@@ -831,6 +934,14 @@ export async function updateTask(
     await assertValidDependsOn(adapter, config, slug, dependsOn);
   }
 
+  const relatedProvided = 'related' in fields;
+  const related = relatedProvided
+    ? normalizeDependsOn(fields.related)
+    : undefined;
+  if (relatedProvided) {
+    await assertValidRelated(adapter, slug, related, relatedSlugs(task));
+  }
+
   // As with depends_on, a `flag` key set to undefined clears the flag.
   const flagProvided = 'flag' in fields;
   const flag = flagProvided ? normalizeFlag(fields.flag) : undefined;
@@ -842,6 +953,7 @@ export async function updateTask(
     ...task.frontmatter,
     ...fields,
     ...(dependsOnProvided ? { depends_on: dependsOn } : {}),
+    ...(relatedProvided ? { related } : {}),
     ...(flagProvided ? { flag } : {}),
     // `created` is set once at creation and is not user-modifiable.
     created: task.frontmatter.created,

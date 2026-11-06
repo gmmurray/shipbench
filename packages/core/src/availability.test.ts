@@ -50,6 +50,20 @@ describe('task availability filtering', () => {
     ).toEqual(['standalone', 'needs-done', 'needs-archive']);
   });
 
+  it('never gates on related, which only points at other work', () => {
+    const tasks = [
+      task('unfinished', { status: 'in-progress' }),
+      task('points-at-it', { related: ['unfinished', 'ghost'] }),
+    ];
+
+    expect(
+      listAvailableTasks(tasks, DEFAULT_CONFIG).map(
+        candidate => candidate.slug,
+      ),
+    ).toEqual(['points-at-it']);
+    expect(listBlockedTasks(tasks, DEFAULT_CONFIG)).toEqual([]);
+  });
+
   it('accepts an archived dependency known only by its file slug', () => {
     const candidate = task('candidate', {
       depends_on: ['malformed-archive'],

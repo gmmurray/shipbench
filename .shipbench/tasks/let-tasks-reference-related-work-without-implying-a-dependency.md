@@ -1,6 +1,6 @@
 ---
 title: Let tasks reference related work without implying a dependency
-status: todo
+status: done
 priority: medium
 tags:
   - core
@@ -8,7 +8,7 @@ tags:
   - board
   - convention
 created: '2026-09-14T21:48:37.117Z'
-updated: '2026-09-14T21:48:37.117Z'
+updated: '2026-11-06T20:50:29.489Z'
 ---
 
 Tasks reference each other for reasons that are not prerequisites: the spike that produced a decision, the sibling task sharing a surface, the audit that explains a constraint. Today that context lives in prose, so it is unqueryable, invisible to every machine-readable read, and easy to mistake for a dependency. Add an optional `related` frontmatter field recording association between tasks and nothing more.
@@ -25,7 +25,19 @@ These were resolved before the task was written; treat them as given rather than
 
 **The Board edits the field, not just displays it.** The detail view gets the same affordance the dependency field has.
 
-**Validation follows the existing posture.** Strict on write: self-reference and slugs matching no task file are rejected. Graceful on read: a dangling slug is a warning and the task still loads. No cycle rules — an association has no direction to cycle, and both files naming each other is normal rather than an error.
+**Validation follows the existing posture.** Strict on write: self-reference and slugs matching no task file are rejected. Only slugs a write adds are checked against the files, so a link that went dangling after it was written survives an edit to the rest of the list instead of making every edit to the field fail. Graceful on read: a dangling slug is a warning and the task still loads. No cycle rules — an association has no direction to cycle, and both files naming each other is normal rather than an error.
+
+**Whole-project reads know the archive's slugs, not its contents.** A link to an archived task is valid, so a read that only knows live slugs would warn on every one of them. Whole-project reads list the archive directory (filenames only, nothing parsed) and the read result carries the set of archived slugs. That keeps archived targets out of the dangling warnings and lets the Board and CLI label a target "archived" without loading the archive. An archived target's title still appears only once the archive is loaded.
+
+**Only the task's own file is editable.** Incoming associations — those recorded in the other task's frontmatter — are shown read-only in the Board editor, labelled with the file that holds them. On the CLI, `--remove-related <slug>` for a slug that is only incoming is rejected with an error naming the task that holds it, so the write leaves the task untouched.
+
+**JSON keeps the as-written field and adds a derived one.** `task list` JSON flattens frontmatter onto each task, so `related` there is the field as written (`[]` when absent, like `depends_on`). Both `task list` and `task search` JSON add a derived `related_tasks` array built from both directions: `{ slug, direction, title, status, archived }`, where `direction` is `outgoing`, `incoming`, or `both`. `task get` stays as written.
+
+**Shape follows `depends_on`.** CLI flags mirror that family: `--related` on `task create`; `--related`, `--add-related`, `--remove-related`, and `--clear-related` on `task edit`. No card badge — the field signals nothing about readiness, so it lives in the detail view. `task graph`, `--available` / `--blocked`, the archive guard, and search ignore it.
+
+## Out of scope
+
+- A query filter such as `task list --related-to <slug>`. JSON plus `jq` covers it for now; file a follow-up if it proves needed.
 
 ## Acceptance
 
@@ -38,3 +50,10 @@ These were resolved before the task was written; treat them as given rather than
 - A dangling or malformed value produces a warning naming the field and still returns the task.
 - Every surface documenting the task schema and the dependency field describes `related` and states the line between the two: one orders work, the other only points at it.
 - Projects scaffolded by `init` carry the field in their own conventions, so it is discoverable without reading this repository.
+
+## Task Updates
+
+### 2026-11-06T20:49:30.163Z
+Implemented. Two refinements to the settled decisions, now in the description: the derived JSON field is `related_tasks`, because `task list` JSON already spreads frontmatter so `related` is taken by the as-written value; and write validation checks only slugs a write adds, since rechecking a link that went dangling would make the Board's editor fail on any change to the field.
+
+Left alone on purpose: `depends_on` read warnings still resolve only against the archive slugs a caller passes, so the Board can still warn on an archived dependency. Changing that is outside this task.

@@ -1477,7 +1477,7 @@ Wrong level.`,
     expect(result.tasks).toEqual([]);
   });
 
-  it('does not read archived tasks or make an archive adapter call', async () => {
+  it('lists the archive without reading archived tasks', async () => {
     const adapter = memoryAdapter({
       '.shipbench/tasks/live.md': taskFile({
         title: 'Live',
@@ -1492,17 +1492,23 @@ Wrong level.`,
         updated: '2025-01-01T00:00:00Z',
       }),
     });
-    const listedDirectories: string[] = [];
-    const baseListFiles = adapter.listFiles;
-    adapter.listFiles = async directory => {
-      listedDirectories.push(directory);
-      return baseListFiles(directory);
+    const readPaths: string[] = [];
+    const baseReadFiles = adapter.readFiles;
+    adapter.readFiles = async paths => {
+      readPaths.push(...paths);
+      return baseReadFiles(paths);
+    };
+    const baseReadFile = adapter.readFile;
+    adapter.readFile = async path => {
+      readPaths.push(path);
+      return baseReadFile(path);
     };
 
     const result = await listTasks(adapter, DEFAULT_CONFIG);
 
     expect(result.tasks.map(task => task.slug)).toEqual(['live']);
-    expect(listedDirectories).toEqual(['.shipbench/tasks']);
+    expect(result.archivedSlugs).toEqual(['archived']);
+    expect(readPaths).toEqual(['.shipbench/tasks/live.md']);
   });
 
   it('roundtrips body content', async () => {
@@ -2105,6 +2111,199 @@ describe('depends_on', () => {
     );
 
     expect(updated.frontmatter.depends_on).toEqual(['api']);
+  });
+});
+
+describe('related', () => {
+  function boardWith(...slugs: [string, unknown?][]) {
+    const seed: Record<string, string> = {};
+    for (const [slug, related] of slugs) {
+      seed[`.shipbench/tasks/${slug}.md`] = taskFile({
+        title: slug,
+        status: 'todo',
+        created: '2026-01-01T00:00:00Z',
+        updated: '2026-01-01T00:00:00Z',
+        ...(related !== undefined ? { related } : {}),
+      });
+    }
+    return memoryAdapter(seed);
+  }
+
+  function archive(adapter: ReturnType<typeof memoryAdapter>, slug: string) {
+    adapter.files.set(
+      `.shipbench/tasks/archive/${slug}.md`,
+      taskFile({
+        title: slug,
+        status: 'done',
+        created: '2025-01-01T00:00:00Z',
+        updated: '2025-01-01T00:00:00Z',
+      }),
+    );
+  }
+
+  it('round-trips through create and read, deduped', async () => {
+    const adapter = boardWith(['api'], ['schema']);
+
+    const created = await createTask(adapter, DEFAULT_CONFIG, 'Wire it up', {
+      related: ['api', ' schema ', 'api'],
+    });
+    expect(created.frontmatter.related).toEqual(['api', 'schema']);
+
+    const { tasks, warnings } = await listTasks(adapter, DEFAULT_CONFIG);
+    const reread = tasks.find(t => t.slug === 'wire-it-up');
+    expect(reread?.frontmatter.related).toEqual(['api', 'schema']);
+    expect(warnings).toEqual([]);
+  });
+
+  it('omits the field when the list is empty', async () => {
+    const adapter = memoryAdapter();
+    await createTask(adapter, DEFAULT_CONFIG, 'Standalone', { related: [] });
+
+    const raw = adapter.files.get('.shipbench/tasks/standalone.md');
+    expect(matter(raw!).data).not.toHaveProperty('related');
+  });
+
+  it('accepts an archived target on write, unlike depends_on', async () => {
+    const adapter = boardWith(['api']);
+    archive(adapter, 'spike');
+
+    const created = await createTask(adapter, DEFAULT_CONFIG, 'Build it', {
+      related: ['spike'],
+    });
+    expect(created.frontmatter.related).toEqual(['spike']);
+
+    await expect(
+      createTask(adapter, DEFAULT_CONFIG, 'Depend on it', {
+        depends_on: ['spike'],
+      }),
+    ).rejects.toThrow(/unknown dependency "spike"/i);
+  });
+
+  it('rejects a slug with no live or archived task file', async () => {
+    const adapter = boardWith(['api']);
+    await expect(
+      createTask(adapter, DEFAULT_CONFIG, 'Wire it up', {
+        related: ['api', 'ghost'],
+      }),
+    ).rejects.toThrow(/unknown related task "ghost"/i);
+    expect(adapter.files.has('.shipbench/tasks/wire-it-up.md')).toBe(false);
+  });
+
+  it('rejects a task related to itself', async () => {
+    const adapter = boardWith(['api']);
+    await expect(
+      updateTask(adapter, DEFAULT_CONFIG, 'api', { related: ['api'] }),
+    ).rejects.toThrow(/cannot be related to itself/i);
+  });
+
+  it('accepts both files naming each other', async () => {
+    const adapter = boardWith(['api', ['schema']], ['schema']);
+
+    const { task } = await updateTask(adapter, DEFAULT_CONFIG, 'schema', {
+      related: ['api'],
+    });
+
+    expect(task.frontmatter.related).toEqual(['api']);
+  });
+
+  it('keeps a target that went dangling when the edit adds another', async () => {
+    const adapter = boardWith(['api'], ['wire-it-up', ['deleted-task']]);
+
+    const { task } = await updateTask(adapter, DEFAULT_CONFIG, 'wire-it-up', {
+      related: ['deleted-task', 'api'],
+    });
+
+    expect(task.frontmatter.related).toEqual(['deleted-task', 'api']);
+  });
+
+  it('never writes the other task when an association is added', async () => {
+    const adapter = boardWith(['api'], ['schema']);
+    const before = adapter.files.get('.shipbench/tasks/api.md');
+
+    await updateTask(adapter, DEFAULT_CONFIG, 'schema', { related: ['api'] });
+
+    expect(adapter.files.get('.shipbench/tasks/api.md')).toBe(before);
+  });
+
+  it('clears the field when update passes an empty list', async () => {
+    const adapter = boardWith(['api'], ['wire-it-up', ['api']]);
+
+    const { task } = await updateTask(adapter, DEFAULT_CONFIG, 'wire-it-up', {
+      related: [],
+    });
+
+    expect(task.frontmatter.related).toBeUndefined();
+    const raw = adapter.files.get('.shipbench/tasks/wire-it-up.md');
+    expect(matter(raw!).data).not.toHaveProperty('related');
+  });
+
+  it('warns about a dangling target on read without dropping the task', async () => {
+    const adapter = boardWith(['wire-it-up', ['deleted-task']]);
+
+    const { tasks, warnings } = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(tasks.map(t => t.slug)).toEqual(['wire-it-up']);
+    expect(warnings).toEqual([
+      {
+        slug: 'wire-it-up',
+        field: 'related',
+        message: expect.stringMatching(/dangling related task "deleted-task"/i),
+      },
+    ]);
+  });
+
+  it('does not warn about an archived target, without being told the archive', async () => {
+    const adapter = boardWith(['wire-it-up', ['spike']]);
+    archive(adapter, 'spike');
+
+    const { warnings, archivedSlugs } = await listTasks(
+      adapter,
+      DEFAULT_CONFIG,
+    );
+
+    expect(warnings).toEqual([]);
+    expect(archivedSlugs).toEqual(['spike']);
+  });
+
+  it('resolves an archived task pointing at a live one', async () => {
+    const adapter = boardWith(['api']);
+    adapter.files.set(
+      '.shipbench/tasks/archive/spike.md',
+      taskFile({
+        title: 'Spike',
+        status: 'done',
+        related: ['api'],
+        created: '2025-01-01T00:00:00Z',
+        updated: '2025-01-01T00:00:00Z',
+      }),
+    );
+
+    const { warnings } = await listArchivedTasks(adapter, DEFAULT_CONFIG);
+
+    expect(warnings).toEqual([]);
+  });
+
+  it('warns on a malformed value and still returns the task', async () => {
+    const adapter = boardWith(['wire-it-up', 'api'], ['api']);
+
+    const { tasks, warnings } = await listTasks(adapter, DEFAULT_CONFIG);
+
+    expect(tasks.map(t => t.slug).sort()).toEqual(['api', 'wire-it-up']);
+    expect(warnings).toEqual([
+      {
+        slug: 'wire-it-up',
+        field: 'related',
+        message: 'Expected related to be a list of task slugs.',
+      },
+    ]);
+  });
+
+  it('does not block archiving a task others relate to', async () => {
+    const adapter = boardWith(['api'], ['wire-it-up', ['api']]);
+
+    await archiveTask(adapter, DEFAULT_CONFIG, 'api');
+
+    expect(adapter.files.has('.shipbench/tasks/archive/api.md')).toBe(true);
   });
 });
 

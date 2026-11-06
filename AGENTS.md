@@ -231,11 +231,14 @@ Freeform Markdown body.
 | assignee   | No       | Freeform string label (e.g. `claude`, `human`). Informational only — no built-in claiming/locking behavior. |
 | tags       | No       | Array of freeform strings                                                                                   |
 | depends_on | No       | Slugs that must finish first. Data only — never gates writes or moves columns.                              |
+| related    | No       | Slugs of associated live or archived tasks. Points at work without ordering it; gates nothing.              |
 | flag       | No       | A one-line reason, or `true`. Asks for attention in any column. Informational only — never cleared for you. |
 | created    | Yes      | Auto-managed by core. Do not modify.                                                                        |
 | updated    | Yes      | Auto-managed by core. Do not modify.                                                                        |
 
 `depends_on` is strict on write (unknown slug, self-reference, and direct two-hop cycles are rejected) and graceful on read (a dangling slug becomes a validation warning; the task still loads). Agents selecting work should prefer tasks whose every `depends_on` entry sits in the `done` column or resolves to `tasks/archive/` (archived dependencies count as satisfied), and treat prose `## Depends on` sections as commentary.
+
+`related` is association, not order: `depends_on` says what has to land first, `related` only points at work worth reading. It never affects availability, archiving, or the dependency graph. It is strict on write (self-reference and a slug matching no live or archived file are rejected; an archived target is valid, unlike for `depends_on`) and graceful on read (a dangling or malformed value is a warning). A file records one direction and core never writes the other task as a side effect; whole-project reads show both directions, and `task get` reports the file as written.
 
 `flag` is generic on purpose: what it means (blocked, needs a decision, needs review) is each project's call. It is strict on write (a blank or multi-line reason, or any value other than a string or `true`, is rejected) and graceful on read (any other value reads as unflagged, with a warning). Nothing sets or clears it as a side effect; `task flag` / `task unflag` and the Board's detail view do it on purpose.
 

@@ -4,6 +4,7 @@ import {
   addComment,
   archiveTask,
   buildTaskDependencyGraph,
+  createRelatedIndex,
   createTask,
   deleteComment,
   deleteTask,
@@ -19,6 +20,7 @@ import {
   moveTask,
   orderedTasksForColumn,
   type ProjectWarning,
+  relatedSlugs,
   reorderTask,
   type ShipbenchConfig,
   type StorageAdapter,
@@ -667,6 +669,12 @@ export function createCli(opts: CliOptions): Command {
       accumulateCommaList,
       [] as string[],
     )
+    .option(
+      '--related <slugs>',
+      'Slugs of live or archived tasks this one relates to, without depending on them (comma-separated, repeatable)',
+      accumulateCommaList,
+      [] as string[],
+    )
     .addOption(bodyOption())
     .addOption(bodyFileOption())
     .option('--json', 'Output the created task as JSON')
@@ -687,6 +695,7 @@ export function createCli(opts: CliOptions): Command {
           priority: raw.priority,
           tags: raw.tags && dedupePreservingCase(raw.tags),
           depends_on: raw.dependsOn,
+          related: raw.related,
         },
         body,
       );
@@ -769,6 +778,30 @@ export function createCli(opts: CliOptions): Command {
         'removeDependsOn',
       ]),
     )
+    .addOption(
+      commaListOption(
+        '--related <slugs>',
+        'Replace every related task (comma-separated or repeatable)',
+      ).conflicts(['addRelated', 'removeRelated', 'clearRelated']),
+    )
+    .addOption(
+      commaListOption(
+        '--add-related <slugs>',
+        'Add related tasks, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['related', 'clearRelated']),
+    )
+    .addOption(
+      commaListOption(
+        '--remove-related <slugs>',
+        'Remove related tasks, keeping the others (comma-separated or repeatable)',
+      ).conflicts(['related', 'clearRelated']),
+    )
+    .addOption(
+      new Option(
+        '--clear-related',
+        "Remove every related task this task's file records",
+      ).conflicts(['related', 'addRelated', 'removeRelated']),
+    )
     .addOption(bodyOption())
     .addOption(bodyFileOption())
     .option('--json', 'Output the edited task as JSON')
@@ -789,6 +822,10 @@ export function createCli(opts: CliOptions): Command {
     const addDependsOn = raw.addDependsOn as string[] | undefined;
     const removeDependsOn = raw.removeDependsOn as string[] | undefined;
     const replaceDependsOn = raw.dependsOn as string[] | undefined;
+    const clearRelated = Boolean(raw.clearRelated);
+    const addRelated = raw.addRelated as string[] | undefined;
+    const removeRelated = raw.removeRelated as string[] | undefined;
+    const replaceRelated = raw.related as string[] | undefined;
 
     const requestedAnything =
       body !== undefined ||
@@ -803,13 +840,18 @@ export function createCli(opts: CliOptions): Command {
       replaceDependsOn !== undefined ||
       addDependsOn !== undefined ||
       removeDependsOn !== undefined ||
-      clearDependsOn;
+      clearDependsOn ||
+      replaceRelated !== undefined ||
+      addRelated !== undefined ||
+      removeRelated !== undefined ||
+      clearRelated;
 
     if (!requestedAnything) {
       editCommand.error(
         'Provide at least one change: --body/--body-file, --title, --priority, ' +
           '--assignee/--clear-assignee, --tags/--add-tag/--remove-tag/--clear-tags, ' +
-          'or --depends-on/--add-depends-on/--remove-depends-on/--clear-depends-on.',
+          '--depends-on/--add-depends-on/--remove-depends-on/--clear-depends-on, ' +
+          'or --related/--add-related/--remove-related/--clear-related.',
       );
       return;
     }
@@ -897,6 +939,56 @@ export function createCli(opts: CliOptions): Command {
       // array is the explicit "clear" signal it normalizes away on write.
       fields.depends_on = nextDeps;
       changes.push(`depends_on ${list(currentDeps)} → ${list(nextDeps)}`);
+    }
+
+    const currentRelated = relatedSlugs(existing);
+    let nextRelated: string[] | undefined;
+    if (replaceRelated !== undefined) {
+      nextRelated = dedupePreservingCase(replaceRelated);
+    } else if (clearRelated) {
+      nextRelated = [];
+    } else if (addRelated !== undefined || removeRelated !== undefined) {
+      // An association can be recorded on the other task's file instead. This
+      // edit only writes this one, so removing such a link would succeed
+      // without changing anything a reader sees. Say where it lives instead.
+      const notOwn = (removeRelated ?? []).filter(
+        target => !currentRelated.includes(target),
+      );
+      if (notOwn.length > 0) {
+        const [live, archived] = await Promise.all([
+          listTasks(adapter, config),
+          listArchivedTasks(adapter, config),
+        ]);
+        const holds = (candidate: Task, target: string) =>
+          candidate.slug === target && relatedSlugs(candidate).includes(slug);
+        for (const target of notOwn) {
+          if (live.tasks.some(candidate => holds(candidate, target))) {
+            editCommand.error(
+              `Cannot remove related task "${target}" from ${slug}: the link is recorded in ${target}'s file, not this one. Remove it there: shipbench task edit ${target} --remove-related ${slug}`,
+            );
+            return;
+          }
+          if (archived.tasks.some(candidate => holds(candidate, target))) {
+            editCommand.error(
+              `Cannot remove related task "${target}" from ${slug}: the link is recorded in the archived task ${target}'s file, not this one. Unarchive ${target} to edit it.`,
+            );
+            return;
+          }
+        }
+      }
+      const removed = new Set(removeRelated ?? []);
+      nextRelated = dedupePreservingCase([
+        ...currentRelated.filter(target => !removed.has(target)),
+        ...(addRelated ?? []),
+      ]);
+    }
+    if (
+      nextRelated !== undefined &&
+      (nextRelated.length !== currentRelated.length ||
+        nextRelated.some((target, index) => target !== currentRelated[index]))
+    ) {
+      fields.related = nextRelated;
+      changes.push(`related ${list(currentRelated)} → ${list(nextRelated)}`);
     }
 
     if (body !== undefined) {
@@ -1415,10 +1507,27 @@ export function createCli(opts: CliOptions): Command {
         .slice(0, raw.limit);
 
       if (raw.json) {
+        // An association is visible from either side, so resolving it needs
+        // the live tasks even when this read is of the archive.
+        const relatedOf = createRelatedIndex(
+          raw.archived
+            ? {
+                tasks: (await listTasks(adapter, config)).tasks,
+                archivedTasks: result.tasks,
+                archivedSlugs: taskFileSlugs(result),
+              }
+            : {
+                tasks: result.tasks,
+                archivedTasks: archived?.tasks,
+                archivedSlugs: result.archivedSlugs,
+              },
+        );
         const tasks = filtered.map(t => ({
           slug: t.slug,
           ...t.frontmatter,
           depends_on: t.frontmatter.depends_on ?? [],
+          related: t.frontmatter.related ?? [],
+          related_tasks: relatedOf(t),
           ...(boardOrder ? { position: boardOrder.positions.get(t.slug) } : {}),
           ...(raw.includeBody
             ? {
@@ -1600,6 +1709,16 @@ export function createCli(opts: CliOptions): Command {
       ];
 
       if (raw.json) {
+        // Resolving an association needs both sides loaded, whichever set the
+        // search itself ran over.
+        const relatedLive = liveResult ?? (await listTasks(adapter, config));
+        const relatedArchive =
+          archivedResult ?? (await listArchivedTasks(adapter, config));
+        const relatedOf = createRelatedIndex({
+          tasks: relatedLive.tasks,
+          archivedTasks: relatedArchive.tasks,
+          archivedSlugs: taskFileSlugs(relatedArchive),
+        });
         const payloadMatches = matches.map(match => {
           const source = candidatesBySlug.get(match.slug);
           return {
@@ -1608,6 +1727,7 @@ export function createCli(opts: CliOptions): Command {
             status: match.status,
             location: locationOf(match.slug),
             matched_fields: match.matched_fields,
+            related_tasks: source ? relatedOf(source) : [],
             ...(source && isTaskFlagged(source)
               ? { flag: source.frontmatter.flag }
               : {}),

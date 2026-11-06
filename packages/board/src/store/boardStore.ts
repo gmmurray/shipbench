@@ -49,6 +49,11 @@ export interface BoardState {
   unreadable: UnreadableTaskFile[];
   archiveViewOpen: boolean;
   archivedTasks: Task[] | null;
+  /**
+   * Every archive file's slug, from the live read. Lets a `related` target read
+   * as archived before the archive itself is loaded.
+   */
+  archivedSlugs: string[];
   archiveWarnings: TaskValidationWarning[];
   archiveUnreadable: UnreadableTaskFile[];
   isArchiveLoading: boolean;
@@ -164,6 +169,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
     unreadable: [],
     archiveViewOpen: false,
     archivedTasks: null,
+    archivedSlugs: [],
     archiveWarnings: [],
     archiveUnreadable: [],
     isArchiveLoading: false,
@@ -569,6 +575,10 @@ export function createBoardStore(api: BoardAPI): BoardStore {
         await api.archiveTask(slug, force ? { force: true } : undefined);
         archivedPositions.set(slug, { status, position });
         set(state => ({
+          archivedSlugs: [
+            ...state.archivedSlugs.filter(candidate => candidate !== slug),
+            slug,
+          ],
           archivedTasks: state.archivedTasks
             ? [
                 archivedTask,
@@ -636,6 +646,9 @@ export function createBoardStore(api: BoardAPI): BoardStore {
           return {
             tasks,
             config: state.config ? { ...state.config, layout } : null,
+            archivedSlugs: state.archivedSlugs.filter(
+              candidate => candidate !== restored.slug,
+            ),
             archivedTasks: state.archivedTasks
               ? state.archivedTasks.filter(task => task.slug !== restored.slug)
               : null,
@@ -750,13 +763,17 @@ function mergeServerRead(
   config: ShipbenchConfig,
   read: TaskReadResult,
   pending: ReadonlyMap<string, number>,
-): Pick<BoardState, 'config' | 'tasks' | 'warnings' | 'unreadable'> {
+): Pick<
+  BoardState,
+  'config' | 'tasks' | 'warnings' | 'unreadable' | 'archivedSlugs'
+> {
   if (pending.size === 0) {
     return {
       config,
       tasks: read.tasks,
       warnings: read.warnings,
       unreadable: read.unreadable,
+      archivedSlugs: read.archivedSlugs ?? state.archivedSlugs,
     };
   }
 
@@ -789,6 +806,14 @@ function mergeServerRead(
     // A pending slug keeps its local task above; showing it broken too would
     // put one file on the board twice until the mutation settles.
     unreadable: read.unreadable.filter(file => !pending.has(file.slug)),
+    // A pending archive or restore already moved its slug locally; the read
+    // predates it, so keep the local answer for that slug.
+    archivedSlugs: read.archivedSlugs
+      ? [
+          ...read.archivedSlugs.filter(slug => !pending.has(slug)),
+          ...state.archivedSlugs.filter(slug => pending.has(slug)),
+        ]
+      : state.archivedSlugs,
   };
 }
 

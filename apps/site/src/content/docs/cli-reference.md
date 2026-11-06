@@ -95,6 +95,7 @@ Creates a task, generates a collision-safe slug, and sets both timestamps.
 | `-p, --priority <priority>` | Configured priority value. |
 | `-t, --tags <tags>` | Comma-separated tags; may be repeated. |
 | `-d, --depends-on <slugs>` | Comma-separated dependency slugs; may be repeated. |
+| `--related <slugs>` | Comma-separated slugs of live or archived tasks this one relates to, without depending on them; may be repeated. |
 | `--body <text>` | Description as Markdown text. |
 | `--body-file <path>` | Read the description from a UTF-8 file; `-` reads stdin. |
 
@@ -135,8 +136,8 @@ placement stay with [`shipbench task move`](#shipbench-task-move).
 
 Pass at least one change. Everything is applied in a single write that runs
 core's validation first, so a rejected value (an unconfigured priority, a
-`depends_on` slug with no task file) leaves the task exactly as it was — never
-half-edited.
+`depends_on` or `related` slug with no task file) leaves the task exactly as it
+was — never half-edited.
 
 | Flag                    | Effect                                                              |
 | ----------------------- | ------------------------------------------------------------------ |
@@ -148,16 +149,25 @@ half-edited.
 | `--add-tag <list>` / `--remove-tag <list>` | Add or drop tags, keeping the rest.            |
 | `-d, --depends-on <list>` | Replace every dependency. `--clear-depends-on` empties the field. |
 | `--add-depends-on <list>` / `--remove-depends-on <list>` | Add or drop dependencies, keeping the rest. |
+| `--related <list>` | Replace every related task. `--clear-related` empties the field. |
+| `--add-related <list>` / `--remove-related <list>` | Add or drop related tasks, keeping the rest. |
 
 `<list>` flags accept comma-separated values or repeated flags. The `--tags` /
 `--add-tag` / `--remove-tag` / `--clear-tags` group is mutually exclusive, as is
-the `--depends-on` group; `--assignee` and `--clear-assignee` conflict.
+the `--depends-on` group and the `--related` group; `--assignee` and
+`--clear-assignee` conflict.
+
+The related flags edit this task's own list. An association recorded only in the
+other task's file shows up from this task in `task list --json`, but
+`--remove-related` cannot drop it: the command is rejected and names the task to
+edit instead.
 
 ```bash
 shipbench task edit build-api --body-file revised-plan.md
 shipbench task edit build-api --body ""
 shipbench task edit build-api --priority high --add-tag urgent --remove-tag someday
 shipbench task edit build-api --title "Build the public API" --depends-on ship-auth
+shipbench task edit build-api --add-related spike-pagination
 ```
 
 A description may not contain a `## Task Updates` heading of its own — that
@@ -333,6 +343,8 @@ while it stays broken. Repair it by fixing the named line in the task file;
 
 For agents, `task get` is the preferred second step after a body-free `task list --available --json` shortlist.
 
+`task get` reads one file, so `frontmatter.related` is exactly what that file records. Associations recorded on other tasks appear in `related_tasks` from `task list --json` and `task search --json`, which read the whole project.
+
 ### `shipbench task list`
 
 ```bash no-copy
@@ -396,6 +408,23 @@ Without `--include-body`, JSON remains compact:
       "priority": "high",
       "tags": ["backend"],
       "depends_on": [],
+      "related": ["spike-pagination"],
+      "related_tasks": [
+        {
+          "slug": "spike-pagination",
+          "direction": "outgoing",
+          "title": "Spike: pagination",
+          "status": "done",
+          "archived": true
+        },
+        {
+          "slug": "build-client",
+          "direction": "incoming",
+          "title": "Build client",
+          "status": "todo",
+          "archived": false
+        }
+      ],
       "position": 0,
       "created": "2026-07-21T03:49:00.000Z",
       "updated": "2026-07-21T03:49:00.000Z"
@@ -405,6 +434,8 @@ Without `--include-body`, JSON remains compact:
   "warnings": []
 }
 ```
+
+`related` is the field as the file writes it. `related_tasks` resolves associations in both directions: `direction` is `outgoing` when this file names the other task, `incoming` when only the other file names this one, and `both` when each names the other, which is listed once. Each entry carries the target's `title` and `status`, and `archived` says whether it lives in `tasks/archive/`. A target matching no task file has a `null` title and status and `archived: false`.
 
 `unreadable` lists task files whose frontmatter does not parse, such as a hand edit that repeats a key. Each entry has `slug`, `path`, and `reason`, which names the file line where it can; `--include-body` adds the file's raw `content`. These files have no status or fields, so filters, `--available`, and `--limit` never remove them, and text output prints each one as an `[unreadable]` line after the tasks. The command still exits `0`: the read succeeded, and the broken file is in the output. `task get` on such a file fails and names the file.
 
@@ -453,7 +484,7 @@ shipbench task search "ci" --whole-word --json
 shipbench task search '"token exchange"' --json
 ```
 
-JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, and — when an Update matched — the entry's index, timestamp, and excerpt. `total_matches` is the count before `--limit` is applied:
+JSON reports where each match occurred, the task's current `status` and `location`, a body snippet when applicable, the entry's index, timestamp, and excerpt when an Update matched, and `related_tasks` in the shape [`task list`](#shipbench-task-list) uses. `total_matches` is the count before `--limit` is applied:
 
 ```json
 {
@@ -464,6 +495,7 @@ JSON reports where each match occurred, the task's current `status` and `locatio
       "status": "in-progress",
       "location": "live",
       "matched_fields": ["title", "body", "updates"],
+      "related_tasks": [],
       "snippet": "Implement the OAuth callback and token exchange.",
       "update_matches": [
         {
@@ -516,6 +548,8 @@ Interactive terminals receive a readable tree. Redirected output becomes JSON au
 ```
 
 Referenced slugs that cannot be resolved appear as nodes with `"status": "missing"`.
+
+The graph holds `depends_on` only. `related` points at work without ordering it, so it never appears here.
 
 ### `shipbench task archive`
 

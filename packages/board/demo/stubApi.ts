@@ -184,6 +184,7 @@ export function createStubBoardApi({
         tasks: [...tasks.values()].map(t => structuredClone(t)),
         warnings,
         unreadable: structuredClone(unreadableSeed),
+        archivedSlugs: [...archivedTasks.keys()],
       };
     },
 
