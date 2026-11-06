@@ -174,7 +174,7 @@ If a merge collides anyway, never restore an old copy of the task file — `git 
 
 ## Operations
 
-Prefer the ShipBench CLI for task mutations when it is available. The CLI routes through core, so slug generation, validation, timestamps, collision handling, and layout updates stay consistent.
+Prefer the ShipBench CLI for task mutations when it is available. The CLI routes through core, so slug generation, validation, timestamps, collision handling, and layout updates stay consistent. Every `task` command accepts `--json`. A write with `--json` prints the resulting task in the `task get` shape, so you can confirm it without a second read.
 
 Commands work from any subdirectory of the board: the CLI uses the nearest `.shipbench/` at or above the current directory. `-C <path>` names a board's directory exactly.
 

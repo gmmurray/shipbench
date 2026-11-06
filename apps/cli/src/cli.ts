@@ -269,6 +269,7 @@ interface MoveOptions {
   before?: string;
   after?: string;
   position?: number;
+  json?: boolean;
 }
 
 /**
@@ -410,6 +411,17 @@ function formatUnreadableFile(file: UnreadableTaskFile): string {
   return `[unreadable] ${file.path}: ${file.reason} (${file.slug})`;
 }
 
+/** One task as every `--json` command that returns a task prints it. */
+function taskJson(task: Task) {
+  return {
+    slug: task.slug,
+    status: task.frontmatter.status,
+    frontmatter: task.frontmatter,
+    body: task.body,
+    comments: task.comments,
+  };
+}
+
 function unreadableFileJson(file: UnreadableTaskFile, includeBody: boolean) {
   return {
     slug: file.slug,
@@ -517,6 +529,9 @@ export function createCli(opts: CliOptions): Command {
     );
     return null;
   };
+
+  const printTask = (task: Task) =>
+    data(JSON.stringify(taskJson(task), null, 2));
 
   const program = new Command()
     .name('shipbench')
@@ -667,19 +682,7 @@ export function createCli(opts: CliOptions): Command {
       );
 
       if (raw.json) {
-        data(
-          JSON.stringify(
-            {
-              slug: created.slug,
-              status: created.frontmatter.status,
-              frontmatter: created.frontmatter,
-              body: created.body,
-              comments: created.comments,
-            },
-            null,
-            2,
-          ),
-        );
+        printTask(created);
         return;
       }
       chrome(`Created task: ${created.slug}`);
@@ -894,19 +897,7 @@ export function createCli(opts: CliOptions): Command {
       // Nothing to write — every requested value already matches. Report the
       // task unchanged rather than bumping `updated` for a no-op.
       if (raw.json) {
-        data(
-          JSON.stringify(
-            {
-              slug: existing.slug,
-              status: existing.frontmatter.status,
-              frontmatter: existing.frontmatter,
-              body: existing.body,
-              comments: existing.comments,
-            },
-            null,
-            2,
-          ),
-        );
+        printTask(existing);
         return;
       }
       chrome(`No changes for ${slug}: every field already holds that value.`);
@@ -922,19 +913,7 @@ export function createCli(opts: CliOptions): Command {
     );
 
     if (raw.json) {
-      data(
-        JSON.stringify(
-          {
-            slug: edited.slug,
-            status: edited.frontmatter.status,
-            frontmatter: edited.frontmatter,
-            body: edited.body,
-            comments: edited.comments,
-          },
-          null,
-          2,
-        ),
-      );
+      printTask(edited);
       return;
     }
     chrome(`Updated ${edited.slug}: ${changes.join('; ')}`);
@@ -953,6 +932,7 @@ export function createCli(opts: CliOptions): Command {
     .argument('[text]', 'Update text')
     .addOption(updateTextOption())
     .addOption(updateTextFileOption())
+    .option('--json', 'Output the resulting task as JSON')
     .addHelpText('after', BODY_FILE_HELP);
 
   commentCommand.action(async (slug: string | undefined, text, raw) => {
@@ -964,6 +944,10 @@ export function createCli(opts: CliOptions): Command {
     }
     const config = await loadCliConfig();
     const updated = await addComment(adapter, config, slug, resolved);
+    if (raw.json) {
+      printTask(updated);
+      return;
+    }
     chrome(`Added update to ${updated.slug}`);
   });
 
@@ -974,6 +958,7 @@ export function createCli(opts: CliOptions): Command {
     )
     .addOption(updateTextOption())
     .addOption(updateTextFileOption())
+    .option('--json', 'Output the resulting task as JSON')
     .addHelpText('after', BODY_FILE_HELP);
 
   commentEditCommand.action(async (slug: string, index: string, text, raw) => {
@@ -993,16 +978,25 @@ export function createCli(opts: CliOptions): Command {
       parsedIndex,
       resolved,
     );
+    if (raw.json) {
+      printTask(updated);
+      return;
+    }
     chrome(`Edited update ${parsedIndex} on ${updated.slug}`);
   });
 
   commentCommand
     .command('delete <slug> <index>')
     .description('Delete an Updates entry by zero-based index')
-    .action(async (slug: string, index: string) => {
+    .option('--json', 'Output the resulting task as JSON')
+    .action(async (slug: string, index: string, raw: { json?: boolean }) => {
       const config = await loadCliConfig();
       const parsedIndex = parseNonNegativeInteger(index);
       const updated = await deleteComment(adapter, config, slug, parsedIndex);
+      if (raw.json) {
+        printTask(updated);
+        return;
+      }
       chrome(`Deleted update ${parsedIndex} from ${updated.slug}`);
     });
 
@@ -1010,7 +1004,13 @@ export function createCli(opts: CliOptions): Command {
     .command('get <slug>')
     .alias('show')
     .description('Retrieve one task as JSON')
-    .option('--archived', 'Retrieve the task from the archive instead');
+    .option('--archived', 'Retrieve the task from the archive instead')
+    // `get` has no text form. The flag is accepted because every other task
+    // command takes it, and an agent that guesses it should not be refused.
+    .option(
+      '--json',
+      'Accepted for consistency; the output is JSON either way',
+    );
 
   getTaskCommand.action(async (slug: string, raw) => {
     const config = await loadCliConfig();
@@ -1044,11 +1044,7 @@ export function createCli(opts: CliOptions): Command {
     data(
       JSON.stringify(
         {
-          slug: found.slug,
-          status: found.frontmatter.status,
-          frontmatter: found.frontmatter,
-          body: found.body,
-          comments: found.comments,
+          ...taskJson(found),
           ...(found.unreadableUpdates
             ? { unreadable_updates: found.unreadableUpdates }
             : {}),
@@ -1062,13 +1058,18 @@ export function createCli(opts: CliOptions): Command {
   const flagCommand = task
     .command('flag <slug> [reason]')
     .description('Flag a task for attention, with an optional one-line reason')
+    .option('--json', 'Output the resulting task as JSON')
     .addHelpText(
       'after',
       "\nWhat a flag means is the project's call. A flag never moves the task, and\nnothing clears it for you: run `shipbench task unflag <slug>` once it no\nlonger applies. Flagging a flagged task replaces its reason.\n",
     );
 
   flagCommand.action(
-    async (slug: string, reason: string | null | undefined) => {
+    async (
+      slug: string,
+      reason: string | null | undefined,
+      raw: { json?: boolean },
+    ) => {
       const config = await loadCliConfig();
       const existing = await requireLiveTask(
         flagCommand,
@@ -1083,6 +1084,10 @@ export function createCli(opts: CliOptions): Command {
       const flag = reason == null ? true : reason;
       const before = taskFlag(existing);
       if (before && before.reason === (flag === true ? null : flag.trim())) {
+        if (raw.json) {
+          printTask(existing);
+          return;
+        }
         chrome(`No changes for ${slug}: it already carries that flag.`);
         return;
       }
@@ -1090,6 +1095,10 @@ export function createCli(opts: CliOptions): Command {
       const { task: flagged } = await updateTask(adapter, config, slug, {
         flag,
       });
+      if (raw.json) {
+        printTask(flagged);
+        return;
+      }
       const after = taskFlag(flagged);
       chrome(
         after?.reason
@@ -1101,9 +1110,10 @@ export function createCli(opts: CliOptions): Command {
 
   const unflagCommand = task
     .command('unflag <slug>')
-    .description("Clear a task's flag");
+    .description("Clear a task's flag")
+    .option('--json', 'Output the resulting task as JSON');
 
-  unflagCommand.action(async (slug: string) => {
+  unflagCommand.action(async (slug: string, raw: { json?: boolean }) => {
     const config = await loadCliConfig();
     const existing = await requireLiveTask(
       unflagCommand,
@@ -1116,10 +1126,20 @@ export function createCli(opts: CliOptions): Command {
     // A malformed value (`flag: false`, say) reads as unflagged but is still in
     // the file, so only an absent field is a no-op.
     if (existing.frontmatter.flag === undefined) {
+      if (raw.json) {
+        printTask(existing);
+        return;
+      }
       chrome(`No changes for ${slug}: it is not flagged.`);
       return;
     }
-    await updateTask(adapter, config, slug, { flag: undefined });
+    const { task: unflagged } = await updateTask(adapter, config, slug, {
+      flag: undefined,
+    });
+    if (raw.json) {
+      printTask(unflagged);
+      return;
+    }
     chrome(`Unflagged ${slug}`);
   });
 
@@ -1163,6 +1183,7 @@ export function createCli(opts: CliOptions): Command {
         .argParser(parseLayoutPosition)
         .conflicts(['top', 'bottom', 'before', 'after']),
     )
+    .option('--json', 'Output the resulting task as JSON')
     .addHelpText(
       'after',
       '\nPlacement flags are mutually exclusive and cannot target the done column,\nwhich is always ordered by last update. Reorder only when asked to.\n',
@@ -1179,6 +1200,10 @@ export function createCli(opts: CliOptions): Command {
           return;
         }
         const moved = await moveTask(adapter, config, slug, raw.to);
+        if (raw.json) {
+          printTask(moved);
+          return;
+        }
         chrome(`Moved ${moved.slug} → ${moved.frontmatter.status}`);
         return;
       }
@@ -1260,6 +1285,11 @@ export function createCli(opts: CliOptions): Command {
         toStatus,
         position,
       );
+
+      if (raw.json) {
+        printTask(moved);
+        return;
+      }
 
       const placedAt =
         position < 0 || position > column.length ? column.length : position;
@@ -1669,6 +1699,10 @@ export function createCli(opts: CliOptions): Command {
       '--force',
       'Archive a non-done task even when live tasks depend on it',
     )
+    .option(
+      '--json',
+      'Output the archived task as JSON (an array of them with --done)',
+    )
     .addHelpText(
       'after',
       '\nA non-done task with live dependents is blocked unless --force is used.\n',
@@ -1703,16 +1737,27 @@ export function createCli(opts: CliOptions): Command {
             : (raw.keep ?? config.done_display.max);
         const candidates = doneTasks.slice(keep);
 
+        const archived: Task[] = [];
         for (const candidate of candidates) {
-          await archiveTask(adapter, config, candidate.slug);
-          chrome(`Archived task: ${candidate.slug}`);
+          archived.push(await archiveTask(adapter, config, candidate.slug));
+          if (!raw.json) chrome(`Archived task: ${candidate.slug}`);
+        }
+        if (raw.json) {
+          data(JSON.stringify(archived.map(taskJson), null, 2));
+          return;
         }
         if (candidates.length === 0) chrome('No done tasks archived.');
         return;
       }
 
       try {
-        await archiveTask(adapter, config, slug!, { force: raw.force });
+        const archived = await archiveTask(adapter, config, slug!, {
+          force: raw.force,
+        });
+        if (raw.json) {
+          printTask(archived);
+          return;
+        }
         chrome(`Archived task: ${slug}`);
       } catch (error) {
         if (error instanceof ArchiveBlockedError) {
@@ -1727,18 +1772,28 @@ export function createCli(opts: CliOptions): Command {
   task
     .command('unarchive <slug>')
     .description('Restore an archived task')
-    .action(async (slug: string) => {
+    .option('--json', 'Output the resulting task as JSON')
+    .action(async (slug: string, raw: { json?: boolean }) => {
       const config = await loadCliConfig();
-      await unarchiveTask(adapter, config, slug);
+      const restored = await unarchiveTask(adapter, config, slug);
+      if (raw.json) {
+        printTask(restored);
+        return;
+      }
       chrome(`Unarchived task: ${slug}`);
     });
 
   task
     .command('delete <slug>')
     .description('Delete a task')
-    .action(async (slug: string) => {
+    .option('--json', 'Output the deleted slug as JSON')
+    .action(async (slug: string, raw: { json?: boolean }) => {
       const config = await loadCliConfig();
       await deleteTask(adapter, config, slug);
+      if (raw.json) {
+        data(JSON.stringify({ slug, deleted: true }, null, 2));
+        return;
+      }
       chrome(`Deleted task: ${slug}`);
     });
 

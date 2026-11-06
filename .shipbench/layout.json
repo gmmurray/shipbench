@@ -5,8 +5,7 @@
     "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "strip-rationale-comments-from-the-rest-of-the-site",
-    "exclude-tasks-by-tag-in-task-list-and-search",
-    "accept-json-on-task-get-instead-of-rejecting-it-as-an-unknown-option"
+    "exclude-tasks-by-tag-in-task-list-and-search"
   ],
   "backlog": [
     "spike-explore-a-local-workbench-across-shipbench-repositories",

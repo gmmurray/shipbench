@@ -54,6 +54,16 @@ basename:
 shipbench -C ../new-project init
 ```
 
+## JSON output
+
+Every `task` command accepts `--json`. A command that writes a task prints the
+resulting task on stdout, in the same shape as
+[`shipbench task get`](#shipbench-task-get), instead of a confirmation on
+stderr. That lets a script or agent confirm a write without a second read.
+`task archive --done` prints an array of the archived tasks, empty when none
+qualified, and `task delete` prints `{ "slug": "<slug>", "deleted": true }`.
+`task get` prints JSON with or without the flag.
+
 ## Command reference
 
 ### `shipbench init`
@@ -273,10 +283,10 @@ What a flag means is your project's call: blocked, needs a decision, needs revie
 ### `shipbench task get`
 
 ```bash no-copy
-shipbench task get <slug> [--archived]
+shipbench task get <slug> [--archived] [--json]
 ```
 
-Returns one task as JSON. Alias: `show`. The payload always includes full frontmatter, the Markdown description, and parsed Updates:
+Returns one task as JSON, so `--json` changes nothing. Alias: `show`. The payload always includes full frontmatter, the Markdown description, and parsed Updates:
 
 ```json
 {
