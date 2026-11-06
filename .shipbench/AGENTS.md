@@ -117,6 +117,7 @@ Use the other discovery commands when the task needs more context:
 - **Load complete matching descriptions**: `shipbench task search "<query>" --json --include-body`
 - **Search live and archived tasks**: `shipbench task search "<query>" --all --json`
 - **Inspect the dependency DAG**: `shipbench task graph --json` (add `--archived` to resolve archived nodes)
+- **Trace one task's dependencies**: `shipbench task graph <slug> --json` shows what it waits on and what finishing it would unblock (`--blockers` or `--dependents` for one side, `--depth 1` for direct neighbors only)
 - **List archived tasks**: `shipbench task list --archived --json`
 
 Following that principle, add `--include-body` to a JSON `task list` only when you need every returned description and Updates array. Add it to a JSON `task search` when you need complete matching descriptions instead of snippets. Prefer `task get` after narrowing when one matching task answers the question.

@@ -200,7 +200,7 @@ git commit --no-edit
 | Complete | `main` | Verify the integrated result, move to `done`, and commit. |
 | Clean up | `main` | Remove the worktree and delete the merged branch. |
 
-Use `shipbench task list --blocked --json` when a candidate cannot start, `task graph --json` when the dependency path is unclear, and `task search <query> --all --json` when earlier work may contain relevant context.
+Use `shipbench task list --blocked --json` when a candidate cannot start, `task graph <slug> --json` to see what one task waits on and what finishing it would unblock, `task graph --json` when you need the whole dependency graph, and `task search <query> --all --json` when earlier work may contain relevant context.
 
 ## Conventions worth writing down
 

@@ -111,13 +111,17 @@ test('the copy control never overlaps the code it copies, at the narrowest width
       for (const shell of document.querySelectorAll('.code-block-shell')) {
         const button = shell.querySelector('.code-copy-button');
         const pre = shell.querySelector('pre');
-        const firstLine = pre?.querySelector('.line') ?? pre?.querySelector('code');
+        const firstLine =
+          pre?.querySelector('.line') ?? pre?.querySelector('code');
         if (!button || !firstLine) continue;
 
         const b = button.getBoundingClientRect();
         const l = firstLine.getBoundingClientRect();
         const intersects =
-          b.left < l.right && b.right > l.left && b.top < l.bottom && b.bottom > l.top;
+          b.left < l.right &&
+          b.right > l.left &&
+          b.top < l.bottom &&
+          b.bottom > l.top;
 
         if (intersects) {
           offenders.push((firstLine.textContent ?? '').trim().slice(0, 60));
@@ -127,16 +131,23 @@ test('the copy control never overlaps the code it copies, at the narrowest width
       return offenders;
     });
 
-    expect(overlaps, `${route} has copy buttons sitting on their first code line`).toEqual([]);
+    expect(
+      overlaps,
+      `${route} has copy buttons sitting on their first code line`,
+    ).toEqual([]);
 
     // The strip exists partly to give the control room for a real touch target;
     // 44px is the minimum the site's other mobile controls are held to. See
     // keyboard-nav.spec.ts.
     const heights = await page
       .locator('.code-copy-button')
-      .evaluateAll(buttons => buttons.map(b => b.getBoundingClientRect().height));
+      .evaluateAll(buttons =>
+        buttons.map(b => b.getBoundingClientRect().height),
+      );
 
-    expect(heights.length, `${route} rendered no copy buttons`).toBeGreaterThan(0);
+    expect(heights.length, `${route} rendered no copy buttons`).toBeGreaterThan(
+      0,
+    );
     for (const height of heights) {
       expect(height).toBeGreaterThanOrEqual(44);
     }

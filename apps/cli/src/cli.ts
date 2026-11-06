@@ -20,12 +20,15 @@ import {
   moveTask,
   orderedTasksForColumn,
   type ProjectWarning,
+  queryTaskDependencies,
   relatedSlugs,
   reorderTask,
   type ShipbenchConfig,
   type StorageAdapter,
   searchTasks,
   type Task,
+  type TaskDependencyQuery,
+  type TaskDependencyQueryNode,
   type TaskFrontmatter,
   taskFileSlugs,
   taskFlag,
@@ -256,6 +259,14 @@ function parseNonNegativeInteger(value: string): number {
   return parsed;
 }
 
+function parsePositiveInteger(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new InvalidArgumentError('Value must be a positive integer.');
+  }
+  return parsed;
+}
+
 /** `--position` mirrors core: a 0-based index, with `-1` meaning "append". */
 function parseLayoutPosition(value: string): number {
   const parsed = Number(value);
@@ -357,6 +368,59 @@ function formatTaskDependencyGraph(
     lines.push(`${connector} ${slug} [${node.status}]`);
     lines.push(`${childPrefix}+- depends on: ${dependencies}`);
     lines.push(`${childPrefix}\`- blocks: ${blocks}`);
+  }
+  return lines;
+}
+
+function formatTaskDependencyQuery(query: TaskDependencyQuery): string[] {
+  const state = query.available
+    ? 'available'
+    : query.dependencies_satisfied
+      ? 'dependencies satisfied'
+      : 'blocked';
+  const lines = [
+    `${query.slug} [${query.status}]: ${state}${query.invalid_depends_on ? ', invalid depends_on' : ''}`,
+  ];
+
+  const describe = (node: TaskDependencyQueryNode): string => {
+    const notes: string[] = [];
+    if (node.satisfied !== undefined) {
+      notes.push(node.satisfied ? 'satisfied' : 'unsatisfied');
+    }
+    if (node.unblocks_on_completion) notes.push('unblocks on completion');
+    if (node.waiting_on?.length) {
+      notes.push(`waiting on ${node.waiting_on.join(', ')}`);
+    }
+    if (node.invalid_depends_on) notes.push('invalid depends_on');
+    if (node.omitted === 'repeat') notes.push('expanded above');
+    if (node.omitted === 'cycle') notes.push('cycle');
+    if (node.omitted === 'depth') notes.push('more beyond --depth');
+    const suffix = notes.length > 0 ? ` (${notes.join('; ')})` : '';
+    return `${node.slug} [${node.status}]${suffix}`;
+  };
+  const tree = (nodes: TaskDependencyQueryNode[], prefix: string) => {
+    nodes.forEach((node, index) => {
+      const isLast = index === nodes.length - 1;
+      lines.push(`${prefix}${isLast ? '`-' : '+-'} ${describe(node)}`);
+      tree(node.children, `${prefix}${isLast ? '   ' : '|  '}`);
+    });
+  };
+  const section = (label: string, nodes?: TaskDependencyQueryNode[]) => {
+    if (!nodes) return;
+    if (nodes.length === 0) {
+      lines.push(`${label}: none`);
+      return;
+    }
+    lines.push(`${label}:`);
+    tree(nodes, '');
+  };
+
+  section('Blockers', query.blockers);
+  section('Dependents', query.dependents);
+  if (query.truncated) {
+    lines.push(
+      `Stopped at --depth ${query.depth}; some branches continue past it.`,
+    );
   }
   return lines;
 }
@@ -1800,31 +1864,81 @@ export function createCli(opts: CliOptions): Command {
       }
     });
 
-  task
-    .command('graph')
-    .description('Show the task dependency graph')
+  const graphCommand = task
+    .command('graph [slug]')
+    .description('Show the task dependency graph, or the chain around one task')
     .option('--archived', 'Include archived tasks as graph nodes')
-    .option('--json', 'Emit machine-readable JSON')
-    .action(async raw => {
-      const config = await loadCliConfig();
-      const liveResult = await listTasks(adapter, config);
-      const archivedResult = raw.archived
-        ? await listArchivedTasks(adapter, config)
-        : undefined;
-      const graph = buildTaskDependencyGraph(liveResult.tasks, {
-        archivedTasks: archivedResult?.tasks,
-        archivedSlugs: archivedResult
-          ? taskFileSlugs(archivedResult)
-          : undefined,
-      });
+    .option('--blockers', 'With a slug: walk only what the task depends on')
+    .option('--dependents', 'With a slug: walk only what depends on the task')
+    .option(
+      '--depth <n>',
+      'With a slug: levels to walk (1 lists direct neighbors only)',
+      parsePositiveInteger,
+    )
+    .option('--json', 'Emit machine-readable JSON');
 
-      if (raw.json || !isInteractive) {
-        data(JSON.stringify(graph, null, 2));
+  graphCommand.action(async (slug: string | undefined, raw) => {
+    const config = await loadCliConfig();
+    if (slug === undefined) {
+      if (raw.blockers || raw.dependents || raw.depth !== undefined) {
+        graphCommand.error(
+          '--blockers, --dependents, and --depth need a task slug.',
+        );
         return;
       }
+    }
+    const liveResult = await listTasks(adapter, config);
+    const archivedResult = raw.archived
+      ? await listArchivedTasks(adapter, config)
+      : undefined;
 
-      for (const line of formatTaskDependencyGraph(graph)) data(line);
+    if (slug !== undefined) {
+      const query = queryTaskDependencies(slug, liveResult.tasks, config, {
+        direction:
+          raw.blockers && !raw.dependents
+            ? 'blockers'
+            : raw.dependents && !raw.blockers
+              ? 'dependents'
+              : 'both',
+        depth: raw.depth,
+        archivedTasks: archivedResult?.tasks,
+        // Readiness matches `task list`: an archived dependency is
+        // satisfied whether or not --archived walks into it.
+        archivedSlugs: archivedResult
+          ? taskFileSlugs(archivedResult)
+          : liveResult.archivedSlugs,
+        unreadableSlugs: liveResult.unreadable.map(file => file.slug),
+      });
+      if (!query) {
+        if (!raw.archived && liveResult.archivedSlugs?.includes(slug)) {
+          graphCommand.error(
+            `Task '${slug}' is archived. Pass --archived to query it.`,
+          );
+        } else {
+          graphCommand.error(`Task '${slug}' not found.`);
+        }
+        return;
+      }
+      if (raw.json || !isInteractive) {
+        data(JSON.stringify(query, null, 2));
+        return;
+      }
+      for (const line of formatTaskDependencyQuery(query)) data(line);
+      return;
+    }
+
+    const graph = buildTaskDependencyGraph(liveResult.tasks, {
+      archivedTasks: archivedResult?.tasks,
+      archivedSlugs: archivedResult ? taskFileSlugs(archivedResult) : undefined,
     });
+
+    if (raw.json || !isInteractive) {
+      data(JSON.stringify(graph, null, 2));
+      return;
+    }
+
+    for (const line of formatTaskDependencyGraph(graph)) data(line);
+  });
 
   task
     .command('archive [slug]')

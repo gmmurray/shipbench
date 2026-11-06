@@ -108,7 +108,7 @@ A dependency is satisfied when it is:
 - a live task in `done_column`, or
 - present in `tasks/archive/`.
 
-Use `shipbench task list --available` to select tasks whose dependencies are satisfied, `--blocked` to find tasks still waiting, and `shipbench task graph` to inspect forward and reverse relationships.
+Use `shipbench task list --available` to select tasks whose dependencies are satisfied, `--blocked` to find tasks still waiting, and `shipbench task graph` to inspect forward and reverse relationships. `shipbench task graph <slug>` narrows that to one task's blockers and dependents.
 
 ## Related tasks
 

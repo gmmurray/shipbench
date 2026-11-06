@@ -29,7 +29,8 @@ import { describe, expect, it } from 'vitest';
 const DOCS = fileURLToPath(new URL('../content/docs', import.meta.url));
 
 /** Something the reader must substitute before the line will run. */
-const METAVARIABLE = /<[a-z][a-z-]*>|\[--|\[-[A-Za-z]|\[placement\]|\[options\]/;
+const METAVARIABLE =
+  /<[a-z][a-z-]*>|\[--|\[-[A-Za-z]|\[placement\]|\[options\]/;
 
 interface Fence {
   file: string;
@@ -75,9 +76,7 @@ function fencesIn(file: string, source: string): Fence[] {
 function shellFences(): Fence[] {
   return readdirSync(DOCS)
     .filter(name => name.endsWith('.md'))
-    .flatMap(name =>
-      fencesIn(name, readFileSync(join(DOCS, name), 'utf8')),
-    )
+    .flatMap(name => fencesIn(name, readFileSync(join(DOCS, name), 'utf8')))
     .filter(fence => fence.language === 'bash');
 }
 

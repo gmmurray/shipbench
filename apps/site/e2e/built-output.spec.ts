@@ -23,7 +23,7 @@
  * never load-bearing, so it is gone. Plain text parsing says the same things.
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
@@ -347,8 +347,10 @@ test.describe('search and sharing metadata survives the build', () => {
       /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
     );
     expect(match).not.toBeNull();
-    const graph: Array<Record<string, unknown>> = JSON.parse(match![1])['@graph'];
-    const app = graph.find((node) => node['@type'] === 'SoftwareApplication');
+    const graph: Array<Record<string, unknown>> = JSON.parse(match![1])[
+      '@graph'
+    ];
+    const app = graph.find(node => node['@type'] === 'SoftwareApplication');
     expect(app).toMatchObject({
       name: 'ShipBench',
       description: 'Git-native project management for solo developers.',
@@ -358,7 +360,7 @@ test.describe('search and sharing metadata survives the build', () => {
         'https://www.npmjs.com/package/shipbench',
       ],
     });
-    const site = graph.find((node) => node['@type'] === 'WebSite');
+    const site = graph.find(node => node['@type'] === 'WebSite');
     expect(site?.about).toEqual({ '@id': app?.['@id'] });
   });
 

@@ -69,10 +69,9 @@ describe('internal links', () => {
     expect(files.length).toBeGreaterThan(10);
   });
 
-  it.each(files.map(file => [relative(SRC, file), file] as const))(
-    '%s links to canonical trailing-slash routes',
-    (_name, file) => {
-      expect(bareRoutesIn(readFileSync(file, 'utf8'))).toEqual([]);
-    },
-  );
+  it.each(
+    files.map(file => [relative(SRC, file), file] as const),
+  )('%s links to canonical trailing-slash routes', (_name, file) => {
+    expect(bareRoutesIn(readFileSync(file, 'utf8'))).toEqual([]);
+  });
 });

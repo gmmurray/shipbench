@@ -31,7 +31,9 @@ import { fileURLToPath } from 'node:url';
 const siteDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const port = Number(process.argv[2] ?? process.env.SITE_E2E_PORT ?? 4321);
 if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-  console.error(`Invalid port: ${process.argv[2] ?? process.env.SITE_E2E_PORT}`);
+  console.error(
+    `Invalid port: ${process.argv[2] ?? process.env.SITE_E2E_PORT}`,
+  );
   process.exit(1);
 }
 const url = `http://localhost:${port}/`;
@@ -85,7 +87,9 @@ async function waitForReady() {
     }
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
   }
-  throw new Error(`Preview server did not answer at ${url} within ${READY_TIMEOUT_MS}ms`);
+  throw new Error(
+    `Preview server did not answer at ${url} within ${READY_TIMEOUT_MS}ms`,
+  );
 }
 
 if (await portInUse()) {

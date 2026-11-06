@@ -32,7 +32,9 @@ function codeSource(pre: HTMLPreElement): HTMLElement {
  * actually run had no button, while an illustrative multi-line block did.
  */
 function isCopyable(pre: HTMLPreElement): boolean {
-  return !pre.hasAttribute('data-copy-disabled') && pre.dataset.copy !== 'false';
+  return (
+    !pre.hasAttribute('data-copy-disabled') && pre.dataset.copy !== 'false'
+  );
 }
 
 /**

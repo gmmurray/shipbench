@@ -549,6 +549,79 @@ Interactive terminals receive a readable tree. Redirected output becomes JSON au
 
 Referenced slugs that cannot be resolved appear as nodes with `"status": "missing"`.
 
+#### One task's dependencies
+
+```bash no-copy
+shipbench task graph <slug> [--blockers | --dependents] [--depth <n>] [--archived] [--json]
+```
+
+Pass a slug to see the chain around one task instead of the whole graph. It answers three questions: what does this task wait on, what lies behind those blockers, and what would finishing it unblock?
+
+| Flag | Purpose |
+| --- | --- |
+| `--blockers` | Walk only what the task depends on. |
+| `--dependents` | Walk only what depends on the task. Without either flag, both sides are shown. |
+| `--depth <n>` | Levels to walk. `1` lists direct neighbors only. With no `--depth`, the walk goes all the way. |
+| `--archived` | Also walk through archived tasks, and query an archived task by its slug. |
+
+Readiness follows the same rules as `task list --available`. A dependency is satisfied when it is in the done column or in the archive, and an archived dependency counts as satisfied with or without `--archived`. The flag only decides whether the walk continues through archived tasks.
+
+```json
+{
+  "slug": "build-api",
+  "status": "todo",
+  "title": "Build API",
+  "dependencies_satisfied": false,
+  "available": false,
+  "depth": null,
+  "truncated": false,
+  "blockers": [
+    {
+      "slug": "define-schema",
+      "status": "done",
+      "title": "Define schema",
+      "satisfied": true,
+      "children": []
+    },
+    {
+      "slug": "setup-auth",
+      "status": "in-progress",
+      "title": "Setup auth",
+      "satisfied": false,
+      "children": []
+    }
+  ],
+  "dependents": [
+    {
+      "slug": "build-client",
+      "status": "todo",
+      "title": "Build client",
+      "unblocks_on_completion": true,
+      "waiting_on": [],
+      "children": []
+    }
+  ]
+}
+```
+
+- `available` means the task is in the default column with every dependency satisfied, the same test `--available` applies. `dependencies_satisfied` drops the column check.
+- `satisfied` on a blocker says whether it counts as finished for the task that depends on it.
+- `unblocks_on_completion` appears on direct dependents only. It is true when finishing this task would make the dependent available. `waiting_on` names the dependent's other unsatisfied dependencies. Transitive dependents don't get either field, because finishing this task alone can't make them available.
+- `children` holds the next level out. A slug reached by more than one path is expanded once, where it is shallowest. Anywhere else it appears with `"omitted": "repeat"`.
+- `"omitted": "cycle"` marks a node that is its own ancestor on that path, so a hand-edited cycle never loops. `"omitted": "depth"` marks a node with more beyond `--depth`, and any such node sets `truncated` to `true`.
+- A dependency with no task file has `"status": "missing"`. One whose file doesn't parse has `"status": "unreadable"`. A task whose `depends_on` isn't a list of slugs carries `"invalid_depends_on": true`, and readiness treats it as unmet.
+
+In an interactive terminal the same result prints as a tree, with each node's notes in parentheses:
+
+```text no-copy
+build-api [todo]: blocked
+Blockers:
++- define-schema [done] (satisfied)
+`- setup-auth [in-progress] (unsatisfied)
+Dependents:
+`- build-client [todo] (unblocks on completion)
+```
+
 The graph holds `depends_on` only. `related` points at work without ordering it, so it never appears here.
 
 ### `shipbench task archive`

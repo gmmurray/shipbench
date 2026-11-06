@@ -93,7 +93,9 @@ test.describe('hero animation', () => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/');
     const before = await positions(page);
-    await expect.poll(() => positions(page), { timeout: 6000 }).not.toBe(before);
+    await expect
+      .poll(() => positions(page), { timeout: 6000 })
+      .not.toBe(before);
   });
 
   test('holds a static frame under reduced motion', async ({ page }) => {

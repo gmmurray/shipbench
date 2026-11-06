@@ -13,16 +13,21 @@ export { loadConfig, validateConfig } from './config.js';
 export { DEFAULT_CONFIG } from './defaults.js';
 // Dependencies
 export type {
+  TaskDependencyDirection,
   TaskDependencyGraph,
   TaskDependencyGraphNode,
   TaskDependencyGraphOptions,
   TaskDependencyIndex,
+  TaskDependencyQuery,
+  TaskDependencyQueryNode,
+  TaskDependencyQueryOptions,
   TaskDependencyResolution,
 } from './dependencies.js';
 export {
   buildTaskDependencyGraph,
   createTaskDependencyIndex,
   dependencyStatus,
+  queryTaskDependencies,
   resolveTaskDependency,
   taskDependenciesAreSatisfied,
 } from './dependencies.js';

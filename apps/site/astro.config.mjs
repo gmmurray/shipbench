@@ -6,8 +6,8 @@ import { satteri } from '@astrojs/markdown-satteri';
 import sitemap from '@astrojs/sitemap';
 import svelte from '@astrojs/svelte';
 import { defineConfig, fontProviders } from 'astro/config';
-import copyMeta from './src/utils/shiki-copy-meta.mjs';
 import tableRegions from './src/utils/satteri-table-regions.mjs';
+import copyMeta from './src/utils/shiki-copy-meta.mjs';
 
 // The CLI is the namesake ShipBench artifact. Core, CLI, and Board release in
 // lockstep, so its manifest is the source of truth for the displayed version.

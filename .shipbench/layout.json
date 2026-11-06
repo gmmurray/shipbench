@@ -1,7 +1,6 @@
 {
   "todo": [
     "keep-links-between-tasks-working-when-a-task-is-archived",
-    "add-focused-dependency-queries-for-a-single-task",
     "expose-a-consistent-cli-project-validation-report",
     "strip-rationale-comments-from-the-rest-of-the-site"
   ],
@@ -18,5 +17,7 @@
     "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "add-focused-dependency-queries-for-a-single-task"
+  ]
 }

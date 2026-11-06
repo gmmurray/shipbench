@@ -2859,6 +2859,221 @@ describe('shipbench task graph', () => {
     });
     expect(help.stdout.join('\n')).toMatch(/--archived[\s\S]*--json/);
   });
+
+  describe('for one task', () => {
+    // foundation [done] <- api <- client
+    // shared [todo]     <-/   <- docs <- (also waits on shared)
+    async function focusedHarness(isInteractive = false): Promise<Harness> {
+      const h = await graphHarness(isInteractive);
+      await h.run('task', 'create', 'Shared');
+      await h.run('task', 'edit', 'api', '--add-depends-on=shared');
+      await h.run('task', 'create', 'Client', '--depends-on=api');
+      await h.run('task', 'create', 'Docs', '--depends-on=api,shared');
+      h.stdout.length = 0;
+      return h;
+    }
+
+    it('emits the blockers and dependents of one task as JSON', async () => {
+      const h = await focusedHarness();
+
+      await h.run('task', 'graph', 'api');
+      const query = JSON.parse(h.stdout.join('\n'));
+
+      expect(query).toMatchObject({
+        slug: 'api',
+        status: 'in-progress',
+        title: 'API',
+        dependencies_satisfied: false,
+        available: false,
+        depth: null,
+        truncated: false,
+      });
+      expect(query.blockers).toEqual([
+        {
+          slug: 'foundation',
+          status: 'done',
+          title: 'Foundation',
+          satisfied: true,
+          children: [],
+        },
+        {
+          slug: 'shared',
+          status: 'todo',
+          title: 'Shared',
+          satisfied: false,
+          children: [],
+        },
+      ]);
+      expect(query.dependents).toEqual([
+        {
+          slug: 'client',
+          status: 'todo',
+          title: 'Client',
+          unblocks_on_completion: true,
+          waiting_on: [],
+          children: [],
+        },
+        {
+          slug: 'docs',
+          status: 'todo',
+          title: 'Docs',
+          unblocks_on_completion: false,
+          waiting_on: ['shared'],
+          children: [],
+        },
+      ]);
+    });
+
+    it('walks one direction transitively and marks what --depth cuts off', async () => {
+      const h = await focusedHarness();
+
+      await h.run('task', 'graph', 'shared', '--dependents', '--json');
+      const full = JSON.parse(h.stdout.join('\n'));
+      expect(full.blockers).toBeUndefined();
+      expect(full.truncated).toBe(false);
+      expect(
+        full.dependents.map((node: { slug: string }) => node.slug),
+      ).toEqual(['api', 'docs']);
+      expect(full.dependents[0].children).toEqual([
+        expect.objectContaining({ slug: 'client' }),
+        expect.objectContaining({ slug: 'docs' }),
+      ]);
+
+      h.stdout.length = 0;
+      await h.run('task', 'graph', 'client', '--blockers', '--depth=1');
+      const cut = JSON.parse(h.stdout.join('\n'));
+      expect(cut).toMatchObject({ depth: 1, truncated: true });
+      expect(cut.blockers).toEqual([
+        expect.objectContaining({
+          slug: 'api',
+          omitted: 'depth',
+          children: [],
+        }),
+      ]);
+    });
+
+    it('counts an archived dependency as satisfied, as task list does', async () => {
+      const h = await focusedHarness();
+
+      await h.run('task', 'graph', 'archive-consumer', '--json');
+      const query = JSON.parse(h.stdout.join('\n'));
+
+      expect(query).toMatchObject({
+        dependencies_satisfied: true,
+        available: true,
+      });
+      expect(query.blockers).toEqual([
+        {
+          slug: 'archived-foundation',
+          status: 'archived',
+          satisfied: true,
+          children: [],
+        },
+      ]);
+
+      h.stdout.length = 0;
+      await h.run('task', 'list', '--available', '--json');
+      expect(JSON.parse(h.stdout.join('\n')).tasks).toContainEqual(
+        expect.objectContaining({ slug: 'archive-consumer' }),
+      );
+    });
+
+    it('queries an archived task only with --archived', async () => {
+      const h = await focusedHarness();
+
+      await expect(
+        h.run('task', 'graph', 'archived-foundation'),
+      ).rejects.toMatchObject({ code: 'commander.error', exitCode: 1 });
+      expect(h.stderr.join('\n')).toContain(
+        "Task 'archived-foundation' is archived. Pass --archived to query it.",
+      );
+
+      await h.run('task', 'graph', 'archived-foundation', '--archived');
+      const query = JSON.parse(h.stdout.join('\n'));
+      expect(query).toMatchObject({ status: 'archived', available: false });
+      expect(query.dependents).toEqual([
+        expect.objectContaining({
+          slug: 'archive-consumer',
+          unblocks_on_completion: false,
+        }),
+      ]);
+    });
+
+    it('reports a missing prerequisite and rejects an unknown slug', async () => {
+      const h = await focusedHarness();
+
+      await h.run('task', 'graph', 'dangling-consumer');
+      expect(JSON.parse(h.stdout.join('\n')).blockers).toEqual([
+        {
+          slug: 'missing-target',
+          status: 'missing',
+          satisfied: false,
+          children: [],
+        },
+      ]);
+
+      await expect(h.run('task', 'graph', 'ghost')).rejects.toMatchObject({
+        code: 'commander.error',
+        exitCode: 1,
+      });
+      expect(h.stderr.join('\n')).toContain("Task 'ghost' not found.");
+    });
+
+    it('marks an unreadable prerequisite rather than calling it missing', async () => {
+      const h = await focusedHarness();
+      h.adapter.files.set(
+        '.shipbench/tasks/shared.md',
+        '---\ntitle: [unclosed\n---\n\nbody\n',
+      );
+
+      await h.run('task', 'graph', 'docs', '--blockers');
+      const query = JSON.parse(h.stdout.join('\n'));
+
+      expect(query.blockers).toContainEqual({
+        slug: 'shared',
+        status: 'unreadable',
+        satisfied: false,
+        children: [],
+      });
+    });
+
+    it('prints a tree in an interactive terminal', async () => {
+      const h = await focusedHarness(true);
+
+      await h.run('task', 'graph', 'shared', '--depth=1');
+
+      expect(h.stdout).toEqual([
+        'shared [todo]: available',
+        'Blockers: none',
+        'Dependents:',
+        '+- api [in-progress] (more beyond --depth)',
+        '`- docs [todo] (waiting on api)',
+        'Stopped at --depth 1; some branches continue past it.',
+      ]);
+    });
+
+    it('refuses focused flags without a slug and leaves the full graph alone', async () => {
+      const h = await focusedHarness();
+
+      await expect(h.run('task', 'graph', '--blockers')).rejects.toMatchObject({
+        code: 'commander.error',
+        exitCode: 1,
+      });
+      expect(h.stderr.join('\n')).toContain(
+        '--blockers, --dependents, and --depth need a task slug.',
+      );
+      await expect(
+        h.run('task', 'graph', 'api', '--depth=0'),
+      ).rejects.toMatchObject({ code: 'commander.invalidArgument' });
+
+      await h.run('task', 'graph');
+      expect(JSON.parse(h.stdout.join('\n')).api).toEqual({
+        status: 'in-progress',
+        depends_on: ['foundation', 'shared'],
+        blocks: ['client', 'docs'],
+      });
+    });
+  });
 });
 
 describe('shipbench task archive', () => {
