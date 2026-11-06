@@ -78,13 +78,13 @@ Do not pick up tasks in the `backlog` column. Backlog holds spikes and
 not-yet-committed work — information gathering that a human promotes to `todo`
 when it's ready. Select work from `todo`.
 
-`depends_on` is the authoritative dependency signal. Start with:
+`depends_on` is the authoritative dependency signal. Start with this read-only query:
 
 ```bash
 shipbench task list --available --json
 ```
 
-`--available` selects tasks from the default `todo` column whose dependencies are all in `done` or `tasks/archive/`. Archived dependencies count as satisfied. Results are ranked by configured priority, then oldest creation time.
+`--available` selects tasks from the configured default column whose dependencies are all in the `done` column or `tasks/archive/`. Archived dependencies count as satisfied. Results are ranked by configured priority, then oldest creation time, so the first result is a useful candidate rather than a mandatory assignment.
 
 That ranking is not the board's order. `--available` sorts by priority and age and does not read manual placement, while a plain `shipbench task list` returns the order the columns are actually arranged in. The two can disagree — a task sitting first in its column may come back third here — and neither is the more correct answer. JSON carries both: the array is in ranked order, and each task's `position` is its board placement, computed before the ranking. Read whichever answers the question you have.
 
@@ -97,13 +97,17 @@ shipbench task list --available --tag docs --json
 shipbench task list --available --tag docs,site --assignee agent --json
 ```
 
-`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, and `--priority` take the same comma-separated or repeated form but match a task whose value is any of the ones listed; `--limit` caps the count. A `--status` or `--priority` value that is not configured is an error naming the valid set, not a silently empty result. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
+`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, and `--priority` take the same comma-separated or repeated form but match a task whose value is any of the ones listed; `--limit` caps the count. A `--status` or `--priority` value that is not configured is an error naming the valid set, not a silently empty result. Use `--status` when the project's actionable column differs from its configured default. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
 `task search` matches each term as a case-insensitive substring by default. Add `--whole-word` to match on word boundaries, and wrap a run in literal double quotes (`task search '"exact phrase"'`) to require it to match contiguously.
 
-After selecting a slug, run `shipbench task get <slug>` to load its full frontmatter, description, and Updates.
+After selecting a slug, load that task's full frontmatter, description, and Updates:
 
-Use the other discovery commands when needed:
+```bash
+shipbench task get <slug>
+```
+
+Use the other discovery commands when the task needs more context:
 
 - **Diagnose blocked work**: `shipbench task list --blocked --json`
 - **Search titles, tags, and descriptions**: `shipbench task search "<query>" --json`
@@ -113,7 +117,7 @@ Use the other discovery commands when needed:
 - **Inspect the dependency DAG**: `shipbench task graph --json` (add `--archived` to resolve archived nodes)
 - **List archived tasks**: `shipbench task list --archived --json`
 
-Following that principle, add `--include-body` to a JSON `task list` only when every returned description and Updates array is needed. Add it to a JSON `task search` for complete matching descriptions. Prefer `task get` after narrowing when one matching task answers the question.
+Following that principle, add `--include-body` to a JSON `task list` only when you need every returned description and Updates array. Add it to a JSON `task search` when you need complete matching descriptions instead of snippets. Prefer `task get` after narrowing when one matching task answers the question.
 
 `--available` and `--blocked` are mutually exclusive and cannot be combined with `--archived`.
 
@@ -203,6 +207,7 @@ Commands work from any subdirectory of the board: the CLI uses the nearest `.shi
 - **Unarchive a task**: `shipbench task unarchive <slug>`
 - **Delete a task**: `shipbench task delete <slug>`
 - **Open the board**: `shipbench board`
+- **Watch the board in the terminal**: `shipbench board terminal` (read-only; `--status`, `--tag`, `--assignee`, `--priority`, `--flagged` narrow it)
 
 ### Direct File Operations
 

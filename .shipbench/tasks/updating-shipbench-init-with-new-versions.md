@@ -1,9 +1,9 @@
 ---
 title: 'Spike: keep scaffolded AGENTS.md and README current across ShipBench releases'
-status: todo
+status: done
 priority: medium
 created: '2026-09-21T17:09:42.734Z'
-updated: '2026-10-26T00:49:51.563Z'
+updated: '2026-11-06T20:05:17.519Z'
 tags:
   - spike
   - convention
@@ -84,6 +84,33 @@ Out of scope: `config.json` (already forward-compatible through defaults), the w
 - [Spec: scaffold generation and non-goals](../../docs/spec.md)
 - [Task templates spike](spike-investigate-task-templates-in-the-shipbench-convention.md): the same drift question for skills users copy
 - [Cross-project issue reporting spike](spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects.md): proposes a scaffold line of its own
+
+## Findings (2026-10-27)
+
+**The scaffold changes most releases, and the changelog doesn't say so.** Regenerating each published `@shipbench/core` version's scaffold (0.1.0 through 0.8.0) shows `AGENTS.md` changed in 0.2, 0.3, 0.4, 0.5, and 0.7, and changes again in the next release (the `-C` line). README changed in 0.2, 0.3, 0.4, and 0.8. The 0.3–0.5 changelogs never mention a scaffold change. An agent that works from the changelog (direction 3) would miss three releases of changes.
+
+**Hand-carrying misses things even here.** This repo updates `.shipbench/AGENTS.md` in the same commit as each template change, and its copy was still missing `shipbench board terminal`, the "Use `--status` when…" guidance, and four other template rewordings. The README had never been updated.
+
+**The exact base can always be recovered.** The scaffold is deterministic given the project name and `DEFAULT_CONFIG`, so any version's pristine text comes back exactly from its npm package: `npx shipbench@<version> init --name <name>` in an empty directory. Core doesn't need to keep old templates. All it's missing is a record of which version wrote a project's file.
+
+**Three-way merge works on this prose.** As a simulation, I took the 0.2.0 scaffold, applied this board's kinds of edits (five-column status list, the review-gate operation, a Finishing Work section, an Important bullet, different tag examples), and ran `git merge-file` against base 0.2.0 → current. Every template change landed, every customization survived, and there was one conflict: an edited example line sat next to a line the template added. The template uses one paragraph per line, so most edits replace whole lines and merge cleanly.
+
+**Without a base, a stale file merges wrong.** No published version matches this repo's file, because the board predates 0.1.0 and was carried forward by hand. The nearest version (0.8.0, 57 differing lines) already contains `board terminal`. A merge against that base therefore reads the repo's missing line as a deliberate deletion and keeps it out. That's why the stamp matters. An unstamped file that matches a published version byte for byte is pristine and can simply be replaced. That's dpkg's approach.
+
+**A line merge can't catch contradictions.** If new base text contradicts a project rule in another paragraph, such as a future "move to `done` when finished" line, the merge succeeds silently. The merged result still needs a read-through by the agent or the human. That review is the useful part of direction 3.
+
+**There's no standard to adopt.** AGENTS.md defines no include, import, or merge mechanism, only nearest-file-wins. Copier records the template version in `.copier-answers.yml`, regenerates the old version, and applies the project's diff to the new one, with inline markers or `.rej` files for conflicts. That is direction 1 + 4, with the base fetched rather than stored.
+
+**Test on this repo.** I brought `.shipbench/AGENTS.md` current by taking the current scaffold and reapplying this board's customizations: the status list, the backlog rule, the doc/site tag examples, Finishing Work, Working From a Git Worktree, Submit for review, and two Important bullets. The resulting diff touches only the six stale passages. `.shipbench/README.md` had no customizations, so it was replaced outright with the current scaffold. Sorting each difference into "stale" or "ours" took judgment for five rewordings that predate public history. Each was settled by checking that the template wording is correct for this board.
+
+## Recommendation
+
+- **The project owns `.shipbench/AGENTS.md`**, and updates come by merge. A marker-based split is ruled out: this board's rules are interleaved with the base text and contradict it ("Complete a task → `done`" against the review gate), so a ShipBench-owned region would have to become config-aware or rely on agents honouring override semantics. spec.md's "edited freely" stays; workflows.md's ownership table should change to match it.
+- **README is in scope.** It's the easy case: usually unedited, so the stamp plus byte comparison lets it be replaced.
+- **Mechanism: stamp + the published package as the base + `git merge-file` + review.** The stamp is the only code change. Everything else is a documented procedure that runs on tools users already have: npx, Git, and an agent or person for the review.
+- **No staleness warning on every command.** If anything warns, it's `init` on an existing project, which already prints a result and is the command someone runs after upgrading. That's for the stamp task to decide.
+
+Follow-ups: [stamp-scaffolded-agents-md-and-readme-with-the-shipbench-version-that-wrote-them](stamp-scaffolded-agents-md-and-readme-with-the-shipbench-version-that-wrote-them.md), then [document-updating-scaffolded-files-after-a-shipbench-upgrade](document-updating-scaffolded-files-after-a-shipbench-upgrade.md).
 
 ## Task Updates
 

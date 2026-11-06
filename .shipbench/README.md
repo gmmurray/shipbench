@@ -5,7 +5,7 @@ This directory contains the ShipBench project board for **shipbench**. Everythin
 ## Structure
 
 - `config.json` — Human-owned board configuration (columns, priorities, schema)
-- `layout.json` — Machine-managed manual task ordering
+- `layout.json` — Machine-managed partial index of manual placements
 - `tasks/` — Individual task files as Markdown with YAML frontmatter
 - `tasks/archive/` — Archived task files, kept byte-for-byte for later restore
 - `README.md` — This file. Human-facing reference for the board configuration.
@@ -16,7 +16,8 @@ This directory contains the ShipBench project board for **shipbench**. Everythin
 Tasks can be managed through any combination of:
 
 - **The ShipBench CLI** (`shipbench` commands) — recommended for scripted or agent-driven changes; centralizes slug generation, validation, timestamps, and layout updates.
-- **The Board UI** (`shipbench board`) — local kanban with live file watching.
+- **The Board UI** (`shipbench board`) — local kanban in your browser, with live file watching.
+- **The terminal board** (`shipbench board terminal`) — the same board as a read-only live view, for leaving open in a pane beside your work.
 - **Direct file editing** — always valid; task files are plain Markdown.
 
 ## `config.json` reference
@@ -72,20 +73,29 @@ Reserved for future user-defined frontmatter fields. Ignored today. Safe to leav
 
 ## `layout.json`
 
-Per-column ordered list of task slugs — this is where manual within-column ordering is persisted (drag-and-drop on the board and task mutations write here). Rules:
+`layout.json` is a partial, machine-managed index of manual placements. It is not a complete snapshot of visible board order: it can omit whole columns and unlisted tasks, never retains `done_column`, may carry stale slugs until a relevant write prunes them, and may be absent or gitignored.
 
+Visible order comes from `config.json`, the task files, and this partial index together:
+
+- Configured columns render in `config.columns` order, followed by Uncategorized tasks.
 - Tasks whose slug appears in `layout[columnId]` render in that order.
 - Tasks with a matching status but no layout entry render below, sorted by `created` desc.
 - Slugs in `layout` that don't correspond to a task on disk are ignored at render time.
 - The Uncategorized column and the `done_column` both ignore `layout` entirely.
 - The CLI and Board do not record `layout[done_column]`; any existing entry is removed on the next layout write.
 
-Treat `layout.json` as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but fresh clones will then fall back to deterministic `created`-descending order for unlisted tasks.
+Do not read `layout.json` alone to determine board order. `shipbench task list --json` returns live tasks in canonical board order, including each task's zero-based `position` within its column. Direct file readers must apply the rules above. Treat the index as machine-managed: do not hand-edit or hand-order it. You may gitignore it if ordering should stay machine-local, but fresh clones will then fall back to deterministic `created`-descending order for unlisted tasks.
 
 ## Task files
 
 Every file in `tasks/` is a Markdown document with a YAML frontmatter block. See `AGENTS.md` for the frontmatter schema and field rules — the same rules apply whether a human or an agent is editing.
 
-Each task may end with a reserved `## Task Updates` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append an entry with `shipbench task comment <slug> "What changed and why."`; the CLI writes its ISO 8601 heading and updates the task timestamp. Pass `--body-file <path>` instead of the positional text when an update runs to several lines, so the prose never passes through shell quoting or encoding.
+Read the narrowest thing that answers the question. Because each task has a slug, read one task when one task is enough. Use list, search, or archive reads only for broader questions.
+
+Write a description with the task instead of after it: `shipbench task create "Task title" --body-file description.md`, and `shipbench task edit <slug> --body-file revised.md` to replace one. ShipBench reads the file as UTF-8 itself, so multi-line Markdown never passes through shell quoting or a shell's encoding.
+
+Each task may end with a reserved `## Task Updates` section. Use it for time-anchored decisions, pivots, and external events that would lose meaning without their timestamp. Keep timeless facts in the description instead. Append with `shipbench task comment <slug> "What changed and why."`, edit text with `shipbench task comment edit <slug> <index> "Corrected text."`, or delete with `shipbench task comment delete <slug> <index>`. Indices are zero-based. Edits preserve the entry's timestamp; Git preserves earlier text and deleted entries.
+
+Both commands also take `--body <text>` and `--body-file <path>` in place of the positional text, and `--body-file` is the one to reach for when an update runs to several lines: ShipBench reads the file as UTF-8 itself, so the prose never passes through shell quoting or a shell's encoding.
 
 Archived tasks live in `tasks/archive/` and are excluded from normal board reads. Archiving moves the file without changing its frontmatter or timestamps; unarchiving restores the same file to `tasks/`.
