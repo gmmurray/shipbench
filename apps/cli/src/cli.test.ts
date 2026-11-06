@@ -2084,6 +2084,90 @@ describe('shipbench task list availability filters', () => {
   });
 });
 
+describe('--exclude-tag on task list and search', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    await h.run('task', 'create', 'Write plan', '--tags=Plan,docs');
+    await h.run('task', 'create', 'Write docs', '--tags=docs');
+    await h.run('task', 'create', 'Run spike', '--tags=spike');
+    await h.run('task', 'create', 'Ship api', '--depends-on=run-spike');
+    await h.run('task', 'create', 'Fix bug');
+    // Availability ranks by age, so pin it: `write-plan` ranks first.
+    for (const [index, slug] of [
+      'write-plan',
+      'write-docs',
+      'run-spike',
+      'ship-api',
+      'fix-bug',
+    ].entries()) {
+      setTaskCreated(h, slug, `2026-01-0${index + 1}T00:00:00.000Z`);
+    }
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+  });
+
+  const listed = async (...args: string[]) => {
+    h.stdout.length = 0;
+    await h.run('task', 'list', ...args, '--json');
+    return JSON.parse(h.stdout.join('\n')).tasks.map(
+      (task: { slug: string }) => task.slug,
+    );
+  };
+
+  it('drops a task carrying any excluded tag, ignoring case', async () => {
+    expect(await listed('--exclude-tag=plan,SPIKE')).toEqual([
+      'write-docs',
+      'ship-api',
+      'fix-bug',
+    ]);
+    expect(
+      await listed('--exclude-tag', 'plan', '--exclude-tag', 'spike'),
+    ).toEqual(['write-docs', 'ship-api', 'fix-bug']);
+  });
+
+  it('combines with --tag, and an overlap is an empty result, not an error', async () => {
+    expect(await listed('--tag=docs', '--exclude-tag=plan')).toEqual([
+      'write-docs',
+    ]);
+    expect(await listed('--tag=docs', '--exclude-tag=docs')).toEqual([]);
+  });
+
+  it('combines with --available and applies before --limit', async () => {
+    expect(await listed('--available', '--exclude-tag=plan')).toEqual([
+      'write-docs',
+      'run-spike',
+      'fix-bug',
+    ]);
+    expect(
+      await listed('--available', '--exclude-tag=plan', '--limit=1'),
+    ).toEqual(['write-docs']);
+  });
+
+  it('applies to archived tasks and to text output', async () => {
+    await h.run('task', 'archive', 'write-plan');
+    expect(await listed('--archived', '--exclude-tag=plan')).toEqual([]);
+
+    h.stdout.length = 0;
+    await h.run('task', 'list', '--exclude-tag=docs,spike');
+    expect(h.stdout.filter(line => line.startsWith('['))).toEqual([
+      '[todo] Ship api (ship-api)',
+      '[todo] Fix bug (fix-bug)',
+    ]);
+  });
+
+  it('filters task search the same way', async () => {
+    await h.run('task', 'search', 'write', '--exclude-tag=plan', '--json');
+    expect(
+      JSON.parse(h.stdout.join('\n')).matches.map(
+        (match: { slug: string }) => match.slug,
+      ),
+    ).toEqual(['write-docs']);
+  });
+});
+
 describe('shipbench task search', () => {
   async function searchHarness(): Promise<Harness> {
     const h = harness();
@@ -2907,6 +2991,7 @@ describe('shipbench board terminal', () => {
       '--assignee',
       '--priority',
       '--tag',
+      '--exclude-tag',
       '--flagged',
     ]);
     // The browser flags live on `web` alone; bare `board` reaches them because

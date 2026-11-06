@@ -347,6 +347,7 @@ Lists live tasks in board order. Configured columns follow `config.columns`; tas
 | `-a, --assignee <assignees>` | Filter by assignee; comma-separated or repeatable, matching any listed value. |
 | `-p, --priority <priorities>` | Filter by priority; comma-separated or repeatable, matching any listed value. An unconfigured value is an error. |
 | `--tag <tag>` | Filter by tag; comma-separated or repeatable. Multiple values use AND semantics. Matching is case-insensitive. |
+| `--exclude-tag <tag>` | Leave out tasks carrying any of these tags; comma-separated or repeatable, case-insensitive. |
 | `--flagged` | Return only flagged tasks. |
 | `--available` | Return tasks in the actionable column whose dependencies are satisfied. |
 | `--blocked` | Return tasks in the actionable column with at least one unsatisfied dependency. |
@@ -356,13 +357,15 @@ Lists live tasks in board order. Configured columns follow `config.columns`; tas
 | `--include-body` | With `--json`, add each description and parsed Updates. |
 
 Filters combine with AND across flags. Within `--status`, `--assignee`, and
-`--priority` a list matches any of its values; `--tag` narrows with AND:
+`--priority` a list matches any of its values; `--tag` narrows with AND, and
+`--exclude-tag` drops a task carrying any of its tags:
 
 ```bash
 shipbench task list --status todo --priority high --tag backend --json
 shipbench task list --status todo,in-progress --json
 shipbench task list --tag backend --tag auth --json
 shipbench task list --tag backend,auth --json
+shipbench task list --available --exclude-tag plan,spike --json
 ```
 
 #### Available and blocked work
@@ -426,6 +429,7 @@ Two opt-in controls tighten how a term matches, without changing the corpus or t
 | `-a, --assignee <assignees>` | Restrict to tasks with any of these assignees; comma-separated or repeatable. |
 | `-p, --priority <priorities>` | Restrict to tasks with any of these priorities; comma-separated or repeatable. An unconfigured value is an error. |
 | `--tag <tag>` | Restrict by tag; comma-separated or repeatable, AND semantics, case-insensitive. |
+| `--exclude-tag <tag>` | Leave out tasks carrying any of these tags; comma-separated or repeatable, case-insensitive. |
 | `--flagged` | Restrict to flagged tasks. |
 | `--available` | Restrict to actionable-column tasks whose dependencies are satisfied. |
 | `--blocked` | Restrict to actionable-column tasks with at least one unsatisfied dependency. |
@@ -436,7 +440,7 @@ Two opt-in controls tighten how a term matches, without changing the corpus or t
 | `--json` | Emit machine-readable JSON. |
 | `--include-body` | With `--json`, add each complete matching description and its Task Updates. |
 
-These are `shipbench task list`'s own filters, applied to the candidate set before the search runs — they narrow which tasks are searched and never change the relevance order. They combine with AND across flags, a list within `--status` / `--assignee` / `--priority` matches any of its values, `--tag` narrows with AND, and `--available` / `--blocked` use `config.default_column` unless `--status` overrides it, exactly as they do for `task list`.
+These are `shipbench task list`'s own filters, applied to the candidate set before the search runs — they narrow which tasks are searched and never change the relevance order. They combine with AND across flags, a list within `--status` / `--assignee` / `--priority` matches any of its values, `--tag` narrows with AND, `--exclude-tag` drops a task carrying any of its tags, and `--available` / `--blocked` use `config.default_column` unless `--status` overrides it, exactly as they do for `task list`.
 
 `--archived` and `--all` are mutually exclusive. `--available` and `--blocked` are mutually exclusive, and neither can be combined with `--archived` or `--all` — availability is a live-column concept.
 
@@ -583,7 +587,7 @@ The server binds to `127.0.0.1`. If the preferred port is occupied, it tries the
 #### `shipbench board terminal`
 
 ```bash no-copy
-shipbench board terminal [-s <statuses>] [--tag <tag>] [-a <assignee>] [-p <priority>] [--flagged]
+shipbench board terminal [-s <statuses>] [--tag <tag>] [--exclude-tag <tag>] [-a <assignee>] [-p <priority>] [--flagged]
 ```
 
 Renders the board in the terminal and repaints it as files change. Aliases: `term`, `tui`.
@@ -594,6 +598,7 @@ It is **read-only and takes no keyboard input** — Ctrl-C exits, nothing else i
 | --- | --- |
 | `-s, --status <statuses>` | Comma-separated column ids to render; defaults to every configured column. Here the list chooses which columns appear, rather than filtering tasks the way `task list --status` does. |
 | `--tag <tag>` | Comma-separated or repeatable, with AND semantics. |
+| `--exclude-tag <tag>` | Leave out tasks carrying any of these tags. Comma-separated or repeatable. |
 | `-a, --assignee <assignee>` | Exact match. |
 | `-p, --priority <priority>` | Exact match. |
 | `--flagged` | Only flagged tasks. |

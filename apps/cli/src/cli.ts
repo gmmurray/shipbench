@@ -143,6 +143,7 @@ interface RawTaskFilters {
   assignee?: string[];
   priority?: string[];
   tag?: string[];
+  excludeTag?: string[];
   flagged?: boolean;
 }
 
@@ -151,6 +152,7 @@ interface ResolvedTaskFilters {
   assignees: string[];
   priorities: string[];
   tags: string[];
+  excludedTags: string[];
   flagged: boolean;
 }
 
@@ -179,14 +181,15 @@ function resolveTaskFilters(
     priorities,
     assignees: raw.assignee ?? [],
     tags: raw.tag ?? [],
+    excludedTags: raw.excludeTag ?? [],
     flagged: Boolean(raw.flagged),
   };
 }
 
 /**
  * `--status`, `--priority`, and `--assignee` each match a task whose value is
- * any of the ones listed; `--tag` narrows with AND, and `--flagged` keeps only
- * flagged tasks. `ignoreStatus` is set when `--available` / `--blocked` has
+ * any of the ones listed; `--tag` narrows with AND, `--exclude-tag` drops a
+ * task carrying any of its tags, and `--flagged` keeps only flagged tasks. `ignoreStatus` is set when `--available` / `--blocked` has
  * already used the status list to pick the candidate column.
  */
 function taskMatchesFilters(
@@ -218,6 +221,13 @@ function taskMatchesFilters(
   }
   if (filters.flagged && !isTaskFlagged(task)) return false;
   const taskTags = (frontmatter.tags ?? []).map(tag => tag.toLowerCase());
+  if (
+    filters.excludedTags.some(unwanted =>
+      taskTags.includes(unwanted.toLowerCase()),
+    )
+  ) {
+    return false;
+  }
   return filters.tags.every(wanted => taskTags.includes(wanted.toLowerCase()));
 }
 
@@ -1328,6 +1338,11 @@ export function createCli(opts: CliOptions): Command {
       'Filter by tag (comma-separated or repeatable with AND semantics)',
       accumulateCommaList,
     )
+    .option(
+      '--exclude-tag <tag>',
+      'Leave out tasks carrying any of these tags (comma-separated or repeatable)',
+      accumulateCommaList,
+    )
     .option('--flagged', 'Only tasks with a flag set')
     .addOption(
       new Option(
@@ -1468,6 +1483,11 @@ export function createCli(opts: CliOptions): Command {
     .option(
       '--tag <tag>',
       'Filter by tag (comma-separated or repeatable with AND semantics)',
+      accumulateCommaList,
+    )
+    .option(
+      '--exclude-tag <tag>',
+      'Leave out tasks carrying any of these tags (comma-separated or repeatable)',
       accumulateCommaList,
     )
     .option('--flagged', 'Only tasks with a flag set')
@@ -1861,6 +1881,11 @@ export function createCli(opts: CliOptions): Command {
       'Filter by tag (comma-separated or repeatable with AND semantics)',
       accumulateCommaList,
     )
+    .option(
+      '--exclude-tag <tag>',
+      'Leave out tasks carrying any of these tags (comma-separated or repeatable)',
+      accumulateCommaList,
+    )
     .option('--flagged', 'Only tasks with a flag set')
     .addHelpText(
       'after',
@@ -1874,6 +1899,7 @@ export function createCli(opts: CliOptions): Command {
         filters: {
           statuses: raw.status,
           tags: raw.tag,
+          excludedTags: raw.excludeTag,
           assignee: raw.assignee,
           priority: raw.priority,
           flagged: raw.flagged,

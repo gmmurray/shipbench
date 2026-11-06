@@ -21,6 +21,8 @@ export interface TuiFilters {
   /** Column ids to render. Empty means every configured column. */
   statuses?: string[];
   tags?: string[];
+  /** Tasks carrying any of these tags are left out. */
+  excludedTags?: string[];
   assignee?: string;
   priority?: string;
   /** Only tasks with a flag set. */
@@ -89,12 +91,11 @@ function matchesFilters(task: Task, filters: TuiFilters): boolean {
     return false;
   }
   if (filters.flagged && !isTaskFlagged(task)) return false;
+  const tags = (task.frontmatter.tags ?? []).map(tag => tag.toLowerCase());
+  const unwanted = filters.excludedTags ?? [];
+  if (unwanted.some(tag => tags.includes(tag.toLowerCase()))) return false;
   const wanted = filters.tags ?? [];
-  if (wanted.length > 0) {
-    const tags = (task.frontmatter.tags ?? []).map(tag => tag.toLowerCase());
-    if (!wanted.every(tag => tags.includes(tag.toLowerCase()))) return false;
-  }
-  return true;
+  return wanted.every(tag => tags.includes(tag.toLowerCase()));
 }
 
 export function hasTaskFilters(filters: TuiFilters): boolean {
@@ -102,7 +103,8 @@ export function hasTaskFilters(filters: TuiFilters): boolean {
     filters.assignee ||
       filters.priority ||
       filters.flagged ||
-      (filters.tags && filters.tags.length > 0),
+      (filters.tags && filters.tags.length > 0) ||
+      (filters.excludedTags && filters.excludedTags.length > 0),
   );
 }
 

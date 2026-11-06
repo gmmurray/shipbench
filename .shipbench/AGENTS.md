@@ -97,7 +97,7 @@ shipbench task list --available --tag docs --json
 shipbench task list --available --tag docs,site --assignee agent --json
 ```
 
-`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--status`, `--assignee`, and `--priority` take the same comma-separated or repeated form but match a task whose value is any of the ones listed; `--limit` caps the count. A `--status` or `--priority` value that is not configured is an error naming the valid set, not a silently empty result. Use `--status` when the project's actionable column differs from its configured default. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
+`--tag` accepts comma-separated values or repeated flags and uses AND semantics. `--exclude-tag` takes the same form and drops a task carrying any of the listed tags, so `--available --exclude-tag plan` leaves out tasks that are not work items. `--status`, `--assignee`, and `--priority` take the same comma-separated or repeated form but match a task whose value is any of the ones listed; `--limit` caps the count. A `--status` or `--priority` value that is not configured is an error naming the valid set, not a silently empty result. Use `--status` when the project's actionable column differs from its configured default. `shipbench task search` takes the same filters — including `--available` / `--blocked` — so "ready work that mentions X" is one query rather than a search plus a hand filter.
 
 `task search` matches each term as a case-insensitive substring by default. Add `--whole-word` to match on word boundaries, and wrap a run in literal double quotes (`task search '"exact phrase"'`) to require it to match contiguously.
 
@@ -183,7 +183,7 @@ Commands work from any subdirectory of the board: the CLI uses the nearest `.shi
 - **List available tasks**: `shipbench task list --available --json`
 - **List blocked tasks**: `shipbench task list --blocked --json`
 - **List flagged tasks**: `shipbench task list --flagged --json`
-- **Filter by tags**: `shipbench task list --available --tag docs,site --json`
+- **Filter by tags**: `shipbench task list --available --tag docs,site --json` (`--exclude-tag` leaves out tasks carrying any listed tag)
 - **Read one task**: `shipbench task get <slug>`
 - **Search tasks**: `shipbench task search "<query>" --json`
 - **Inspect dependencies**: `shipbench task graph --json`
@@ -207,7 +207,7 @@ Commands work from any subdirectory of the board: the CLI uses the nearest `.shi
 - **Unarchive a task**: `shipbench task unarchive <slug>`
 - **Delete a task**: `shipbench task delete <slug>`
 - **Open the board**: `shipbench board`
-- **Watch the board in the terminal**: `shipbench board terminal` (read-only; `--status`, `--tag`, `--assignee`, `--priority`, `--flagged` narrow it)
+- **Watch the board in the terminal**: `shipbench board terminal` (read-only; `--status`, `--tag`, `--exclude-tag`, `--assignee`, `--priority`, `--flagged` narrow it)
 
 ### Direct File Operations
 

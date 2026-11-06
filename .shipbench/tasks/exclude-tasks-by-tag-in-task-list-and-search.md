@@ -1,12 +1,12 @@
 ---
 title: Exclude tasks by tag in task list and search
-status: todo
+status: done
 priority: medium
 tags:
   - cli
   - convention
 created: '2026-10-27T20:05:59.167Z'
-updated: '2026-10-27T20:05:59.167Z'
+updated: '2026-11-06T20:24:40.881Z'
 ---
 
 `--tag` on `task list` and `task search` can only include tasks: a task must carry every listed tag. There is no way to leave tasks out by tag, so "ready work, minus anything tagged `plan`" (or `spike`, or `blocked-upstream`) means filtering the JSON by hand or writing a prose rule an agent has to remember.
@@ -28,3 +28,8 @@ Add a repeatable, comma-separated exclusion flag to `task list` and `task search
 - Tests cover any-tag exclusion, combining it with `--tag`, and combining it with `--available`.
 - The scaffolded `.shipbench/AGENTS.md` that `init` writes, this repo's copy, and the CLI reference docs on the site describe the flag alongside `--tag`.
 - A changeset for the CLI. This is a new flag, so it is a minor bump.
+
+## Task Updates
+
+### 2026-11-06T20:20:56.544Z
+Name settled as --exclude-tag: it sits beside --tag in help output and says what it does; --not-tag and --without-tag read less plainly. TUI: board terminal gains the same flag rather than staying include-only. It already mirrors list's --tag and --flagged, and a tag that marks a task as not-a-work-item (plan) is just as much noise on a board left open in a pane. Shipped with tests for any-tag exclusion (case-insensitive, comma and repeated forms), --tag overlap returning empty, --available with --limit applied after exclusion, --archived, text output, task search, and the TUI model. Docs: CLI README, site cli-reference (list, search, board terminal), scaffolded AGENTS.md and this board's copy. Minor changeset.

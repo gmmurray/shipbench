@@ -311,6 +311,14 @@ describe('task filters', () => {
     expect(frame).toContain('1/2');
   });
 
+  it('leaves out tasks carrying an excluded tag, in any case', () => {
+    const built = buildBoardModel(cfg, tasks, [], { excludedTags: ['SITE'] });
+    expect(built.filtered).toBe(true);
+    const todo = built.columns.find(c => c.id === 'todo');
+    expect(todo?.tasks.map(t => t.slug)).toEqual(['a']);
+    expect(todo?.total).toBe(2);
+  });
+
   it('applies the done cap after filtering, not before', () => {
     // Capping first reported "+51 more" on this board's done column where the
     // hidden tasks had never been checked against the tag. One done task carries
