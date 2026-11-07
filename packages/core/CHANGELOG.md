@@ -1,5 +1,18 @@
 # @shipbench/core
 
+## 0.9.0
+
+### Minor Changes
+
+- 08ab2d1: `queryTaskDependencies` walks the dependency chain around one task: what it depends on, what depends on it, or both, optionally bounded by `depth`. Readiness follows `listAvailableTasks`, and direct dependents report `unblocks_on_completion` and `waiting_on`. Each slug is expanded once per side, at its shallowest occurrence. A node whose neighbors aren't listed carries `omitted` (`repeat`, `cycle`, or `depth`), and `truncated` reports when `depth` cut a branch. Missing and unreadable dependencies, and a `depends_on` that isn't a list of slugs, are reported rather than dropped. The function is pure and exported from the main entry with its `TaskDependencyQuery*` types.
+  
+  The `.shipbench/AGENTS.md` that `initProject` writes now describes `shipbench task graph <slug>`. Existing projects keep the file they have.
+- 37f2e13: `TaskFrontmatter` gains an optional `related` slug list. `createTask` and `updateTask` reject a self-reference or a slug that matches no live or archived task file, checking only the slugs a write adds. Reads warn on a dangling or malformed value with field `related`.
+  
+  `listTasks` now lists `tasks/archive/` without reading it, and returns the slugs as `archivedSlugs` on `TaskReadResult`. A `related` link to an archived task is therefore not reported as dangling.
+  
+  The new `@shipbench/core/related` subpath exports `createRelatedIndex` and `relatedSlugs`. Both are pure, and both are also exported from the main entry. `createRelatedIndex` resolves associations in both directions as `RelatedTask` entries.
+
 ## 0.8.0
 
 ### Minor Changes

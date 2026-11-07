@@ -1,5 +1,17 @@
 # @shipbench/board
 
+## 0.9.0
+
+### Minor Changes
+
+- 37f2e13: The detail view edits a task's `related` list, and shows associations recorded on other tasks as read-only. Targets it cannot resolve are kept when the list is saved. A host's `listTasks` should return `archivedSlugs` so that archived targets read as archived before the archive view loads. Without it, they read as unresolved.
+
+### Patch Changes
+
+- Updated dependencies [08ab2d1]
+- Updated dependencies [37f2e13]
+  - @shipbench/core@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes
