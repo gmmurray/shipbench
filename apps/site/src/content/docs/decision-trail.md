@@ -3,7 +3,7 @@ title: Tracing a Decision
 description: Link related tasks and record decisions as Task Updates, so you or an agent can later work out why the project took the shape it did.
 group: Guides
 order: 3
-updated: 2026-09-24
+updated: 2026-11-07
 ---
 
 Months into a project, the question is often "why did we build it this way?" If the tasks that directed the work link to each other and record their decisions as they happen, you can answer that from the board. An agent can search for the right starting task, then follow links back through the earlier ones for as long as the question needs.
@@ -58,7 +58,7 @@ From there, `shipbench task get <slug>` loads a task in full, including its link
 
 An agent with the repository checked out can do all of the above. A question like "how did we decide to use SQLite?" is enough: the agent searches, reads the matching task, follows its links, and stops when it has an answer.
 
-For the trail to exist, agents also have to write it. The instructions `shipbench init` scaffolds teach Task Updates but say nothing about linking tasks. If you want agents to link as they go, paste this into your repository's root `AGENTS.md`:
+For the trail to exist, agents also have to write it. The instructions `shipbench init` scaffolds teach Task Updates and the `related` field, but they don't ask agents to link as they work. If you want agents to link as they go, paste this into your repository's root `AGENTS.md`:
 
 ```text
 ## Task board: leave a trail
@@ -66,7 +66,8 @@ For the trail to exist, agents also have to write it. The instructions `shipbenc
 When you create a task or write a Task Update:
 
 - Link to related tasks with a relative Markdown link to their file, for
-  example [Choose a storage layer](choose-a-storage-layer.md).
+  example [Choose a storage layer](choose-a-storage-layer.md), and add
+  their slugs to the task's `related` field so the link survives archiving.
 - When you make a decision, record it as a Task Update on the task you are
   working from: what you decided, why, and links to any task that led to it.
 
@@ -81,5 +82,5 @@ doesn't cover it.
 
 - Nothing is captured automatically. Decisions that weren't written down can't be found.
 - Updates record what someone believed at the time. A later Update can correct an earlier one, and it's worth doing when a decision changes.
-- Links to a task point at its path in `tasks/`. Once that task is archived it moves to `tasks/archive/`, so the link stops opening it on the board. `task search --all` still finds it by slug.
+- A Markdown link to a task is a path in `tasks/`. Once that task is archived it moves to `tasks/archive/`, and the link breaks in anything that follows paths, such as GitHub. The board shows the archived file's path instead, `task archive` names the live tasks that link to what it archived, and a slug in `related` keeps resolving. `task search --all` finds the task by slug either way.
 - The board's search covers descriptions and Updates, but only for live tasks. Use `task search --all` to include archived ones.

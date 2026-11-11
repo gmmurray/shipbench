@@ -32,6 +32,7 @@ import {
   type TaskFrontmatter,
   taskFileSlugs,
   taskFlag,
+  tasksLinkingTo,
   type UnreadableTaskFile,
   unarchiveTask,
   unreadableUpdatesWarning,
@@ -1973,6 +1974,20 @@ export function createCli(opts: CliOptions): Command {
       }
 
       const config = await loadCliConfig();
+      // Archiving rewrites nobody's links, so a live task's relative link to an
+      // archived one stops resolving. Name those tasks without blocking: the
+      // links are prose, and fixing them is the writer's call.
+      const warnAboutLinksToArchived = async (slugs: string[]) => {
+        if (slugs.length === 0) return;
+        const { tasks } = await listTasks(adapter, config);
+        for (const archivedSlug of slugs) {
+          const linking = tasksLinkingTo(tasks, archivedSlug);
+          if (linking.length === 0) continue;
+          output.warning(
+            `${linking.join(', ')} ${linking.length === 1 ? 'links' : 'link'} to ${archivedSlug}, which is now at archive/${archivedSlug}.md. Update the link, or name ${archivedSlug} in related.`,
+          );
+        }
+      };
       if (raw.done) {
         const { tasks } = await listTasks(adapter, config);
         const doneTasks = tasks
@@ -1996,6 +2011,7 @@ export function createCli(opts: CliOptions): Command {
           archived.push(await archiveTask(adapter, config, candidate.slug));
           if (!raw.json) chrome(`Archived task: ${candidate.slug}`);
         }
+        await warnAboutLinksToArchived(archived.map(task => task.slug));
         if (raw.json) {
           data(JSON.stringify(archived.map(taskJson), null, 2));
           return;
@@ -2010,9 +2026,10 @@ export function createCli(opts: CliOptions): Command {
         });
         if (raw.json) {
           printTask(archived);
-          return;
+        } else {
+          chrome(`Archived task: ${slug}`);
         }
-        chrome(`Archived task: ${slug}`);
+        await warnAboutLinksToArchived([archived.slug]);
       } catch (error) {
         if (error instanceof ArchiveBlockedError) {
           throw new Error(

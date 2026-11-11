@@ -184,4 +184,70 @@ describe('Markdown link handling', () => {
       'https://github.com/solo/repo/blob/HEAD/.shipbench/tasks/write-tests.md',
     );
   });
+
+  describe('task links in the bare form and across the archive', () => {
+    const linking: Task = {
+      ...(tasks[0] as Task),
+      body: [
+        'Follows [the bare link](write-tests.md) and [the archived decision](choose-a-store.md).',
+        '',
+        'Also [restored work](./archive/write-tests.md) and [the readme](README.md).',
+        '',
+        '## Notes',
+      ].join('\n'),
+      comments: [],
+    };
+    const listTasks = vi.fn(async () => ({
+      tasks: [linking, tasks[1] as Task],
+      warnings: [],
+      unreadable: [],
+      archivedSlugs: ['choose-a-store'],
+    }));
+
+    it('opens a live task from a bare link', async () => {
+      const user = await openSetupAuth(api({ resolveRepoLink, listTasks }));
+
+      await user.click(screen.getByRole('link', { name: 'the bare link' }));
+      expect(
+        await screen.findByText('Cover the link handling.'),
+      ).toBeInTheDocument();
+    });
+
+    it('opens a live task whose link still names the archive', async () => {
+      const user = await openSetupAuth(api({ resolveRepoLink, listTasks }));
+
+      await user.click(screen.getByRole('link', { name: 'restored work' }));
+      expect(
+        await screen.findByText('Cover the link handling.'),
+      ).toBeInTheDocument();
+    });
+
+    it('sends an archived target to its archive path', async () => {
+      await openSetupAuth(api({ resolveRepoLink, listTasks }));
+
+      expect(
+        screen.getByRole('link', { name: 'the archived decision' }),
+      ).toHaveAttribute(
+        'href',
+        'https://github.com/solo/repo/blob/HEAD/.shipbench/tasks/archive/choose-a-store.md',
+      );
+    });
+
+    it('shows the archive path when the host offers no destination', async () => {
+      await openSetupAuth(api({ listTasks }));
+
+      expect(
+        screen.getByText('.shipbench/tasks/archive/choose-a-store.md'),
+      ).toBeInTheDocument();
+    });
+
+    it('leaves a bare file that names no task at the repo root', async () => {
+      await openSetupAuth(api({ resolveRepoLink, listTasks }));
+
+      expect(screen.getByRole('link', { name: 'the readme' })).toHaveAttribute(
+        'href',
+        'https://github.com/solo/repo/blob/HEAD/README.md',
+      );
+    });
+  });
 });

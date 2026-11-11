@@ -32,12 +32,15 @@ function MarkdownLink({ href, children, node: _node, ...props }: AnchorProps) {
   const link = classifyLink(href ?? '');
   const selectTask = useBoardStore(state => state.selectTask);
   const resolveRepoLink = useBoardStore(state => state.resolveRepoLink);
-  const linkedTaskSlug = useBoardStore(state =>
-    link.kind === 'repo' &&
-    link.taskSlug !== null &&
-    state.tasks.some(task => task.slug === link.taskSlug)
-      ? link.taskSlug
-      : null,
+  const taskSlug = link.kind === 'repo' ? link.taskSlug : null;
+  const linkedTask = useBoardStore(state =>
+    taskSlug === null
+      ? null
+      : state.tasks.some(task => task.slug === taskSlug)
+        ? 'live'
+        : state.archivedSlugs.includes(taskSlug)
+          ? 'archived'
+          : null,
   );
 
   if (!href) return <>{children}</>;
@@ -60,14 +63,16 @@ function MarkdownLink({ href, children, node: _node, ...props }: AnchorProps) {
 
   // A link to another task opens it in place. This needs nothing from the host
   // — the destination is the board itself.
-  if (linkedTaskSlug) {
+  // The link may still name the live path after the task was archived (or the
+  // archive path after it was restored), so it opens whichever exists now.
+  if (linkedTask === 'live' && taskSlug) {
     return (
       <a
         href={href}
         {...props}
         onClick={event => {
           event.preventDefault();
-          selectTask(linkedTaskSlug);
+          selectTask(taskSlug);
         }}
       >
         {children}
@@ -75,14 +80,18 @@ function MarkdownLink({ href, children, node: _node, ...props }: AnchorProps) {
     );
   }
 
-  const resolved = resolveRepoLink
-    ? safeHref(resolveRepoLink(link.path))
-    : null;
+  // The board does not open archived tasks, so an archived target goes where
+  // its file is now rather than where the link says it was.
+  const path =
+    linkedTask === 'archived'
+      ? `.shipbench/tasks/archive/${taskSlug}.md`
+      : link.path;
+  const resolved = resolveRepoLink ? safeHref(resolveRepoLink(path)) : null;
 
   // No reachable destination — the CLI board, or a host that declined this
   // path. A visible path the reader can act on beats an anchor that 404s.
   if (!resolved) {
-    return <span className="sb-md-path">{`${link.path}${link.suffix}`}</span>;
+    return <span className="sb-md-path">{`${path}${link.suffix}`}</span>;
   }
 
   return (

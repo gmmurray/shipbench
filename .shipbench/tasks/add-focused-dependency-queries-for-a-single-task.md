@@ -1,6 +1,6 @@
 ---
 title: Add focused dependency queries for a single task
-status: review
+status: done
 priority: medium
 tags:
   - cli
@@ -8,7 +8,7 @@ tags:
   - dependencies
   - agents
 created: '2026-09-06T18:32:58.422Z'
-updated: '2026-11-06T21:02:13.243Z'
+updated: '2026-11-06T21:08:19.886Z'
 ---
 
 The CLI exposes the full dependency graph, including reverse relationships. Let an agent or human answer a narrower question without reading the entire project: what blocks this task, what lies behind those blockers, and what would this task unblock?

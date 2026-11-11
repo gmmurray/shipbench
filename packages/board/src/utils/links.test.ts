@@ -64,11 +64,31 @@ describe('classifyLink', () => {
     });
   });
 
-  it('does not treat an archived task as a live one', () => {
+  it('recognizes a bare sibling task file, keeping the repo-root path as the fallback', () => {
+    expect(classifyLink('build-api.md#decision')).toEqual({
+      kind: 'repo',
+      path: 'build-api.md',
+      suffix: '#decision',
+      taskSlug: 'build-api',
+    });
+  });
+
+  it('recognizes an archived task file in every form', () => {
     expect(classifyLink('./archive/build-api.md')).toMatchObject({
       path: '.shipbench/tasks/archive/build-api.md',
-      taskSlug: null,
+      taskSlug: 'build-api',
     });
+    expect(classifyLink('archive/build-api.md')).toMatchObject({
+      taskSlug: 'build-api',
+    });
+    expect(classifyLink('.shipbench/tasks/archive/build-api.md')).toMatchObject(
+      { taskSlug: 'build-api' },
+    );
+  });
+
+  it('does not read a deeper bare path or a root-relative file as a task', () => {
+    expect(classifyLink('docs/spec.md')).toMatchObject({ taskSlug: null });
+    expect(classifyLink('/README.md')).toMatchObject({ taskSlug: null });
   });
 
   it('classifies http(s) and protocol-relative URLs as external', () => {

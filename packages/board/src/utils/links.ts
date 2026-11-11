@@ -15,8 +15,9 @@ export type BoardLink =
   /**
    * A path inside the repo, resolved to repo-root-relative form. `suffix` holds
    * any query/hash to re-append after the host names a destination. `taskSlug`
-   * is set when the path names a live task file, which the Board can open
-   * in-place instead of navigating away.
+   * is set when the href names a task file by one of the convention's forms.
+   * It is a candidate: the renderer checks it against the live tasks and the
+   * archive, because only the board knows which one holds it now.
    */
   | {
       kind: 'repo';
@@ -36,7 +37,14 @@ const TASK_DIR = '.shipbench/tasks/';
 const BASE_ORIGIN = 'https://board.shipbench.invalid';
 
 const SCHEME = /^([a-z][a-z0-9+.-]*):/i;
-const TASK_FILE = /^\.shipbench\/tasks\/([^/]+)\.md$/;
+/** A task file in `tasks/` or `tasks/archive/`. Slugs are unique across both. */
+const TASK_FILE = /^\.shipbench\/tasks\/(?:archive\/)?([^/]+)\.md$/;
+/**
+ * A bare sibling (`build-api.md`) or a bare path into the archive
+ * (`archive/build-api.md`). Bare paths resolve against the repo root, but these
+ * are how task bodies conventionally link to each other.
+ */
+const BARE_TASK_FILE = /^(?:archive\/)?([^/]+)\.md$/;
 
 function decodePath(pathname: string): string | null {
   try {
@@ -68,12 +76,11 @@ export function classifyLink(href: string): BoardLink {
   // `./` and `../` honour that — task files sit in `.shipbench/tasks/`. A bare
   // path (`apps/site/foo.ts`) means the same thing by the spec, which would make
   // it `.shipbench/tasks/apps/site/foo.ts` — never what an author intended. Bare
-  // paths resolve against the repo root instead. Anything genuinely adjacent to
-  // a task file is another task, and those are matched below by slug anyway.
-  const base =
-    value.startsWith('./') || value.startsWith('../')
-      ? `${BASE_ORIGIN}/${TASK_DIR}`
-      : `${BASE_ORIGIN}/`;
+  // paths resolve against the repo root instead. A bare `build-api.md` is the
+  // exception that matters: it is how task bodies link to each other, so it is
+  // also matched below as a task slug.
+  const explicit = value.startsWith('./') || value.startsWith('../');
+  const base = explicit ? `${BASE_ORIGIN}/${TASK_DIR}` : `${BASE_ORIGIN}/`;
 
   let url: URL;
   try {
@@ -87,7 +94,9 @@ export function classifyLink(href: string): BoardLink {
   const path = decodePath(url.pathname);
   if (!path) return { kind: 'default' };
 
-  const taskFile = TASK_FILE.exec(path);
+  const taskFile =
+    TASK_FILE.exec(path) ??
+    (explicit || value.startsWith('/') ? null : BARE_TASK_FILE.exec(path));
 
   return {
     kind: 'repo',

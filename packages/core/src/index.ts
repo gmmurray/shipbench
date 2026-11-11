@@ -58,6 +58,9 @@ export {
   orderedTasksForColumn,
 } from './layout.js';
 
+// Links between task files
+export { taskLinkTargets, tasksLinkingTo } from './links.js';
+
 // Related
 export type {
   RelatedDirection,

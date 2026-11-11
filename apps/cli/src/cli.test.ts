@@ -3111,6 +3111,67 @@ describe('shipbench task archive', () => {
     );
   });
 
+  it('names live tasks that link to the archived task without blocking', async () => {
+    const h = harness();
+    await h.run('init');
+    await h.run('task', 'create', 'Decision', '--status=done');
+    await h.run('task', 'create', 'Build');
+    await h.run('task', 'create', 'Docs');
+    setTaskBody(h, 'build', 'Follows [the decision](decision.md).');
+    await h.run('task', 'comment', 'docs', 'See [it](./decision.md).');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+
+    await h.run('task', 'archive', 'decision');
+
+    expect(h.stdout).toEqual([]);
+    expect(h.stderr).toEqual([
+      'Archived task: decision',
+      'Warning: build, docs link to decision, which is now at archive/decision.md. Update the link, or name decision in related.',
+    ]);
+    expect(h.adapter.files.has('.shipbench/tasks/archive/decision.md')).toBe(
+      true,
+    );
+  });
+
+  it('keeps --json stdout clean when warning about links', async () => {
+    const h = harness();
+    await h.run('init');
+    await h.run('task', 'create', 'Decision', '--status=done');
+    await h.run('task', 'create', 'Build');
+    setTaskBody(h, 'build', 'Follows [the decision](decision.md).');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+
+    await h.run('task', 'archive', 'decision', '--json');
+
+    expect(JSON.parse(h.stdout.join('\n')).slug).toBe('decision');
+    expect(h.stderr).toEqual([
+      'Warning: build links to decision, which is now at archive/decision.md. Update the link, or name decision in related.',
+    ]);
+  });
+
+  it('does not warn about links between tasks archived together', async () => {
+    const h = harness();
+    await h.run('init');
+    h.adapter.files.delete('.shipbench/tasks/welcome-to-shipbench.md');
+    await h.run('task', 'create', 'Decision', '--status=done');
+    await h.run('task', 'create', 'Build', '--status=done');
+    await h.run('task', 'create', 'Docs');
+    setTaskBody(h, 'build', 'Follows [the decision](decision.md).');
+    setTaskBody(h, 'docs', 'Documents [the build](build.md).');
+    h.stdout.length = 0;
+    h.stderr.length = 0;
+
+    await h.run('task', 'archive', '--done', '--keep=0');
+
+    expect(h.stderr).toEqual([
+      'Archived task: build',
+      'Archived task: decision',
+      'Warning: docs links to build, which is now at archive/build.md. Update the link, or name build in related.',
+    ]);
+  });
+
   it('bulk-archives done tasks using done_display.max by default', async () => {
     const h = harness();
     await h.run('init');

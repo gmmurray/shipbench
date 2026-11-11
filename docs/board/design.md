@@ -204,13 +204,16 @@ When core reports the section as unreadable (`Task.unreadableUpdates`), the pane
 
 Descriptions and Task Updates render through one `Markdown` component (`ui/Markdown.tsx`), so both surfaces behave identically. `urlTransform` stays at react-markdown's default — task bodies are whatever a repository holds, so that sanitization matters — and every decision happens in the `a` override, after it.
 
-Task bodies mostly link to files in the same repo, written relative for someone reading the raw Markdown next to a checkout. `utils/links.ts` resolves those to repo-root-relative paths. The convention fixes the base: task files live at `.shipbench/tasks/<slug>.md`. Bare paths (`apps/site/index.astro`) are the one ambiguity — Markdown says file-relative, authors mean repo root, and repo root is what the Board uses.
+Task bodies mostly link to files in the same repo, written relative for someone reading the raw Markdown next to a checkout. `utils/links.ts` resolves those to repo-root-relative paths. The convention fixes the base: task files live at `.shipbench/tasks/<slug>.md`. Bare paths (`apps/site/index.astro`) are the one ambiguity — Markdown says file-relative, authors mean repo root, and repo root is what the Board uses. The exception is a bare `<slug>.md` or `archive/<slug>.md`, the form task bodies use to link to each other: it is read as a task slug first and falls back to the repo-root path when no task has that slug.
 
-Four outcomes:
+A link to a task names a slug, not a location. Slugs are unique across `tasks/` and `tasks/archive/`, and archiving moves a file without rewriting anyone's links, so the Board checks the slug against the live tasks and the response's `archivedSlugs` rather than trusting the directory in the href.
+
+Five outcomes:
 
 | Link | Behaviour |
 |---|---|
-| Another live task file | Opens that task in place via `selectTask` — no host involvement |
+| A live task, in any task-link form | Opens that task in place via `selectTask` — no host involvement |
+| An archived task | Treated as a repo file at `.shipbench/tasks/archive/<slug>.md`, where the file is now. The Board does not open archived tasks |
 | Repo file | `BoardAPI.resolveRepoLink(path)` names the destination; opens in a new tab |
 | External `http(s)` | New tab, `rel="noopener noreferrer"`, href untouched |
 | In-page anchor | Default behaviour |

@@ -3,7 +3,7 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-09-26
+updated: 2026-11-07
 ---
 
 The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, the local board, and coding agents are all clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
@@ -117,6 +117,8 @@ Use `shipbench task list --available` to select tasks whose dependencies are sat
 Writes reject a self-reference and a slug matching no task file. Unlike `depends_on`, an archived target is valid, because pointing at finished work is the ordinary reason to link, while an archived prerequisite is already satisfied. Only slugs a write adds are checked, so a link that went dangling after it was written survives an edit to the rest of the list. Two files naming each other is normal; there are no cycle rules. Reads keep a task with a dangling or malformed value visible and report a warning.
 
 The association is undirected, but a file stores one direction, and writing one task never changes another task's file. Tools that read the whole project show both directions and list an association recorded on both files once. A single-task read reports the frontmatter as written. An association recorded on the other task's file is removed by editing that task.
+
+A Markdown link in a description is a path, so it depends on where both files are. Archiving moves a file into `tasks/archive/` and rewrites no other file, so a relative link between a live task and an archived one stops resolving. A `related` slug does not have that problem, because it names the task rather than its location. When a description links to another task, record that task in `related` (or `depends_on`) as well. `shipbench task archive` names the live tasks that link to the task it archives, and the board opens a linked live task whichever directory the link names, and shows an archived one at its archive path.
 
 ## Flags
 
