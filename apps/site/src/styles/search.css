@@ -1,7 +1,7 @@
 /* Docs search — trigger affordances and the Pagefind-backed modal.
    Geometry follows the doctrine: 2px radii, 1px iron borders, mono labels. */
 
-/* Desktop trigger — was a dead <div>, now a real button. */
+/* Desktop trigger. */
 .quick-search {
   display: flex;
   align-items: center;
@@ -234,9 +234,8 @@
   border-radius: 2px;
 }
 
-/* Was --ironlit at 10px: 4.11:1 on this --surface ground, under WCAG 1.4.3's
-   4.5:1. --silver clears it at 7.12:1 dark / 7.42:1 light, and 11px is the
-   doctrine's small-text floor. Same edit --tab-hint took. */
+/* --silver clears WCAG 1.4.3's 4.5:1 on this --surface ground (7.12:1 dark /
+   7.42:1 light); --ironlit does not. 11px is the doctrine's small-text floor. */
 .search-foot {
   display: flex;
   gap: 16px;

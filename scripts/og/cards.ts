@@ -15,14 +15,6 @@ export interface Card extends CardSpec {
 
 export const CARDS: Card[] = [
   {
-    // AGENTS.md › Naming and branding: the social image is a place a human
-    // reads a statement, so it carries the *tagline*. The descriptor
-    // ("Git-native project management for solo developers") is deliberately
-    // absent — it is already this page's `og:title`, and the two are not
-    // allowed to sit next to each other restating one claim twice. The subhead
-    // carries the domain instead: useful on a card that gets screenshotted,
-    // and it repeats nothing else in the card or its meta.
-    //
     // alt: SITE_CONFIG.socialImageAlt in apps/site/src/config/site.ts
     out: 'apps/site/public/opengraph.png',
     kicker: 'ShipBench / Project System',

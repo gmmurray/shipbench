@@ -72,7 +72,7 @@ export function buildCardHtml(
     height: ${CARD_HEIGHT}px;
     background-color: ${CANVAS};
     /* Doctrine › Global page background: the same faint blueprint grid the
-       apps draw, so a shared card looks like it came off the same bench. */
+       apps draw. */
     background-image:
       linear-gradient(to right, ${DIVIDER}1A 1px, transparent 1px),
       linear-gradient(to bottom, ${DIVIDER}1A 1px, transparent 1px);

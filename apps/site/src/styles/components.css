@@ -197,9 +197,7 @@
 .mobile-nav-links {
   display: flex;
   flex-direction: column;
-  /* Was 14px of gap between ~20px links. The links now carry their own 44px
-     height, so the spacing moves from the gap into the target itself — same
-     visual rhythm, a target you can actually hit. */
+  /* Small, because each link carries its own 44px height. */
   gap: 4px;
 }
 
@@ -219,8 +217,7 @@
   color: var(--accent);
 }
 
-/* Theme control in the drawer — the header bar is already tight at 760px with
-   brand, search, and menu, so the toggle lives here on mobile. */
+/* Theme control in the drawer, where the toggle lives on mobile. */
 .mobile-nav-theme {
   display: flex;
   align-items: center;

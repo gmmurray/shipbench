@@ -297,17 +297,14 @@
 }
 
 /* Weight and indentation carry the depth hierarchy; colour does not. --frosted
-   is the active/hover signal across both sidebars, so spending it on a resting
-   state made every h2 read as selected and left hover with nowhere to go. The
-   left sidebar is the more primary navigation and rests at --silver — this one
-   should not outrank it. */
+   is the active/hover signal across both sidebars, so a resting entry in it
+   would read as selected. */
 .toc-depth-2 {
   font-weight: 500;
 }
 
-/* Depth-3 used to step down to 10px, below the doctrine's 11px small-text
-   floor. Indentation already carries the level, so the size step was spending
-   legibility on information the layout already gave away. */
+/* Indentation carries the level; a size step would drop below the doctrine's
+   11px small-text floor. */
 .toc-depth-3 {
   padding-left: 12px;
 }

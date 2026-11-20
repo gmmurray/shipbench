@@ -21,18 +21,11 @@ const { isDocs = false } = Astro.props;
         <svg class="brand-mark" aria-hidden="true"><use href="#logo"></use></svg>
         <span>{SITE_CONFIG.name}</span>
       </a>
-      {/* The version belongs to ShipBench, not to the documentation, so it sits
-          bare next to the wordmark rather than being labelled "Docs". */}
       {isDocs && <span class="badge-docs">v{SITE_CONFIG.version}</span>}
     </div>
 
     {isDocs ? (
       <div class="header-right">
-        {/* Links first, then the controls. Search used to lead, which left the
-            links sandwiched between two controls instead of grouping like with
-            like. "Home" rather than "Overview": this header only renders inside
-            the docs, where /docs/overview is also reachable, and two different
-            destinations called Overview is a coin flip for the reader. */}
         <nav class="nav-links desktop-nav" aria-label="Main navigation">
           <a href="/">Home</a>
           <a href={SITE_CONFIG.githubUrl} target="_blank" rel="noopener">GitHub</a>

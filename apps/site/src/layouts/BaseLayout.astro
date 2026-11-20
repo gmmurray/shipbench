@@ -108,9 +108,9 @@ const websiteSchema = {
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     {/* Mobile browser chrome. Static output cannot pick one at build time the
-        way a server-rendered page could, so these follow the OS. A user whose explicit
-        choice opposes their OS keeps OS-colored chrome — same as today, and not
-        worth putting DOM work in the pre-paint path below for. */}
+        way a server-rendered page could, so these follow the OS. A user whose
+        explicit choice opposes their OS keeps OS-colored chrome rather than
+        adding DOM work to the pre-paint path below. */}
     <meta name="theme-color" content="#18171c" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ecedf2" media="(prefers-color-scheme: light)" />
     {/* Theme bootstrap. Must stay inline, synchronous, and above the
