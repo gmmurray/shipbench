@@ -8,7 +8,8 @@ export {
   listAvailableTasks,
   listBlockedTasks,
 } from './availability.js';
-export { loadConfig, validateConfig } from './config.js';
+export type { ConfigResolution } from './config.js';
+export { loadConfig, resolveConfig, validateConfig } from './config.js';
 // Config
 export { DEFAULT_CONFIG } from './defaults.js';
 // Dependencies
@@ -101,11 +102,21 @@ export {
   unreadableUpdatesWarning,
   updateTask,
 } from './tasks.js';
+// Validation
+export type {
+  ProjectProblem,
+  ProjectProblemCode,
+  ProjectProblemSeverity,
+  ProjectValidationReport,
+  ValidateProjectOptions,
+} from './validate.js';
+export { validateProject } from './validate.js';
 export type {
   BoardAPI,
   BoardLayout,
   ColumnDef,
   ConfigLoadWarning,
+  ConfigWarningCode,
   DoneDisplayConfig,
   LoadConfigOptions,
   PriorityConfig,
@@ -118,6 +129,7 @@ export type {
   TaskFrontmatter,
   TaskReadResult,
   TaskValidationWarning,
+  TaskWarningCode,
   UnreadableTaskFile,
   UnreadableUpdates,
 } from './types.js';

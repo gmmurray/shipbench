@@ -534,7 +534,7 @@ async function assertValidRelated(
 /**
  * Write-time dependency validation. Rejects self-reference, slugs with no task
  * file, and direct two-hop cycles. Deeper cycles are intentionally not walked —
- * a future `shipbench task validate` owns full DAG checking.
+ * `validateProject` reports those, on request rather than on every write.
  */
 async function assertValidDependsOn(
   adapter: StorageAdapter,
@@ -581,6 +581,7 @@ export function unreadableUpdatesWarning(
   return {
     slug: task.slug,
     field: 'updates',
+    code: 'updates-unreadable',
     message: `Malformed Updates section: ${task.unreadableUpdates.reason} The section is preserved verbatim in the file and is not part of the description.`,
   };
 }
@@ -590,6 +591,7 @@ function validateTask(
   config: ShipbenchConfig,
   knownSlugs: Set<string>,
   knownRelatedSlugs: Set<string>,
+  archiveConsulted: boolean,
 ): TaskValidationWarning[] {
   const warnings: TaskValidationWarning[] = [];
   const validStatuses = new Set(config.columns.map(c => c.id));
@@ -599,11 +601,33 @@ function validateTask(
     warnings.push(updatesWarning);
   }
 
+  // Required fields a hand edit can drop or mistype. Nothing on the write path
+  // can produce these, so they only ever come from a file edited outside core.
+  const { title } = task.frontmatter as { title?: unknown };
+  if (typeof title !== 'string' || !title.trim()) {
+    warnings.push({
+      slug: task.slug,
+      field: 'title',
+      code: 'title-invalid',
+      message:
+        title === undefined || title === null
+          ? 'Missing title. Every task needs a non-empty `title`.'
+          : typeof title === 'string'
+            ? 'Blank title. Every task needs a non-empty `title`.'
+            : `Expected title to be text (got ${JSON.stringify(title)}).`,
+    });
+  }
+
   if (!validStatuses.has(task.frontmatter.status)) {
     warnings.push({
       slug: task.slug,
       field: 'status',
-      message: `Unknown status "${task.frontmatter.status}". Valid: ${[...validStatuses].join(', ')}`,
+      code: 'status-unknown',
+      message:
+        task.frontmatter.status === undefined ||
+        task.frontmatter.status === null
+          ? `Missing status. Valid: ${[...validStatuses].join(', ')}`
+          : `Unknown status "${task.frontmatter.status}". Valid: ${[...validStatuses].join(', ')}`,
     });
   }
 
@@ -614,26 +638,75 @@ function validateTask(
     warnings.push({
       slug: task.slug,
       field: 'priority',
+      code: 'priority-unknown',
       message: `Unknown priority "${task.frontmatter.priority}". Valid: ${config.priority.values.join(', ')}`,
     });
   }
 
+  const { tags } = task.frontmatter as { tags?: unknown };
+  if (
+    tags !== undefined &&
+    tags !== null &&
+    (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))
+  ) {
+    warnings.push({
+      slug: task.slug,
+      field: 'tags',
+      code: 'tags-invalid',
+      message: 'Expected tags to be a list of text labels.',
+    });
+  }
+
+  for (const field of ['created', 'updated'] as const) {
+    const value = (task.frontmatter as unknown as Record<string, unknown>)[
+      field
+    ];
+    if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
+      warnings.push({
+        slug: task.slug,
+        field,
+        code: 'timestamp-invalid',
+        message:
+          value === undefined || value === null
+            ? `Missing ${field} timestamp. Core sets it on every write; restore it from Git history.`
+            : `Expected ${field} to be an ISO 8601 timestamp (got ${JSON.stringify(value)}).`,
+      });
+    }
+  }
+
   const dependsOn = task.frontmatter.depends_on;
-  if (dependsOn !== undefined && !Array.isArray(dependsOn)) {
+  // Unlike an empty `related:`, an empty `depends_on:` is not a list, and
+  // availability reads it as unmet, so it gets the warning too.
+  if (
+    dependsOn !== undefined &&
+    (!Array.isArray(dependsOn) ||
+      dependsOn.some(entry => typeof entry !== 'string'))
+  ) {
     warnings.push({
       slug: task.slug,
       field: 'depends_on',
+      code: 'depends-on-invalid',
       message: 'Expected depends_on to be a list of task slugs.',
     });
   } else if (dependsOn) {
     // A dep target can be deleted after the dependent task was written, so
     // dangling slugs are a read-time warning rather than a load failure.
-    for (const dep of dependsOn) {
-      if (!knownSlugs.has(dep)) {
+    for (const dep of new Set(dependsOn)) {
+      if (dep === task.slug) {
         warnings.push({
           slug: task.slug,
           field: 'depends_on',
-          message: `Dangling dependency "${dep}" — no live task file matches that slug (it may be archived).`,
+          code: 'depends-on-self',
+          message: `The task depends on itself, so it can never become available.`,
+        });
+      } else if (!knownSlugs.has(dep)) {
+        warnings.push({
+          slug: task.slug,
+          field: 'depends_on',
+          code: 'depends-on-dangling',
+          message: archiveConsulted
+            ? `Dangling dependency "${dep}" — no live or archived task file matches that slug, so the task can never become available.`
+            : `Dangling dependency "${dep}" — no live task file matches that slug (it may be archived).`,
         });
       }
     }
@@ -651,14 +724,23 @@ function validateTask(
     warnings.push({
       slug: task.slug,
       field: 'related',
+      code: 'related-invalid',
       message: 'Expected related to be a list of task slugs.',
     });
   }
   for (const target of relatedSlugs(task)) {
-    if (!knownRelatedSlugs.has(target)) {
+    if (target === task.slug) {
       warnings.push({
         slug: task.slug,
         field: 'related',
+        code: 'related-self',
+        message: 'The task lists itself in related. Reads ignore the entry.',
+      });
+    } else if (!knownRelatedSlugs.has(target)) {
+      warnings.push({
+        slug: task.slug,
+        field: 'related',
+        code: 'related-dangling',
         message: `Dangling related task "${target}" — no live or archived task file matches that slug.`,
       });
     }
@@ -671,6 +753,7 @@ function validateTask(
     warnings.push({
       slug: task.slug,
       field: 'flag',
+      code: 'flag-invalid',
       message:
         'Expected flag to be `true` or a short reason. The task reads as unflagged.',
     });
@@ -681,6 +764,7 @@ function validateTask(
       warnings.push({
         slug: task.slug,
         field,
+        code: 'field-unknown',
         message: `Unknown frontmatter field "${field}" (preserved).`,
       });
     }
@@ -695,6 +779,8 @@ async function listTasksInDirectory(
   directory: string,
   additionalKnownSlugs: Awaitable<Iterable<string>> = [],
   otherDirectorySlugs: Awaitable<Iterable<string>> = [],
+  /** Whether `additionalKnownSlugs` covers the archive, so a dangling slug is in neither. */
+  archiveConsulted = false,
 ): Promise<Omit<TaskReadResult, 'archivedSlugs'>> {
   const files = await adapter.listFiles(directory);
   const mdFiles = files.filter(f => f.endsWith('.md'));
@@ -719,6 +805,7 @@ async function listTasksInDirectory(
       warnings.push({
         slug,
         field: 'frontmatter',
+        code: 'frontmatter-unparseable',
         message: `Could not parse frontmatter in "${path}": ${error.file.reason}`,
       });
     }
@@ -738,7 +825,15 @@ async function listTasksInDirectory(
     ...directorySlugs,
   ]);
   for (const task of tasks) {
-    warnings.push(...validateTask(task, config, knownSlugs, knownRelatedSlugs));
+    warnings.push(
+      ...validateTask(
+        task,
+        config,
+        knownSlugs,
+        knownRelatedSlugs,
+        archiveConsulted,
+      ),
+    );
   }
 
   return { tasks, warnings, unreadable };
@@ -770,6 +865,7 @@ export async function listTasks(
     TASKS_DIR,
     archivedSlugs,
     archiveFiles,
+    options.archivedTasks !== undefined || options.archivedSlugs !== undefined,
   );
   return { ...result, archivedSlugs: await archiveFiles };
 }
@@ -803,6 +899,7 @@ export async function listArchivedTasks(
     ARCHIVE_DIR,
     liveSlugs,
     liveSlugs,
+    true,
   );
 }
 

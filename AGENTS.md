@@ -133,7 +133,7 @@ Full design intent (stack, state model, sync model, layouts, build plan) lives i
 
 ### CLI (`shipbench`)
 
-Uses `@shipbench/core` with `FsAdapter` rooted at `process.cwd()`. Commands: `init`, `task create`, `task comment`, `task get`, `task flag` / `task unflag`, `task move`, `task list`, `task search`, `task graph`, `task archive` / `task unarchive`, `task delete`, and `board`. The `board` command starts a local server hosting the Board UI with file watching for live updates.
+Uses `@shipbench/core` with `FsAdapter` rooted at `process.cwd()`. Commands: `init`, `task create`, `task comment`, `task get`, `task flag` / `task unflag`, `task move`, `task list`, `task search`, `task graph`, `task archive` / `task unarchive`, `task delete`, `validate`, and `board`. The `board` command starts a local server hosting the Board UI with file watching for live updates.
 
 ### Dogfooding ShipBench in this repo
 

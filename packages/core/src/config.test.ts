@@ -152,6 +152,7 @@ describe('loadConfig', () => {
     expect(warnings).toEqual([
       {
         path: '.shipbench/layout.json',
+        code: 'layout-unparseable',
         message: expect.stringMatching(/deterministic fallback order/i),
       },
     ]);

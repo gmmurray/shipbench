@@ -192,6 +192,7 @@ Commands work from any subdirectory of the board: the CLI uses the nearest `.shi
 - **Read one task**: `shipbench task get <slug>`
 - **Search tasks**: `shipbench task search "<query>" --json`
 - **Inspect dependencies**: `shipbench task graph --json`
+- **Check the board's structure**: `shipbench validate --json` after hand edits, a merge, or a batch of changes (writes nothing; exits 1 when it finds an error, and `--archived` adds the archive)
 - **Include descriptions in a list**: `shipbench task list --json --include-body`
 - **Create a task**: `shipbench task create "Task title" --status=todo`
 - **Create a task with a description**: `shipbench task create "Task title" --body-file=description.md` (or `--body "One-line description."`)

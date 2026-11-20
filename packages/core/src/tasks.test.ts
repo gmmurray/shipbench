@@ -1221,6 +1221,7 @@ Meant to be a second entry.`,
     expect(result.warnings).toContainEqual({
       slug: 'wrong-level',
       field: 'updates',
+      code: 'updates-unreadable',
       message: expect.stringMatching(/### <ISO 8601 timestamp>/),
     });
   });
@@ -1249,6 +1250,7 @@ Entry without a time.`,
     expect(result.warnings).toContainEqual({
       slug: 'date-only',
       field: 'updates',
+      code: 'updates-unreadable',
       message: expect.stringMatching(/is not an ISO 8601 timestamp/),
     });
   });
@@ -1288,6 +1290,7 @@ This timestamp is malformed.`,
     expect(result.warnings).toContainEqual({
       slug: 'malformed',
       field: 'updates',
+      code: 'updates-unreadable',
       message: expect.stringMatching(/malformed updates section/i),
     });
   });
@@ -1428,6 +1431,7 @@ Wrong level.`,
     expect(unreadableUpdatesWarning(task!)).toEqual({
       slug: 'malformed',
       field: 'updates',
+      code: 'updates-unreadable',
       message: expect.stringContaining('"#### 2026-07-25T09:30:00.000Z"'),
     });
   });
@@ -1544,6 +1548,7 @@ Wrong level.`,
       {
         slug: 'broken',
         field: 'frontmatter',
+        code: 'frontmatter-unparseable',
         message: expect.stringMatching(
           /could not parse frontmatter.*\.shipbench\/tasks\/broken\.md/i,
         ),
@@ -1635,6 +1640,7 @@ Wrong level.`,
       {
         slug: 'hand-edited',
         field: 'frontmatter',
+        code: 'frontmatter-unparseable',
         message:
           'Could not parse frontmatter in ".shipbench/tasks/hand-edited.md": Duplicated mapping key at line 5.',
       },
@@ -2038,6 +2044,7 @@ describe('depends_on', () => {
       {
         slug: 'wire-it-up',
         field: 'depends_on',
+        code: 'depends-on-dangling',
         message: expect.stringMatching(
           /dangling dependency "deleted-task".*no live task file.*may be archived/i,
         ),
@@ -2247,6 +2254,7 @@ describe('related', () => {
       {
         slug: 'wire-it-up',
         field: 'related',
+        code: 'related-dangling',
         message: expect.stringMatching(/dangling related task "deleted-task"/i),
       },
     ]);
@@ -2293,6 +2301,7 @@ describe('related', () => {
       {
         slug: 'wire-it-up',
         field: 'related',
+        code: 'related-invalid',
         message: 'Expected related to be a list of task slugs.',
       },
     ]);

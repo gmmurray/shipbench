@@ -1,6 +1,5 @@
 {
   "todo": [
-    "expose-a-consistent-cli-project-validation-report",
     "strip-rationale-comments-from-the-rest-of-the-site"
   ],
   "backlog": [
@@ -16,5 +15,7 @@
     "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks"
   ],
   "in-progress": [],
-  "review": []
+  "review": [
+    "expose-a-consistent-cli-project-validation-report"
+  ]
 }

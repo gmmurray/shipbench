@@ -37,6 +37,7 @@ import {
   unarchiveTask,
   unreadableUpdatesWarning,
   updateTask,
+  validateProject,
 } from '@shipbench/core';
 import { Command, InvalidArgumentError, Option } from 'commander';
 import {
@@ -53,6 +54,11 @@ import {
 } from './output.js';
 import { CONFIG_PATH } from './tui/paths.js';
 import { runTui } from './tui/run.js';
+import {
+  formatValidationProblems,
+  formatValidationSummary,
+  validationReportJson,
+} from './validation.js';
 
 // Replaced at build time by tsup; falls back to '0.0.0-dev' for source runs
 // (e.g. tests) where the define hasn't been applied.
@@ -235,6 +241,38 @@ function taskMatchesFilters(
     return false;
   }
   return filters.tags.every(wanted => taskTags.includes(wanted.toLowerCase()));
+}
+
+/**
+ * A list field as stored, for an edit that rewrites it. A hand edit can leave
+ * a bare string, a null where a null is not allowed, or non-text entries; the
+ * edit then starts from the text entries it can keep and always writes, so
+ * the command `shipbench validate` suggests repairs the field instead of
+ * comparing against a list that is not there.
+ */
+interface StoredList {
+  values: string[];
+  valid: boolean;
+  raw: unknown;
+}
+
+function storedList(raw: unknown, nullIsValid: boolean): StoredList {
+  if (raw === undefined || (raw === null && nullIsValid)) {
+    return { values: [], valid: true, raw };
+  }
+  if (!Array.isArray(raw)) return { values: [], valid: false, raw };
+  const values = raw.filter(
+    (entry): entry is string => typeof entry === 'string',
+  );
+  return { values, valid: values.length === raw.length, raw };
+}
+
+function listChanged(current: StoredList, next: readonly string[]): boolean {
+  return (
+    !current.valid ||
+    next.length !== current.values.length ||
+    next.some((value, index) => value !== current.values[index])
+  );
 }
 
 /** Appended to a task's one-line text form, so a flag is never missed in a list. */
@@ -716,6 +754,46 @@ export function createCli(opts: CliOptions): Command {
       }
     });
 
+  program
+    .command('validate')
+    .description(
+      "Check the project's config, layout, and task files for structural problems, without changing them",
+    )
+    .option('--archived', 'Also check the files in tasks/archive/')
+    .option('--json', 'Emit the report as machine-readable JSON')
+    .addHelpText(
+      'after',
+      '\nExits 0 when nothing is an error (warnings alone pass), 1 when anything is,\nand 2 when the check could not run. It checks structure only: it cannot tell\nwhether a task is finished or its reasoning is sound.\n',
+    )
+    .action(async raw => {
+      if ((await adapter.readFileIfExists(CONFIG_PATH)) === null) {
+        throw new CliExitError(missingBoardMessage, 2);
+      }
+      let report: Awaited<ReturnType<typeof validateProject>>;
+      try {
+        report = await validateProject(adapter, {
+          archived: Boolean(raw.archived),
+        });
+      } catch (error) {
+        throw new CliExitError(
+          `Could not validate the project: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          2,
+        );
+      }
+
+      if (raw.json) {
+        data(JSON.stringify(validationReportJson(report), null, 2));
+      } else {
+        for (const line of formatValidationProblems(report)) data(line);
+      }
+
+      const summary = formatValidationSummary(report);
+      if (!report.valid) throw new CliExitError(summary, 1);
+      if (!raw.json) chrome(summary);
+    });
+
   const task = program.command('task').description('Manage tasks');
   task
     .command('create <title>')
@@ -935,6 +1013,10 @@ export function createCli(opts: CliOptions): Command {
     const changes: string[] = [];
     const list = (values: readonly string[]): string =>
       values.length > 0 ? `[${values.join(', ')}]` : '(none)';
+    const storedAs = (stored: StoredList): string =>
+      stored.valid
+        ? list(stored.values)
+        : `(invalid: ${JSON.stringify(stored.raw)})`;
 
     if (raw.title !== undefined && raw.title !== before.title) {
       fields.title = raw.title;
@@ -960,7 +1042,7 @@ export function createCli(opts: CliOptions): Command {
       changes.push(`assignee ${before.assignee} → (unset)`);
     }
 
-    const currentTags = before.tags ?? [];
+    const currentTags = storedList(before.tags, true);
     let nextTags: string[] | undefined;
     if (replaceTags !== undefined) {
       nextTags = dedupePreservingCase(replaceTags);
@@ -969,20 +1051,17 @@ export function createCli(opts: CliOptions): Command {
     } else if (addTag !== undefined || removeTag !== undefined) {
       const removed = new Set((removeTag ?? []).map(tag => tag.toLowerCase()));
       nextTags = dedupePreservingCase([
-        ...currentTags.filter(tag => !removed.has(tag.toLowerCase())),
+        ...currentTags.values.filter(tag => !removed.has(tag.toLowerCase())),
         ...(addTag ?? []),
       ]);
     }
-    if (
-      nextTags !== undefined &&
-      (nextTags.length !== currentTags.length ||
-        nextTags.some((tag, index) => tag !== currentTags[index]))
-    ) {
+    if (nextTags !== undefined && listChanged(currentTags, nextTags)) {
       fields.tags = nextTags.length > 0 ? nextTags : undefined;
-      changes.push(`tags ${list(currentTags)} → ${list(nextTags)}`);
+      changes.push(`tags ${storedAs(currentTags)} → ${list(nextTags)}`);
     }
 
-    const currentDeps = before.depends_on ?? [];
+    // An empty `depends_on:` is not a list to availability, so null is invalid.
+    const currentDeps = storedList(before.depends_on, false);
     let nextDeps: string[] | undefined;
     if (replaceDependsOn !== undefined) {
       nextDeps = dedupePreservingCase(replaceDependsOn);
@@ -991,22 +1070,19 @@ export function createCli(opts: CliOptions): Command {
     } else if (addDependsOn !== undefined || removeDependsOn !== undefined) {
       const removed = new Set(removeDependsOn ?? []);
       nextDeps = dedupePreservingCase([
-        ...currentDeps.filter(dep => !removed.has(dep)),
+        ...currentDeps.values.filter(dep => !removed.has(dep)),
         ...(addDependsOn ?? []),
       ]);
     }
-    if (
-      nextDeps !== undefined &&
-      (nextDeps.length !== currentDeps.length ||
-        nextDeps.some((dep, index) => dep !== currentDeps[index]))
-    ) {
+    if (nextDeps !== undefined && listChanged(currentDeps, nextDeps)) {
       // Core keys dependency handling off `'depends_on' in fields`, so an empty
       // array is the explicit "clear" signal it normalizes away on write.
       fields.depends_on = nextDeps;
-      changes.push(`depends_on ${list(currentDeps)} → ${list(nextDeps)}`);
+      changes.push(`depends_on ${storedAs(currentDeps)} → ${list(nextDeps)}`);
     }
 
-    const currentRelated = relatedSlugs(existing);
+    const currentRelated = storedList(before.related, true);
+    if (currentRelated.valid) currentRelated.values = relatedSlugs(existing);
     let nextRelated: string[] | undefined;
     if (replaceRelated !== undefined) {
       nextRelated = dedupePreservingCase(replaceRelated);
@@ -1017,7 +1093,7 @@ export function createCli(opts: CliOptions): Command {
       // edit only writes this one, so removing such a link would succeed
       // without changing anything a reader sees. Say where it lives instead.
       const notOwn = (removeRelated ?? []).filter(
-        target => !currentRelated.includes(target),
+        target => !currentRelated.values.includes(target),
       );
       if (notOwn.length > 0) {
         const [live, archived] = await Promise.all([
@@ -1043,17 +1119,15 @@ export function createCli(opts: CliOptions): Command {
       }
       const removed = new Set(removeRelated ?? []);
       nextRelated = dedupePreservingCase([
-        ...currentRelated.filter(target => !removed.has(target)),
+        ...currentRelated.values.filter(target => !removed.has(target)),
         ...(addRelated ?? []),
       ]);
     }
-    if (
-      nextRelated !== undefined &&
-      (nextRelated.length !== currentRelated.length ||
-        nextRelated.some((target, index) => target !== currentRelated[index]))
-    ) {
+    if (nextRelated !== undefined && listChanged(currentRelated, nextRelated)) {
       fields.related = nextRelated;
-      changes.push(`related ${list(currentRelated)} → ${list(nextRelated)}`);
+      changes.push(
+        `related ${storedAs(currentRelated)} → ${list(nextRelated)}`,
+      );
     }
 
     if (body !== undefined) {

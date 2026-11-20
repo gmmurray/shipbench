@@ -1,4 +1,5 @@
-export type CliExitCode = 2;
+/** `1`: a check ran and found problems. `2`: the command could not run as asked. */
+export type CliExitCode = 1 | 2;
 
 export class CliExitError extends Error {
   constructor(

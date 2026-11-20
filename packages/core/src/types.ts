@@ -69,10 +69,22 @@ export interface ShipbenchConfig {
   layout: BoardLayout;
 }
 
+/**
+ * What a configuration load warning is about, stable for scripts:
+ *
+ * - `layout-unparseable`: the layout source is not JSON, or not a record of
+ *   slug arrays. Manual ordering was ignored.
+ * - `layout-column-unknown`: a layout key names no configured column. Ordering
+ *   under that key was ignored.
+ */
+export type ConfigWarningCode = 'layout-unparseable' | 'layout-column-unknown';
+
 /** A non-fatal problem encountered while resolving project configuration. */
 export interface ConfigLoadWarning {
   path: string;
   message: string;
+  /** Always set by core. Optional so a host can build a warning without one. */
+  code?: ConfigWarningCode;
 }
 
 export interface LoadConfigOptions {
@@ -147,10 +159,33 @@ export interface Task {
   unreadableUpdates?: UnreadableUpdates;
 }
 
+/**
+ * What a task read warning is about, stable for scripts. `message` says the
+ * same thing for a reader and may be reworded; the code is not.
+ */
+export type TaskWarningCode =
+  | 'frontmatter-unparseable'
+  | 'updates-unreadable'
+  | 'title-invalid'
+  | 'status-unknown'
+  | 'priority-unknown'
+  | 'tags-invalid'
+  | 'timestamp-invalid'
+  | 'depends-on-invalid'
+  | 'depends-on-self'
+  | 'depends-on-dangling'
+  | 'related-invalid'
+  | 'related-self'
+  | 'related-dangling'
+  | 'flag-invalid'
+  | 'field-unknown';
+
 export interface TaskValidationWarning {
   slug: string;
   field: string;
   message: string;
+  /** Always set by core. Optional so a host can build a warning without one. */
+  code?: TaskWarningCode;
 }
 
 /** Diagnostics an initialization check can surface without rejecting a project. */

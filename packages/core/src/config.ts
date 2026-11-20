@@ -49,6 +49,7 @@ function resolveLayout(
     const detail = error instanceof Error ? error.message : 'Invalid layout.';
     options.onWarning?.({
       path: source,
+      code: 'layout-unparseable',
       message: `${detail} Manual ordering was ignored; using deterministic fallback order.`,
     });
     return {};
@@ -63,6 +64,7 @@ function resolveLayout(
   }
   options.onWarning?.({
     path: source,
+    code: 'layout-column-unknown',
     message: `Layout key(s) ${unknownKeys.map(key => `"${key}"`).join(', ')} do not match any configured column. Manual ordering for ${unknownKeys.length === 1 ? 'that column' : 'those columns'} was ignored; using deterministic fallback order there.`,
   });
   return pruned;
@@ -94,18 +96,44 @@ function deepMerge<T extends object>(defaults: T, overrides: Partial<T>): T {
   return result;
 }
 
-export async function loadConfig(
+/**
+ * How far config resolution got. `unreadable` means config.json is not a JSON
+ * object; `invalid` means it is one, but the merged result fails
+ * {@link validateConfig}, with one entry in `errors` per problem.
+ */
+export type ConfigResolution =
+  | { kind: 'resolved'; config: ShipbenchConfig; userConfig: object }
+  | { kind: 'unreadable'; errors: [Error] }
+  | { kind: 'invalid'; errors: string[]; userConfig: object };
+
+/**
+ * `loadConfig` without the throw, for a caller that reports every problem
+ * instead of stopping at the first. Missing config.json still throws, as a
+ * read of any other missing file does.
+ */
+export async function resolveConfig(
   adapter: ReadableStorageAdapter,
   options: LoadConfigOptions = {},
-): Promise<ShipbenchConfig> {
+): Promise<ConfigResolution> {
   const raw = await adapter.readFile(CONFIG_PATH);
-  const parsedConfig = JSON.parse(raw) as unknown;
+  let parsedConfig: unknown;
+  try {
+    parsedConfig = JSON.parse(raw);
+  } catch (error) {
+    return {
+      kind: 'unreadable',
+      errors: [error instanceof Error ? error : new Error(String(error))],
+    };
+  }
   if (
     typeof parsedConfig !== 'object' ||
     parsedConfig === null ||
     Array.isArray(parsedConfig)
   ) {
-    throw new Error('Config must contain a JSON object.');
+    return {
+      kind: 'unreadable',
+      errors: [new Error('Config must contain a JSON object.')],
+    };
   }
   const userConfig = parsedConfig as Partial<ShipbenchConfig>;
   const layoutRaw = await adapter.readFileIfExists(LAYOUT_PATH);
@@ -140,11 +168,21 @@ export async function loadConfig(
   config.layout = resolveLayout(layoutRaw, legacyLayout, columnIds, options);
 
   const errors = validateConfig(config);
-  if (errors.length > 0) {
-    throw new Error(`Invalid ShipBench config: ${errors.join(' ')}`);
-  }
+  return errors.length > 0
+    ? { kind: 'invalid', errors, userConfig }
+    : { kind: 'resolved', config, userConfig };
+}
 
-  return config;
+export async function loadConfig(
+  adapter: ReadableStorageAdapter,
+  options: LoadConfigOptions = {},
+): Promise<ShipbenchConfig> {
+  const resolution = await resolveConfig(adapter, options);
+  if (resolution.kind === 'unreadable') throw resolution.errors[0];
+  if (resolution.kind === 'invalid') {
+    throw new Error(`Invalid ShipBench config: ${resolution.errors.join(' ')}`);
+  }
+  return resolution.config;
 }
 
 export function validateConfig(config: ShipbenchConfig): string[] {

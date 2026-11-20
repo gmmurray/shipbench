@@ -3,7 +3,7 @@ title: ShipBench CLI Reference
 description: Commands, flags, JSON payloads, and agent-oriented query patterns for the ShipBench CLI.
 group: Reference
 order: 1
-updated: 2026-10-25
+updated: 2026-11-11
 ---
 
 The ShipBench CLI reads and writes the nearest `.shipbench/` project at or above your current directory, or the one in the directory selected with the global `-C` option.
@@ -665,6 +665,91 @@ shipbench task delete <slug>
 ```
 
 Deletes a live task. This is an irreversible filesystem operation; use Git to recover committed content. Prefer archiving when you may need the task later.
+
+### `shipbench validate`
+
+```bash no-copy
+shipbench validate [--archived] [--json]
+```
+
+Checks the project's structure after hand edits, a merge, or a batch of agent changes. It reads `config.json`, `layout.json`, and every file in `tasks/`, reports each problem with the file it is in, and writes nothing. Repairs are separate commands.
+
+| Flag | Purpose |
+| --- | --- |
+| `--archived` | Also check the files in `tasks/archive/`. Off by default. |
+| `--json` | Print the report as JSON. stdout holds only the report. |
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | No errors. Warnings alone pass. |
+| `1` | At least one error. |
+| `2` | The check could not run: there is no board, or the command was mistyped. |
+
+Text output groups problems under the file they are in. A `fix:` line follows any problem a CLI command can repair. A clean project prints nothing on stdout; the one-line summary goes to stderr.
+
+```text no-copy
+.shipbench/tasks/build-api.md
+  error   status-unknown: Unknown status "doing". Valid: todo, in-progress, done
+          fix: shipbench task move build-api --to=<status>
+  warning field-unknown: Unknown frontmatter field "estimate" (preserved).
+```
+
+An **error** is invalid data that misplaces, hides, or permanently blocks a task. A **warning** is a file that reads correctly but probably holds something nobody meant. Each problem carries a stable `code`:
+
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `config-unparseable` | error | `config.json` is not a JSON object. |
+| `config-invalid` | error | The resolved config fails validation, one problem per entry. |
+| `config-field-unknown` | warning | A config key core does not read, such as a misspelled `colums`. |
+| `layout-unparseable` | error | `layout.json` is not JSON, or not a record of slug lists. Manual ordering is ignored. |
+| `layout-column-unknown` | warning | A layout key names no configured column. |
+| `frontmatter-unparseable` | error | A task's frontmatter does not parse, so the task is unreadable. |
+| `updates-unreadable` | error | The `## Task Updates` section does not parse, so `task comment` refuses the task. |
+| `title-invalid` | error | `title` is missing, blank, or not text. |
+| `status-unknown` | error | `status` is missing or names no column, so the task is Uncategorized. |
+| `priority-unknown` | error | `priority` is not a configured value. |
+| `tags-invalid` | error | `tags` is not a list of text labels. |
+| `timestamp-invalid` | error | `created` or `updated` is missing or not a timestamp. |
+| `depends-on-invalid` | error | `depends_on` is not a list of slugs. |
+| `depends-on-self` | error | The task depends on itself. |
+| `depends-on-dangling` | error | A dependency matches no live or archived task. |
+| `dependency-cycle` | error | Tasks depend on each other in a loop of any length. `cycle` lists it. |
+| `related-invalid` | error | `related` is not a list of slugs. |
+| `related-self` | warning | The task lists itself in `related`. |
+| `related-dangling` | warning | A related slug matches no live or archived task. |
+| `flag-invalid` | error | `flag` is neither `true` nor a one-line reason, so the task reads as unflagged. |
+| `field-unknown` | warning | A frontmatter field core does not own. It is preserved. |
+| `slug-reused-in-archive` | error | A slug names both a live and an archived file, so archiving either overwrites the other. |
+| `file-ignored` | warning | A file in `tasks/` that does not end in `.md`, so no read shows it. |
+
+Supported states are not reported: a partial `config.json`, a missing or gitignored `layout.json`, and stale slugs in `layout.json`, which the next layout write prunes. When `config.json` does not parse or fails validation, task files are not checked, because statuses and priorities are only valid relative to it; fix the config and run the command again.
+
+`--json` prints the report:
+
+```json
+{
+  "valid": false,
+  "errors": 1,
+  "warnings": 0,
+  "checked": { "tasks": 12, "archived": null },
+  "problems": [
+    {
+      "severity": "error",
+      "code": "dependency-cycle",
+      "path": ".shipbench/tasks/build-api.md",
+      "slug": "build-api",
+      "field": "depends_on",
+      "message": "Dependency cycle: build-api → setup-auth → build-api. None of these tasks can become available until one of them stops depending on the next.",
+      "cycle": ["build-api", "setup-auth", "build-api"],
+      "hint": "remove one link, for example: shipbench task edit build-api --remove-depends-on=setup-auth"
+    }
+  ]
+}
+```
+
+`checked` counts the task files inspected, readable or not. `null` means that part was not checked: `archived` without `--archived`, and both when the config is invalid. `slug` and `field` appear when the problem has them, and `hint` when a command repairs it.
+
+The command checks structure only. It cannot tell whether a task is finished, whether its reasoning is sound, or whether links in its description still point anywhere useful.
 
 ### `shipbench board`
 
