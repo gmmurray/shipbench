@@ -136,7 +136,17 @@ Note that `depends_on` and the task's column are orthogonal. A column says where
 
 A flag says a task needs someone's attention, whatever column it is in. It is not the same as `--blocked`, which means unmet `depends_on`. Set one with `shipbench task flag <slug> "Short reason"` (the reason is optional) and clear it with `shipbench task unflag <slug>`. Nothing clears a flag for you, not a move and not finishing the task, so whoever set it clears it once it no longer applies. `shipbench task list --flagged --json` lists flagged tasks.
 
-For example: if you are stuck, flag your task with a short reason and add a Task Update with the detail. Clear the flag when you resume.
+On this board, a flag means a task needs the owner. Flag a task when:
+
+- **You need a decision.** A scope question, a choice between approaches, or a change to the shipped convention. Make the reason a one-line summary of the decision and put the full question in a Task Update. Don't leave it only in the description, where nobody sees it without opening the task.
+- **You are stuck** on something you can't resolve yourself, such as missing access or a broken environment. Add a Task Update with the detail.
+- **You hand work back to `review` with an open question.** Flag it so the question stands out in the review column.
+
+Progress notes and decisions within the task's scope go in a Task Update with no flag.
+
+Before choosing work, run `shipbench task list --flagged --json`. `--available` does not leave flagged tasks out. If a task you are about to start is flagged, read its reason and latest Task Update first, and don't start it while it asks a question nobody has answered.
+
+Clear a flag you set once it no longer applies. Leave any other flag for the owner to clear, even after you have done what it asked: say so in a Task Update.
 
 ## Reading Board Order
 

@@ -1,6 +1,7 @@
 {
   "todo": [
-    "strip-rationale-comments-from-the-rest-of-the-site"
+    "strip-rationale-comments-from-the-rest-of-the-site",
+    "split-cli-ts-into-per-command-modules"
   ],
   "backlog": [
     "spike-explore-a-local-workbench-across-shipbench-repositories",
@@ -15,7 +16,5 @@
     "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks"
   ],
   "in-progress": [],
-  "review": [
-    "expose-a-consistent-cli-project-validation-report"
-  ]
+  "review": []
 }

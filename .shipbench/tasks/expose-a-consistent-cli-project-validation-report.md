@@ -1,6 +1,6 @@
 ---
 title: Expose a consistent CLI project validation report
-status: review
+status: done
 priority: medium
 tags:
   - cli
@@ -8,7 +8,7 @@ tags:
   - validation
   - dx
 created: '2026-09-06T18:32:59.325Z'
-updated: '2026-11-16T02:13:47.793Z'
+updated: '2026-11-20T22:08:12.067Z'
 ---
 
 ShipBench reports useful warnings while reading tasks and configuration. Provide one deliberate command for checking the project's structural health after manual edits, merges, or a batch of agent changes.

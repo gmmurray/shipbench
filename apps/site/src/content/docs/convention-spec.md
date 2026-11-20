@@ -3,7 +3,7 @@ title: ShipBench Project Files
 description: The ShipBench project-system specification for task Markdown, dependencies, updates, ordering, and archives.
 group: Guides
 order: 1
-updated: 2026-11-07
+updated: 2026-11-20
 ---
 
 The ShipBench project system stores planning data in a small set of files inside each Git repository. These files stand on their own: the ShipBench CLI, the local board, and coding agents are all clients of the same project data. This page defines those files and the behavior required of clients that read or write them.
@@ -209,7 +209,7 @@ The convention requires strict writes and graceful reads.
 
 - Writes reject invalid statuses, priorities, timestamps, dependencies, flags, and malformed fields.
 - Reads return recoverable tasks with warnings, including unknown statuses and fields.
-- A file with malformed YAML is skipped with a warning; other readable tasks remain available.
+- A file whose frontmatter does not parse is never dropped. Reads return it as unreadable with the reason, the board shows it as a read-only card in an Unreadable column, and every other task still loads.
 - Tasks with an unknown status appear in the board's Uncategorized column.
 
 Strict writes stop the CLI and other tools from producing invalid files. Graceful reads mean a hand-edited file with a mistake in it still shows up, with a warning, instead of disappearing.
