@@ -113,6 +113,34 @@ describe('shipbench init', () => {
     expect(h.adapter.files).toEqual(before);
   });
 
+  it('stamps the scaffold with the running version', async () => {
+    const h = harness(undefined, { version: '0.11.0' });
+    await h.run('init');
+    expect(h.adapter.files.get('.shipbench/AGENTS.md')).toMatch(
+      /^<!-- shipbench-scaffold 0[.]11[.]0: /,
+    );
+    expect(h.adapter.files.get('.shipbench/README.md')).toMatch(
+      /^<!-- shipbench-scaffold 0[.]11[.]0: /,
+    );
+  });
+
+  it('names scaffold files an earlier version wrote, without writing', async () => {
+    const earlier = harness(undefined, { version: '0.4.0' });
+    await earlier.run('init');
+    const files = Object.fromEntries(earlier.adapter.files);
+    files['.shipbench/README.md'] = '# Rewritten without the stamp\n';
+    const h = harness(files, { version: '0.11.0' });
+    const before = new Map(h.adapter.files);
+
+    await h.run('init');
+
+    expect(h.stderr).toEqual([
+      'ShipBench is already initialized for "test-project".',
+      '.shipbench/AGENTS.md was written by ShipBench 0.4.0; this is 0.11.0.',
+    ]);
+    expect(h.adapter.files).toEqual(before);
+  });
+
   it('no longer accepts --harbor', async () => {
     const h = harness();
 

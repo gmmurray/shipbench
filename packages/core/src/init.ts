@@ -11,6 +11,12 @@ import type {
 
 export interface InitProjectOptions {
   name: string;
+  /**
+   * The ShipBench version writing the scaffold. It is stamped into README.md
+   * and AGENTS.md so a later release can regenerate the exact text they
+   * started from.
+   */
+  version: string;
 }
 
 export interface MissingProjectInitializationState {
@@ -45,10 +51,19 @@ export type ProjectInitializationState =
   | MalformedProjectInitializationState
   | InvalidProjectInitializationState;
 
+/** A scaffolded file and the version its stamp records. */
+export interface ScaffoldFileStamp {
+  path: string;
+  /** `null` when the file has no stamp, as files written before 0.11 don't. */
+  version: string | null;
+}
+
 export interface InitProjectResult {
   created: boolean;
   config: ShipbenchConfig;
   warnings: ProjectWarning[];
+  /** README.md and AGENTS.md, whichever exist, with their stamped versions. */
+  scaffold: ScaffoldFileStamp[];
 }
 
 type FailedProjectInitializationState = Exclude<
@@ -67,6 +82,7 @@ const CONFIG_PATH = '.shipbench/config.json';
 const LAYOUT_PATH = '.shipbench/layout.json';
 const README_PATH = '.shipbench/README.md';
 const AGENTS_PATH = '.shipbench/AGENTS.md';
+const SCAFFOLD_PATHS = [README_PATH, AGENTS_PATH];
 const TASKS_DIR = '.shipbench/tasks';
 const ARCHIVE_DIR = `${TASKS_DIR}/archive`;
 
@@ -176,8 +192,34 @@ export async function inspectProjectInitialization(
   }
 }
 
-function generateReadme(name: string): string {
-  return `# ${name} — ShipBench Project Board
+const SCAFFOLD_STAMP_PATTERN = /^\uFEFF?<!-- shipbench-scaffold ([^\s:]+):/;
+
+function scaffoldStamp(version: string): string {
+  return `<!-- shipbench-scaffold ${version}: keep this line. It records the ShipBench version that wrote this file, so an upgrade can tell your edits from template changes. -->\n\n`;
+}
+
+/**
+ * The version recorded on the first line of a scaffolded README.md or
+ * AGENTS.md, or `null` when the file carries no stamp.
+ */
+export function readScaffoldStamp(content: string): string | null {
+  return SCAFFOLD_STAMP_PATTERN.exec(content)?.[1] ?? null;
+}
+
+async function readScaffoldStamps(
+  adapter: ReadableStorageAdapter,
+): Promise<ScaffoldFileStamp[]> {
+  const files = await adapter.readFiles(SCAFFOLD_PATHS);
+  return SCAFFOLD_PATHS.flatMap(path => {
+    const content = files.get(path);
+    return content === undefined
+      ? []
+      : [{ path, version: readScaffoldStamp(content) }];
+  });
+}
+
+function generateReadme(name: string, version: string): string {
+  return `${scaffoldStamp(version)}# ${name} — ShipBench Project Board
 
 This directory contains the ShipBench project board for **${name}**. Everything lives in Git alongside your code — no external service required.
 
@@ -281,12 +323,12 @@ Archived tasks live in \`tasks/archive/\` and are excluded from normal board rea
 `;
 }
 
-function generateAgentsMd(name: string): string {
+function generateAgentsMd(name: string, version: string): string {
   const config = DEFAULT_CONFIG;
   const validStatuses = config.columns.map(c => c.id).join(', ');
   const validPriorities = config.priority.values.join(', ');
 
-  return `# ${name} — ShipBench Agent Instructions
+  return `${scaffoldStamp(version)}# ${name} — ShipBench Agent Instructions
 
 This file describes how to interact with the ShipBench task board for **${name}**.
 
@@ -538,12 +580,19 @@ export async function initProject(
   adapter: StorageAdapter,
   options: InitProjectOptions,
 ): Promise<InitProjectResult> {
+  if (!/^[^\s:]+$/.test(options.version)) {
+    throw new Error(
+      `ShipBench version "${options.version}" can't be stamped into the scaffold: it must be non-empty, without spaces or colons.`,
+    );
+  }
+
   const initialState = await inspectProjectInitialization(adapter);
   if (initialState.kind === 'initialized') {
     return {
       created: false,
       config: initialState.config,
       warnings: initialState.warnings,
+      scaffold: await readScaffoldStamps(adapter),
     };
   }
   if (initialState.kind !== 'missing') {
@@ -559,8 +608,8 @@ export async function initProject(
     new Map([
       ['.shipbench/config.json', `${JSON.stringify(config, null, 2)}\n`],
       ['.shipbench/layout.json', '{}\n'],
-      ['.shipbench/README.md', generateReadme(options.name)],
-      ['.shipbench/AGENTS.md', generateAgentsMd(options.name)],
+      [README_PATH, generateReadme(options.name, options.version)],
+      [AGENTS_PATH, generateAgentsMd(options.name, options.version)],
       [
         '.shipbench/tasks/welcome-to-shipbench.md',
         generateWelcomeTask(options.name),
@@ -579,5 +628,6 @@ export async function initProject(
     created: true,
     config: createdState.config,
     warnings: createdState.warnings,
+    scaffold: SCAFFOLD_PATHS.map(path => ({ path, version: options.version })),
   };
 }

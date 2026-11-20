@@ -43,11 +43,13 @@ export type {
   InitProjectOptions,
   InitProjectResult,
   ProjectInitializationState,
+  ScaffoldFileStamp,
 } from './init.js';
 export {
   initProject,
   inspectProjectInitialization,
   ProjectInitializationError,
+  readScaffoldStamp,
 } from './init.js';
 // Layout — the single definition of manual task ordering, shared by core's
 // writes and the Board's optimistic updates.

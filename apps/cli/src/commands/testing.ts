@@ -94,6 +94,7 @@ export interface HarnessOptions {
   readStdin?: () => Promise<string>;
   isInteractive?: boolean;
   env?: NodeJS.ProcessEnv;
+  version?: string;
 }
 
 export function harness(
@@ -112,6 +113,7 @@ export function harness(
     readStdin: options.readStdin,
     isInteractive: options.isInteractive,
     env: options.env,
+    version: options.version,
     exitOverride: true,
   });
   return {

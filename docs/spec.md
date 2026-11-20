@@ -372,7 +372,7 @@ A terminal tool for scaffolding and managing ShipBench projects locally.
 
 **Commands:**
 
-- `shipbench init [-n, --name <name>]` — Creates `.shipbench/` with `config.json`, an empty `layout.json`, `README.md`, `AGENTS.md`, and a `welcome-to-shipbench.md` starter task when the project is absent. It leaves a valid existing project byte-for-byte unchanged. Default `name` is the basename of the current directory. Fully standalone — no network.
+- `shipbench init [-n, --name <name>]` — Creates `.shipbench/` with `config.json`, an empty `layout.json`, `README.md`, `AGENTS.md`, and a `welcome-to-shipbench.md` starter task when the project is absent. It leaves a valid existing project byte-for-byte unchanged, and names any scaffolded `README.md` or `AGENTS.md` whose stamp records a different version. Default `name` is the basename of the current directory. Fully standalone — no network.
 - `shipbench task create <title> [--status] [--assignee] [--priority] [--tags=a,b,c] [--depends-on=a,b] [--related=a,b] [--body <text> | --body-file <path>]` — Creates a new slug-based task file, with its description attached when a body is supplied.
 - `shipbench task edit <slug> [description] [metadata]` — Revises the description (`--body` / `--body-file`, replaced whole; empty clears it) and/or the validated metadata: `--title` (never renames the file), `--priority`, `--assignee` / `--clear-assignee`, `--tags` / `--add-tag` / `--remove-tag` / `--clear-tags`, `--depends-on` / `--add-depends-on` / `--remove-depends-on` / `--clear-depends-on`, `--related` / `--add-related` / `--remove-related` / `--clear-related`. Every change is one `updateTask` call, so core validation runs before any write and a rejected value leaves the task untouched. `created` and the Updates section stay untouched; `status` and placement stay with `task move`.
 - `shipbench task flag <slug> [reason]` / `shipbench task unflag <slug>` — Sets, rewords, or clears a task's flag through `updateTask`. A flag that already says the same thing, or an unflag on a task with no `flag` field, writes nothing.
@@ -484,7 +484,16 @@ canonical ShipBench file or task exists, initialization rejects the incomplete
 state. Malformed config or layout JSON and resolved config validation errors
 also fail before any write. Ordinary task read warnings remain non-blocking.
 An explicit `--name` that differs from an existing project name fails instead
-of silently ignoring the argument. Every refusal exits `2` without writing.
+of silently ignoring the argument.
+
+**Scaffold stamp.** `README.md` and `AGENTS.md` open with an HTML comment,
+`<!-- shipbench-scaffold <version>: … -->`, recording the ShipBench version
+that wrote them. The scaffold is deterministic given that version and the
+project name, so the exact text a file started from can be regenerated with
+`npx shipbench@<version> init --name <name>`. That base is what lets an
+upgrade tell a project's edits from template changes. Core reads the stamp
+from the first line only and returns `null` for a file without one, which
+means the version is unknown. Files written before the stamp existed have none. Every refusal exits `2` without writing.
 
 ---
 

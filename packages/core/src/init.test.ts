@@ -5,6 +5,7 @@ import {
   initProject,
   inspectProjectInitialization,
   ProjectInitializationError,
+  readScaffoldStamp,
 } from './init.js';
 import { addComment, getTask } from './tasks.js';
 import type { StorageAdapter } from './types.js';
@@ -48,7 +49,7 @@ function memoryAdapter(): StorageAdapter & { files: Map<string, string> } {
 describe('initProject', () => {
   it('writes the five scaffold files', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     expect([...adapter.files.keys()].sort()).toEqual([
       '.shipbench/AGENTS.md',
       '.shipbench/README.md',
@@ -60,7 +61,7 @@ describe('initProject', () => {
 
   it('writes config without layout and scaffolds an empty layout.json', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const raw = adapter.files.get('.shipbench/config.json');
     expect(raw).toBeDefined();
     expect(raw?.endsWith('\n')).toBe(true);
@@ -74,7 +75,7 @@ describe('initProject', () => {
 
   it('writes a README and AGENTS.md that reference the project name', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Acme Widgets' });
+    await initProject(adapter, { name: 'Acme Widgets', version: '0.0.0-test' });
     const readme = adapter.files.get('.shipbench/README.md') ?? '';
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
     expect(readme).toContain('Acme Widgets');
@@ -83,7 +84,7 @@ describe('initProject', () => {
 
   it('documents the archive directory and archived dependency semantics', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const readme = adapter.files.get('.shipbench/README.md') ?? '';
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
@@ -96,7 +97,7 @@ describe('initProject', () => {
 
   it('documents flags as a convention, not a workflow', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
     expect(agents).toContain('- **flag** (optional)');
@@ -109,7 +110,7 @@ describe('initProject', () => {
 
   it('writes an AGENTS.md that reflects the default columns and priorities', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
     for (const c of DEFAULT_CONFIG.columns) {
       expect(agents).toContain(c.id);
@@ -121,7 +122,7 @@ describe('initProject', () => {
 
   it('writes an AGENTS.md that prefers CLI operations for task mutations', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
     expect(agents).toContain('Prefer the ShipBench CLI');
     expect(agents).toContain(
@@ -146,7 +147,7 @@ describe('initProject', () => {
 
   it('writes an AGENTS.md that gates reordering behind an explicit request', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
     expect(agents).toContain('## Changing Board Order');
@@ -167,7 +168,7 @@ describe('initProject', () => {
 
   it('writes an AGENTS.md that teaches the shipped discovery commands', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
     expect(agents).toContain('shipbench task list --available --json');
@@ -198,7 +199,7 @@ describe('initProject', () => {
 
   it('explains visible order without exposing the internal layout API', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const readme = adapter.files.get('.shipbench/README.md') ?? '';
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
@@ -221,7 +222,7 @@ describe('initProject', () => {
 
   it('documents the time-anchored Updates heuristic and mutation commands', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const readme = adapter.files.get('.shipbench/README.md') ?? '';
     const agents = adapter.files.get('.shipbench/AGENTS.md') ?? '';
 
@@ -246,7 +247,7 @@ describe('initProject', () => {
   it('writes a welcome task with timestamps from the moment init is called', async () => {
     const adapter = memoryAdapter();
     const before = Date.now();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const after = Date.now();
 
     const raw = adapter.files.get('.shipbench/tasks/welcome-to-shipbench.md');
@@ -265,7 +266,7 @@ describe('initProject', () => {
 
   it('writes a welcome task whose Task Update parses as one timestamped entry', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
 
     const task = await getTask(adapter, DEFAULT_CONFIG, 'welcome-to-shipbench');
 
@@ -286,7 +287,7 @@ describe('initProject', () => {
 
   it('appends a new Update after the welcome task entry', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
 
     await addComment(
       adapter,
@@ -304,7 +305,7 @@ describe('initProject', () => {
 
   it('writes a welcome task whose status matches the default column', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Test Project' });
+    await initProject(adapter, { name: 'Test Project', version: '0.0.0-test' });
     const { data } = matter(
       adapter.files.get('.shipbench/tasks/welcome-to-shipbench.md') ?? '',
     );
@@ -313,7 +314,10 @@ describe('initProject', () => {
 
   it('leaves every existing ShipBench file byte-for-byte unchanged', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Original Name' });
+    await initProject(adapter, {
+      name: 'Original Name',
+      version: '0.0.0-test',
+    });
     adapter.files.set('.shipbench/README.md', '# Hand-written README\r\n');
     adapter.files.set(
       '.shipbench/tasks/custom.md',
@@ -321,7 +325,10 @@ describe('initProject', () => {
     );
     const before = new Map(adapter.files);
 
-    const result = await initProject(adapter, { name: 'Ignored Name' });
+    const result = await initProject(adapter, {
+      name: 'Ignored Name',
+      version: '0.0.0-test',
+    });
 
     expect(result.created).toBe(false);
     expect(adapter.files).toEqual(before);
@@ -338,7 +345,7 @@ describe('initProject', () => {
       config: { name: DEFAULT_CONFIG.name },
     });
     await expect(
-      initProject(adapter, { name: 'Do Not Write' }),
+      initProject(adapter, { name: 'Do Not Write', version: '0.0.0-test' }),
     ).resolves.toMatchObject({ created: false });
     expect(adapter.files).toEqual(
       new Map([['.shipbench/config.json', '{}\n']]),
@@ -369,7 +376,7 @@ describe('initProject', () => {
     const before = new Map(adapter.files);
 
     await expect(
-      initProject(adapter, { name: 'Unsafe' }),
+      initProject(adapter, { name: 'Unsafe', version: '0.0.0-test' }),
     ).rejects.toMatchObject({
       name: 'ProjectInitializationError',
       state: { kind: 'incomplete' },
@@ -386,7 +393,7 @@ describe('initProject', () => {
 
     expect(state).toMatchObject({ kind: 'malformed' });
     await expect(
-      initProject(adapter, { name: 'Unsafe' }),
+      initProject(adapter, { name: 'Unsafe', version: '0.0.0-test' }),
     ).rejects.toBeInstanceOf(ProjectInitializationError);
     expect(adapter.files).toEqual(before);
   });
@@ -408,7 +415,7 @@ describe('initProject', () => {
       ],
     });
     await expect(
-      initProject(adapter, { name: 'Unsafe' }),
+      initProject(adapter, { name: 'Unsafe', version: '0.0.0-test' }),
     ).resolves.toMatchObject({
       created: false,
       config: { layout: {} },
@@ -429,14 +436,14 @@ describe('initProject', () => {
       errors: [expect.stringMatching(/done_column/i)],
     });
     await expect(
-      initProject(adapter, { name: 'Unsafe' }),
+      initProject(adapter, { name: 'Unsafe', version: '0.0.0-test' }),
     ).rejects.toBeInstanceOf(ProjectInitializationError);
     expect(adapter.files).toEqual(before);
   });
 
   it('returns ordinary task read warnings for an initialized project', async () => {
     const adapter = memoryAdapter();
-    await initProject(adapter, { name: 'Warnings' });
+    await initProject(adapter, { name: 'Warnings', version: '0.0.0-test' });
     adapter.files.set(
       '.shipbench/tasks/warning.md',
       `---
@@ -459,6 +466,102 @@ updated: 2026-01-01T00:00:00.000Z
           expect.objectContaining({ slug: 'warning', field: 'priority' }),
         ]),
       );
+    }
+  });
+});
+
+describe('scaffold stamp', () => {
+  it('opens README.md and AGENTS.md with the version that wrote them', async () => {
+    const adapter = memoryAdapter();
+    const result = await initProject(adapter, {
+      name: 'Stamped',
+      version: '0.11.0',
+    });
+
+    for (const path of ['.shipbench/README.md', '.shipbench/AGENTS.md']) {
+      const content = adapter.files.get(path) ?? '';
+      const [stamp, blank, heading] = content.split('\n');
+      expect(stamp).toMatch(/^<!-- shipbench-scaffold 0\.11\.0: .* -->$/);
+      expect(blank).toBe('');
+      expect(heading).toMatch(/^# Stamped — /);
+      expect(readScaffoldStamp(content)).toBe('0.11.0');
+    }
+    expect(result.scaffold).toEqual([
+      { path: '.shipbench/README.md', version: '0.11.0' },
+      { path: '.shipbench/AGENTS.md', version: '0.11.0' },
+    ]);
+  });
+
+  it('leaves the stamp out of the files nobody updates by merge', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Stamped', version: '0.11.0' });
+
+    for (const path of [
+      '.shipbench/config.json',
+      '.shipbench/layout.json',
+      '.shipbench/tasks/welcome-to-shipbench.md',
+    ]) {
+      expect(adapter.files.get(path)).not.toContain('shipbench-scaffold');
+    }
+  });
+
+  it('reports the stamps of an existing project without writing', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Stamped', version: '0.4.0' });
+    adapter.files.set('.shipbench/README.md', '# Rewritten by hand\n');
+    const before = new Map(adapter.files);
+
+    const result = await initProject(adapter, {
+      name: 'Stamped',
+      version: '0.11.0',
+    });
+
+    expect(result.created).toBe(false);
+    expect(result.scaffold).toEqual([
+      { path: '.shipbench/README.md', version: null },
+      { path: '.shipbench/AGENTS.md', version: '0.4.0' },
+    ]);
+    expect(adapter.files).toEqual(before);
+  });
+
+  it('omits a scaffold file the project deleted', async () => {
+    const adapter = memoryAdapter();
+    await initProject(adapter, { name: 'Stamped', version: '0.11.0' });
+    adapter.files.delete('.shipbench/README.md');
+
+    const result = await initProject(adapter, {
+      name: 'Stamped',
+      version: '0.11.0',
+    });
+
+    expect(result.scaffold).toEqual([
+      { path: '.shipbench/AGENTS.md', version: '0.11.0' },
+    ]);
+  });
+
+  it('reads a stamp through a byte order mark and CRLF line endings', () => {
+    expect(
+      readScaffoldStamp(
+        `${String.fromCharCode(0xfeff)}<!-- shipbench-scaffold 0.11.0: keep this line. -->\r\n\r\n# Title\r\n`,
+      ),
+    ).toBe('0.11.0');
+  });
+
+  it('reads no stamp from anywhere but the first line', () => {
+    expect(readScaffoldStamp('# Title\n')).toBeNull();
+    expect(
+      readScaffoldStamp('# Title\n<!-- shipbench-scaffold 0.11.0: moved -->\n'),
+    ).toBeNull();
+    expect(readScaffoldStamp('<!-- shipbench-scaffold -->\n')).toBeNull();
+  });
+
+  it('rejects a version the stamp cannot carry, before writing', async () => {
+    for (const version of ['', '0.11 beta', 'v:1']) {
+      const adapter = memoryAdapter();
+      await expect(
+        initProject(adapter, { name: 'Unsafe', version }),
+      ).rejects.toThrow(/can't be stamped/);
+      expect(adapter.files.size).toBe(0);
     }
   });
 });

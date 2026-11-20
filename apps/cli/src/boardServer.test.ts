@@ -45,7 +45,7 @@ async function makeFixture(): Promise<Fixture> {
   );
 
   const adapter = new FsAdapter(root);
-  await initProject(adapter, { name: 'Board Test' });
+  await initProject(adapter, { name: 'Board Test', version: '0.0.0-test' });
 
   const fixture = { root, bundleDir, adapter };
   fixtures.push(fixture);

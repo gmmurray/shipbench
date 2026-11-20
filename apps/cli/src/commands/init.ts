@@ -9,6 +9,8 @@ export interface InitSettings {
   defaultProjectName: string;
   /** A board above `cwd` in the same checkout, which `init` mentions. */
   ancestorBoard?: string;
+  /** The running ShipBench version, stamped into the scaffold. */
+  version: string;
 }
 
 function formatProjectWarning(warning: ProjectWarning): string {
@@ -23,7 +25,7 @@ export function registerInit(
   settings: InitSettings,
 ): void {
   const { adapter, chrome, output } = ctx;
-  const { defaultProjectName, ancestorBoard } = settings;
+  const { defaultProjectName, ancestorBoard, version } = settings;
 
   program
     .command('init')
@@ -40,7 +42,7 @@ export function registerInit(
 
       let result: Awaited<ReturnType<typeof initProject>>;
       try {
-        result = await initProject(adapter, { name });
+        result = await initProject(adapter, { name, version });
       } catch (error) {
         throw new CliExitError(
           `ShipBench files were not modified. ${
@@ -74,6 +76,13 @@ export function registerInit(
         }
       } else {
         chrome(`ShipBench is already initialized for "${result.config.name}".`);
+        for (const file of result.scaffold) {
+          if (file.version !== null && file.version !== version) {
+            chrome(
+              `${file.path} was written by ShipBench ${file.version}; this is ${version}.`,
+            );
+          }
+        }
       }
 
       if (result.created) {

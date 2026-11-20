@@ -51,6 +51,8 @@ export interface CliOptions {
   isInteractive?: boolean;
   /** Environment used for terminal capability checks. Defaults to process.env. */
   env?: NodeJS.ProcessEnv;
+  /** The version `--version` prints and `init` stamps. Defaults to the build's. */
+  version?: string;
   /** When true, commander throws on errors instead of calling process.exit. */
   exitOverride?: boolean;
 }
@@ -69,6 +71,7 @@ function enableExitOverride(command: Command): void {
 export function createCli(opts: CliOptions): Command {
   const { adapter, defaultProjectName } = opts;
   const cwd = opts.cwd ?? process.cwd();
+  const version = opts.version ?? VERSION;
   const writeData = opts.out ?? ((line: string) => console.log(line));
   const writeChrome = opts.err ?? ((line: string) => console.error(line));
   const isInteractive = opts.isInteractive ?? process.stdout.isTTY === true;
@@ -129,7 +132,7 @@ export function createCli(opts: CliOptions): Command {
     // `-C` from being read anywhere but before the subcommand, which is the
     // only place `resolveProjectDirectory` looks for it.
     .enablePositionalOptions()
-    .version(VERSION, '-v, --version', 'output the version')
+    .version(version, '-v, --version', 'output the version')
     .option(
       '-C <path>',
       'Use the board in the specified directory, without searching above it',
@@ -188,6 +191,7 @@ export function createCli(opts: CliOptions): Command {
   registerInit(program, ctx, {
     defaultProjectName,
     ancestorBoard: opts.ancestorBoard,
+    version,
   });
   registerValidate(program, ctx);
 

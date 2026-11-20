@@ -72,7 +72,7 @@ turns an accidental write into a compile error.
 - **Comments** — `addComment`, `editComment`, `deleteComment`
 - **Flags** — `taskFlag`, `isTaskFlagged` (set and clear through `updateTask`)
 - **Config and setup** — `loadConfig`, `validateConfig`, `initProject`,
-  `DEFAULT_CONFIG`
+  `readScaffoldStamp`, `DEFAULT_CONFIG`
 - **Slugs** — `slugify`, `resolveSlugCollision`
 
 ## Design rules worth knowing
