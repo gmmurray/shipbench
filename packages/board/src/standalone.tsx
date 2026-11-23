@@ -10,6 +10,7 @@ import '@fontsource/intel-one-mono/500.css';
 import '@fontsource/intel-one-mono/600.css';
 import '@fontsource/intel-one-mono/700.css';
 import type { BoardAPI, TaskFrontmatter } from '@shipbench/core';
+import { historyNavigation } from './historyNavigation.js';
 import { createBoard } from './index.js';
 import { applyStoredBoardTheme } from './ui/BoardThemeToggle.js';
 import { wireFields } from './utils/wireFields.js';
@@ -113,4 +114,9 @@ if (!rootElement) throw new Error('No #root element found in index.html.');
 // via CSS with no script).
 applyStoredBoardTheme();
 
-createBoard(rootElement, { api, themeControl: true, documentTitle: true });
+createBoard(rootElement, {
+  api,
+  themeControl: true,
+  documentTitle: true,
+  navigation: historyNavigation(),
+});

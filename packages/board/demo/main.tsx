@@ -8,6 +8,7 @@ import '@fontsource/intel-one-mono/600.css';
 import '@fontsource/intel-one-mono/700.css';
 import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { historyNavigation } from '../src/historyNavigation.js';
 import { Board } from '../src/index.js';
 import { createStubBoardApi } from './stubApi.js';
 
@@ -16,7 +17,15 @@ if (!rootElement) throw new Error('No #root element found in index.html.');
 
 function Demo() {
   const [readOnly, setReadOnly] = useState(false);
-  const api = useMemo(() => createStubBoardApi({ readOnly }), [readOnly]);
+  // Made together: a new api means a new store, which reads its starting task
+  // from the URL as it is now.
+  const { api, navigation } = useMemo(
+    () => ({
+      api: createStubBoardApi({ readOnly }),
+      navigation: historyNavigation(),
+    }),
+    [readOnly],
+  );
 
   return (
     <>
@@ -31,7 +40,7 @@ function Demo() {
           Read-only demo
         </label>
       </div>
-      <Board api={api} documentTitle />
+      <Board api={api} documentTitle navigation={navigation} />
     </>
   );
 }

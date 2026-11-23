@@ -1,11 +1,11 @@
 ---
 title: Submit Task Updates with Ctrl+Enter in the Board's detail view
-status: backlog
+status: todo
 priority: low
 tags:
   - board
 created: '2026-10-29T19:17:59.112Z'
-updated: '2026-10-29T19:17:59.112Z'
+updated: '2026-11-20T22:47:06.469Z'
 ---
 
 Ctrl+Enter (Cmd+Enter on macOS) should submit the Task Update forms in the detail view. Right now, the only way to submit is to move the mouse or press Tab to reach the button.

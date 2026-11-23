@@ -2,12 +2,12 @@
 title: >-
   Render GitHub Flavored Markdown, including strikethrough, in the Board's
   detail view
-status: backlog
+status: todo
 priority: medium
 tags:
   - board
 created: '2026-10-29T19:17:59.020Z'
-updated: '2026-10-29T19:17:59.020Z'
+updated: '2026-11-20T22:47:04.794Z'
 ---
 
 `~~text~~` renders literally in the Board's detail view. [Markdown.tsx](../../packages/board/src/ui/Markdown.tsx) passes task bodies to `react-markdown` with no remark plugins, so the board renders CommonMark only. GitHub renders the same file as GitHub Flavored Markdown (GFM), so a task can look different on the board than it does on GitHub.

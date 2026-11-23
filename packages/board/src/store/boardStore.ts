@@ -24,9 +24,58 @@ export const UNCATEGORIZED_STATUS = '__uncategorized__';
 /** Which editor holds text that leaving the task would discard. */
 export type UnsavedDraft = 'description' | 'new-update' | 'edited-update';
 
+/**
+ * How a host learns where the board is and moves it, for hosts that keep the
+ * open task in their own URL. Every member is optional, and a board given none
+ * of them keeps its whole location in the store.
+ */
+export interface BoardNavigation {
+  /**
+   * The task open on first render. Once tasks load, a slug that names no live
+   * task falls back to the board and is reported with `push: false`.
+   */
+  initialTaskSlug?: string | null;
+  /** The trail `onSelectedTaskChange` last reported with `initialTaskSlug`. */
+  initialTrail?: readonly string[];
+  /**
+   * Called after the board's own navigation changes the open task, never for
+   * a change the host asked for. `push` is true for a new place (opening a
+   * card, following a link, going back to the board) and false when the
+   * current place is replaced (j/k, a task archived or deleted while open).
+   * `trail` is what the in-app back walks; hand it back with the slug.
+   */
+  onSelectedTaskChange?: (
+    slug: string | null,
+    change: { push: boolean; trail: readonly string[] },
+  ) => void;
+  /**
+   * Go back `steps` places in the host's own history. When present, the
+   * in-app back calls it instead of walking the trail itself and expects the
+   * host to answer through `subscribe`, so the two backs share one trail.
+   */
+  back?: (steps: number) => void;
+  /**
+   * Receives a function that opens a task, or the board with `null`, on the
+   * host's behalf (on `popstate`, say). Pass the trail reported with that
+   * slug, or omit it when there is none. Returns a cleanup.
+   */
+  subscribe?: (
+    select: (slug: string | null, trail?: readonly string[]) => void,
+  ) => () => void;
+}
+
 /** A navigation the board holds back while there is unsaved text. */
 export type Navigation =
-  | { to: 'task'; slug: string | null }
+  | {
+      to: 'task';
+      slug: string | null;
+      trail: string[];
+      /** How the change is reported to the host, or `null` not to report it. */
+      report: 'push' | 'replace' | null;
+      /** The host asked for it, so the host's URL already shows it. */
+      fromHost?: boolean;
+    }
+  | { to: 'host-back'; steps: number }
   | { to: 'archive' };
 
 export interface BoardState {
@@ -59,6 +108,11 @@ export interface BoardState {
   isArchiveLoading: boolean;
   archiveLoadError: string | null;
   selectedTaskSlug: string | null;
+  /**
+   * The tasks the in-app back returns to, oldest first. Following a link from
+   * the open task pushes it; anything that opens the board clears it.
+   */
+  taskTrail: string[];
   searchQuery: string;
   /** Narrows the board to flagged tasks, on top of any search. */
   flaggedOnly: boolean;
@@ -100,7 +154,16 @@ export interface BoardState {
   closeArchive: () => void;
   loadArchivedTasks: () => Promise<void>;
   deleteTask: (slug: string) => Promise<void>;
+  /** Opens a task from the board, or the board itself, starting a new trail. */
   selectTask: (slug: string | null) => void;
+  /** Opens a task the open one links to, pushing the open one onto the trail. */
+  followTaskLink: (slug: string) => void;
+  /** Swaps the open task for a neighbour in its column, keeping the trail. */
+  stepToTask: (slug: string) => void;
+  /** Returns to the newest task in the trail that still exists. */
+  goBack: () => void;
+  /** Applies a selection the host made, through `BoardNavigation.subscribe`. */
+  hostSelectTask: (slug: string | null, trail?: readonly string[]) => void;
   setSearchQuery: (query: string) => void;
   setFlaggedOnly: (flaggedOnly: boolean) => void;
   /** Reports an editor's unsaved text, or clears the report with `null`. */
@@ -111,7 +174,10 @@ export interface BoardState {
 
 export type BoardStore = StoreApi<BoardState>;
 
-export function createBoardStore(api: BoardAPI): BoardStore {
+export function createBoardStore(
+  api: BoardAPI,
+  host: BoardNavigation = {},
+): BoardStore {
   const archivedPositions = new Map<
     string,
     { status: string; position: number }
@@ -136,6 +202,19 @@ export function createBoardStore(api: BoardAPI): BoardStore {
    */
   let readSuppressed = false;
   let store: BoardStore | undefined;
+
+  /**
+   * How the next selection change is reported to the host. Navigations set it
+   * around their own write; any other change of selection (an archive or
+   * delete of the open task, a rollback) replaces the host's current place.
+   */
+  let reportAs: 'push' | 'replace' | null = 'replace';
+
+  /**
+   * A slug the host asked for before tasks loaded. It is checked against the
+   * first read, so a deep link to a missing task lands on the board.
+   */
+  let unverifiedHostSlug: string | null = host.initialTaskSlug ?? null;
 
   function beginMutation(slug: string): void {
     pendingMutations.set(slug, (pendingMutations.get(slug) ?? 0) + 1);
@@ -174,7 +253,8 @@ export function createBoardStore(api: BoardAPI): BoardStore {
     archiveUnreadable: [],
     isArchiveLoading: false,
     archiveLoadError: null,
-    selectedTaskSlug: null,
+    selectedTaskSlug: host.initialTaskSlug ?? null,
+    taskTrail: host.initialTaskSlug ? [...(host.initialTrail ?? [])] : [],
     searchQuery: '',
     flaggedOnly: false,
     lastSyncedAt: null,
@@ -203,6 +283,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
           hasLoaded: true,
           initialLoadError: null,
         }));
+        dropUnknownHostSlug();
       } catch (error) {
         const message = errorMessage(error);
 
@@ -524,6 +605,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
         tasks: state.tasks.filter(task => task.slug !== slug),
         selectedTaskSlug:
           state.selectedTaskSlug === slug ? null : state.selectedTaskSlug,
+        taskTrail: state.selectedTaskSlug === slug ? [] : state.taskTrail,
         config: state.config
           ? {
               ...state.config,
@@ -562,6 +644,7 @@ export function createBoardStore(api: BoardAPI): BoardStore {
         tasks: state.tasks.filter(task => task.slug !== slug),
         selectedTaskSlug:
           state.selectedTaskSlug === slug ? null : state.selectedTaskSlug,
+        taskTrail: state.selectedTaskSlug === slug ? [] : state.taskTrail,
         config: state.config
           ? {
               ...state.config,
@@ -693,7 +776,69 @@ export function createBoardStore(api: BoardAPI): BoardStore {
 
     selectTask: slug => {
       if (slug === get().selectedTaskSlug) return;
-      navigate({ to: 'task', slug });
+      navigate({ to: 'task', slug, trail: [], report: 'push' });
+    },
+
+    followTaskLink: slug => {
+      const { selectedTaskSlug: current, taskTrail } = get();
+      if (slug === current) return;
+      if (current === null) {
+        get().selectTask(slug);
+        return;
+      }
+      // Linking to a task already in the trail returns to it, so a cycle of
+      // links never grows the trail.
+      const index = taskTrail.indexOf(slug);
+      if (index >= 0) {
+        backTo(index);
+        return;
+      }
+      navigate({
+        to: 'task',
+        slug,
+        trail: [...taskTrail, current],
+        report: 'push',
+      });
+    },
+
+    stepToTask: slug => {
+      const { selectedTaskSlug, taskTrail } = get();
+      if (slug === selectedTaskSlug) return;
+      navigate({ to: 'task', slug, trail: taskTrail, report: 'replace' });
+    },
+
+    goBack: () => {
+      const index = backTargetIndex(get());
+      if (index >= 0) backTo(index);
+    },
+
+    hostSelectTask: (slug, trail) => {
+      const state = get();
+      // A history entry the host didn't record for the board, such as an
+      // in-page anchor's, names the task already open.
+      if (trail === undefined && slug === state.selectedTaskSlug) return;
+      if (!state.hasLoaded) {
+        unverifiedHostSlug = slug;
+      } else if (
+        slug !== null &&
+        !state.tasks.some(task => task.slug === slug)
+      ) {
+        navigate({
+          to: 'task',
+          slug: null,
+          trail: [],
+          report: 'replace',
+          fromHost: true,
+        });
+        return;
+      }
+      navigate({
+        to: 'task',
+        slug,
+        trail: slug === null ? [] : [...(trail ?? [])],
+        report: null,
+        fromHost: true,
+      });
     },
     setSearchQuery: searchQuery => set({ searchQuery }),
     setFlaggedOnly: flaggedOnly => set({ flaggedOnly }),
@@ -714,8 +859,79 @@ export function createBoardStore(api: BoardAPI): BoardStore {
       applyNavigation(navigation);
     },
 
-    keepEditing: () => set({ pendingNavigation: null }),
+    keepEditing: () => {
+      const pending = get().pendingNavigation;
+      set({ pendingNavigation: null });
+      // The host's URL already moved to where the user declined to go. Put
+      // the open task back on top so the URL and the screen agree.
+      if (pending?.to === 'task' && pending.fromHost) {
+        const { selectedTaskSlug, taskTrail } = get();
+        host.onSelectedTaskChange?.(selectedTaskSlug, {
+          push: true,
+          trail: taskTrail,
+        });
+      }
+    },
   }));
+
+  const onSelectedTaskChange = host.onSelectedTaskChange;
+  if (onSelectedTaskChange) {
+    store.subscribe((state, previous) => {
+      if (
+        reportAs === null ||
+        (state.selectedTaskSlug === previous.selectedTaskSlug &&
+          state.taskTrail === previous.taskTrail)
+      ) {
+        return;
+      }
+      onSelectedTaskChange(state.selectedTaskSlug, {
+        push: reportAs === 'push',
+        trail: state.taskTrail,
+      });
+    });
+  }
+
+  function setLocation(
+    partial: Partial<BoardState>,
+    as: 'push' | 'replace' | null,
+  ): void {
+    reportAs = as;
+    try {
+      store?.setState(partial);
+    } finally {
+      reportAs = 'replace';
+    }
+  }
+
+  /** Returns to `trail[index]`, through the host's history when it has one. */
+  function backTo(index: number): void {
+    const trail = store?.getState().taskTrail ?? [];
+    if (host.back) {
+      navigate({ to: 'host-back', steps: trail.length - index });
+      return;
+    }
+    navigate({
+      to: 'task',
+      slug: trail[index] ?? null,
+      trail: trail.slice(0, index),
+      report: 'push',
+    });
+  }
+
+  function dropUnknownHostSlug(): void {
+    const slug = unverifiedHostSlug;
+    unverifiedHostSlug = null;
+    const state = store?.getState();
+    if (
+      !state ||
+      slug === null ||
+      state.selectedTaskSlug !== slug ||
+      state.tasks.some(task => task.slug === slug)
+    ) {
+      return;
+    }
+    setLocation({ selectedTaskSlug: null, taskTrail: [] }, 'replace');
+  }
 
   /**
    * Every in-app way out of a task comes through here. With unsaved text the
@@ -735,11 +951,30 @@ export function createBoardStore(api: BoardAPI): BoardStore {
 
   function applyNavigation(navigation: Navigation): void {
     if (!store) return;
-    if (navigation.to === 'task') {
-      store.setState({ selectedTaskSlug: navigation.slug });
+    if (navigation.to === 'host-back') {
+      // The host answers through `subscribe` with the place it lands on.
+      host.back?.(navigation.steps);
       return;
     }
-    store.setState({ archiveViewOpen: true, selectedTaskSlug: null });
+    if (navigation.to === 'task') {
+      setLocation(
+        {
+          selectedTaskSlug: navigation.slug,
+          taskTrail: navigation.trail,
+          // The host can move between a task and the board while the archive
+          // is open, which the board's own controls never do.
+          ...(navigation.fromHost ? { archiveViewOpen: false } : {}),
+        },
+        navigation.report,
+      );
+      return;
+    }
+    // The archive has no place of its own in the host's history: leaving a
+    // task for it is reported as going to the board.
+    setLocation(
+      { archiveViewOpen: true, selectedTaskSlug: null, taskTrail: [] },
+      'push',
+    );
     const state = store.getState();
     if (state.archivedTasks === null && !state.isArchiveLoading) {
       void state.loadArchivedTasks();
@@ -747,6 +982,21 @@ export function createBoardStore(api: BoardAPI): BoardStore {
   }
 
   return store;
+}
+
+/**
+ * The trail index the in-app back returns to: the newest task in the trail
+ * that is still live, so back never lands on one archived or deleted since.
+ * `-1` when there is none.
+ */
+export function backTargetIndex(
+  state: Pick<BoardState, 'taskTrail' | 'tasks'>,
+): number {
+  const live = new Set(state.tasks.map(task => task.slug));
+  for (let index = state.taskTrail.length - 1; index >= 0; index--) {
+    if (live.has(state.taskTrail[index] as string)) return index;
+  }
+  return -1;
 }
 
 /**

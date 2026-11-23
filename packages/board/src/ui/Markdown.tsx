@@ -30,7 +30,7 @@ type AnchorProps = ComponentPropsWithoutRef<'a'> & { node?: unknown };
 
 function MarkdownLink({ href, children, node: _node, ...props }: AnchorProps) {
   const link = classifyLink(href ?? '');
-  const selectTask = useBoardStore(state => state.selectTask);
+  const followTaskLink = useBoardStore(state => state.followTaskLink);
   const resolveRepoLink = useBoardStore(state => state.resolveRepoLink);
   const taskSlug = link.kind === 'repo' ? link.taskSlug : null;
   const linkedTask = useBoardStore(state =>
@@ -72,7 +72,7 @@ function MarkdownLink({ href, children, node: _node, ...props }: AnchorProps) {
         {...props}
         onClick={event => {
           event.preventDefault();
-          selectTask(taskSlug);
+          followTaskLink(taskSlug);
         }}
       >
         {children}

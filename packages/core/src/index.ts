@@ -104,15 +104,6 @@ export {
   unreadableUpdatesWarning,
   updateTask,
 } from './tasks.js';
-// Validation
-export type {
-  ProjectProblem,
-  ProjectProblemCode,
-  ProjectProblemSeverity,
-  ProjectValidationReport,
-  ValidateProjectOptions,
-} from './validate.js';
-export { validateProject } from './validate.js';
 export type {
   BoardAPI,
   BoardLayout,
@@ -135,3 +126,12 @@ export type {
   UnreadableTaskFile,
   UnreadableUpdates,
 } from './types.js';
+// Validation
+export type {
+  ProjectProblem,
+  ProjectProblemCode,
+  ProjectProblemSeverity,
+  ProjectValidationReport,
+  ValidateProjectOptions,
+} from './validate.js';
+export { validateProject } from './validate.js';

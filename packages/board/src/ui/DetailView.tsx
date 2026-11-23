@@ -30,7 +30,7 @@ import {
   RxTrash,
 } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
-import { UNCATEGORIZED_STATUS } from '../store/boardStore.js';
+import { backTargetIndex, UNCATEGORIZED_STATUS } from '../store/boardStore.js';
 import { localDateTime, relativeTime } from '../utils/time.js';
 import { ArchiveTaskDialog } from './ArchiveTaskDialog.js';
 import { Chevron } from './Chevron.js';
@@ -52,6 +52,17 @@ export function DetailView({ slug }: { slug: string }) {
     state.tasks.find(candidate => candidate.slug === slug),
   );
   const selectTask = useBoardStore(state => state.selectTask);
+  const followTaskLink = useBoardStore(state => state.followTaskLink);
+  const stepToTask = useBoardStore(state => state.stepToTask);
+  const goBack = useBoardStore(state => state.goBack);
+  const backTask = useBoardStore(state => {
+    const index = backTargetIndex(state);
+    return index < 0
+      ? undefined
+      : state.tasks.find(
+          candidate => candidate.slug === state.taskTrail[index],
+        );
+  });
   const updateTask = useBoardStore(state => state.updateTask);
   const addComment = useBoardStore(state => state.addComment);
   const editComment = useBoardStore(state => state.editComment);
@@ -148,14 +159,14 @@ export function DetailView({ slug }: { slug: string }) {
       columnNavigation.previousSlug
     ) {
       event.preventDefault();
-      selectTask(columnNavigation.previousSlug);
+      stepToTask(columnNavigation.previousSlug);
     }
     if (
       (key === 'j' || event.key === 'ArrowDown') &&
       columnNavigation.nextSlug
     ) {
       event.preventDefault();
-      selectTask(columnNavigation.nextSlug);
+      stepToTask(columnNavigation.nextSlug);
     }
   });
 
@@ -194,13 +205,28 @@ export function DetailView({ slug }: { slug: string }) {
                 <RxArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
                 Back to board
               </button>
+              {backTask ? (
+                <button
+                  className="inline-flex h-8 min-w-0 max-w-full items-center gap-2 rounded border border-sb-iron px-3 text-[13px] font-medium text-sb-silver transition-colors hover:border-sb-silver hover:text-sb-frosted focus-visible:border-sb-silver focus-visible:text-sb-frosted"
+                  type="button"
+                  onClick={goBack}
+                >
+                  <RxArrowLeft
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 shrink-0"
+                  />
+                  <span className="truncate">
+                    Back to {backTask.frontmatter.title}
+                  </span>
+                </button>
+              ) : null}
               {columnNavigation ? (
                 <ColumnTaskNavigation
                   currentIndex={columnNavigation.currentIndex}
                   total={columnNavigation.total}
                   previousSlug={columnNavigation.previousSlug}
                   nextSlug={columnNavigation.nextSlug}
-                  onSelect={selectTask}
+                  onSelect={stepToTask}
                 />
               ) : null}
             </div>
@@ -320,7 +346,7 @@ export function DetailView({ slug }: { slug: string }) {
                 )
                 .map(warning => warning.message)}
               onChange={related => void updateTask(task.slug, { related })}
-              onOpenTask={selectTask}
+              onOpenTask={followTaskLink}
             />
 
             <dl className="space-y-1.5 border-t border-sb-iron pt-4 font-mono text-[11px] text-sb-silver">

@@ -1,14 +1,15 @@
 {
-  "todo": [],
+  "todo": [
+    "document-updating-scaffolded-files-after-a-shipbench-upgrade",
+    "submit-task-updates-with-ctrl-enter-in-the-board-s-detail-view",
+    "render-github-flavored-markdown-including-strikethrough-in-the-board-s-detail-view"
+  ],
   "backlog": [
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
     "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
-    "document-updating-scaffolded-files-after-a-shipbench-upgrade",
-    "render-github-flavored-markdown-including-strikethrough-in-the-board-s-detail-view",
-    "submit-task-updates-with-ctrl-enter-in-the-board-s-detail-view",
     "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks"
   ],
   "in-progress": [],

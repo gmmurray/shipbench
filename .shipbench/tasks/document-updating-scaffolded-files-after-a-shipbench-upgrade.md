@@ -1,6 +1,6 @@
 ---
 title: Document updating scaffolded files after a ShipBench upgrade
-status: backlog
+status: todo
 priority: medium
 tags:
   - docs
@@ -10,7 +10,7 @@ depends_on:
   - >-
     stamp-scaffolded-agents-md-and-readme-with-the-shipbench-version-that-wrote-them
 created: '2026-10-27T22:35:10.192Z'
-updated: '2026-10-27T22:35:10.192Z'
+updated: '2026-11-20T22:47:03.323Z'
 ---
 
 ## Goal

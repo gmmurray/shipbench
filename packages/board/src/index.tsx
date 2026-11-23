@@ -1,5 +1,6 @@
 import type { BoardAPI } from '@shipbench/core';
 import { createRoot, type Root } from 'react-dom/client';
+import type { BoardNavigation } from './store/boardStore.js';
 import { Board } from './ui/Board.js';
 import './styles.css';
 
@@ -12,6 +13,10 @@ export interface CreateBoardOptions {
    *  distinguishable. Hosts that own their own routing and tab title leave
    *  this off. The name itself always comes from `config.name`. */
   documentTitle?: boolean;
+  /** Connects the open task to the host's own URL and history. The board
+   *  never touches either itself, so a host that leaves this off keeps them
+   *  as they are. */
+  navigation?: BoardNavigation;
 }
 
 export function createBoard(
@@ -25,11 +30,12 @@ export function createBoard(
       api={options.api}
       themeControl={options.themeControl}
       documentTitle={options.documentTitle}
+      navigation={options.navigation}
     />,
   );
 
   return root;
 }
 
-export type { BoardAPI };
+export type { BoardAPI, BoardNavigation };
 export { Board };

@@ -4,6 +4,7 @@ import {
   BoardStoreProvider,
   useBoardStore,
 } from '../store/BoardStoreProvider.js';
+import type { BoardNavigation } from '../store/boardStore.js';
 import { BoardCanvas } from './BoardCanvas.js';
 import { BoardHeader } from './BoardHeader.js';
 import { BoardToaster } from './BoardToaster.js';
@@ -21,11 +22,19 @@ export interface BoardProps {
   /** Standalone hosts pass true to name the browser tab after the project; the
    *  embed omits it and leaves the tab title to the host's own routing. */
   documentTitle?: boolean;
+  /** Hosts that keep the open task in their own URL pass this; see
+   *  `BoardNavigation`. Without it the board leaves history and the URL alone. */
+  navigation?: BoardNavigation;
 }
 
-export function Board({ api, themeControl, documentTitle }: BoardProps) {
+export function Board({
+  api,
+  themeControl,
+  documentTitle,
+  navigation,
+}: BoardProps) {
   return (
-    <BoardStoreProvider api={api}>
+    <BoardStoreProvider api={api} navigation={navigation}>
       <BoardShell
         api={api}
         themeControl={themeControl}

@@ -39,7 +39,9 @@ import { createBoard } from '@shipbench/board';
 createBoard(rootElement, { api });
 ```
 
-`createBoard` is a thin wrapper around `createRoot(rootElement).render(<Board api={api} />)`. Both paths feed the same component.
+`createBoard` is a thin wrapper around `createRoot(rootElement).render(<Board api={api} />)`. Both paths feed the same component and take the same options: `themeControl`, `documentTitle`, and `navigation` (see [Detail mode](#detail-mode)). Each one is for a host that owns the page, so each defaults off.
+
+The package's two entry files split along the same line. `index.tsx` is the library other apps embed, and it touches nothing outside the board. `standalone.tsx` is the page the CLI serves. The board is the whole page there, so it bundles the fonts, applies the stored theme, names the tab, and keeps the open task in the URL. Nothing at runtime tells an embed from a whole page (`window.top === window` holds for any single-page app), so the entry file decides.
 
 ### Embedding: sizing the board
 
@@ -78,6 +80,7 @@ Store shape (sketch):
   warnings: TaskValidationWarning[],
   unreadable: UnreadableTaskFile[],
   selectedTaskSlug: string | null,
+  taskTrail: string[],              // where the in-app back goes
   searchQuery: string,
   lastSyncedAt: number | null,
   isSyncing: boolean,
@@ -87,7 +90,10 @@ Store shape (sketch):
   updateTask: (slug, fields, body?) => Promise<void>,  // optimistic
   createTask: (title, fields?) => Promise<void>,  // optimistic
   deleteTask: (slug) => Promise<void>,            // optimistic
-  selectTask: (slug | null) => void,
+  selectTask: (slug | null) => void,   // a card, or the board; new trail
+  followTaskLink: (slug) => void,      // pushes the open task
+  stepToTask: (slug) => void,          // j/k; keeps the trail
+  goBack: () => void,
   setSearchQuery: (q: string) => void,
 }
 ```
@@ -192,7 +198,24 @@ A Linear-style in-place swap. The header stays; the board area becomes the detai
 └──────────────────────────────────────────┴──────────────────────┘
 ```
 
-Detail mode is driven by `selectedTaskSlug` — there is no internal route. An embedding host can lift this to its own URL via props for deep linking; the CLI doesn't bother.
+Detail mode is driven by `selectedTaskSlug` — there is no internal route.
+
+**The trail.** Following a link from one task to another (in a description, a Task Update, or the Related list) pushes the open task onto `taskTrail`. While the trail holds a live task, a "Back to *<that task's title>*" button sits beside "Back to board" and returns to it. The trail follows these rules:
+
+- Opening a card starts a new trail. "Back to board", ESC, the breadcrumb, and opening the archive clear it.
+- j/k replaces the open task and keeps the trail, so back doesn't retrace j presses.
+- A link to a task already in the trail goes back to it, so A → B → A doesn't grow the trail.
+- Back skips a task in the trail that has since been archived or deleted, so it never lands on "Task no longer exists".
+- Every move passes the same unsaved-text guard as any other way out of a task.
+
+**The host hook.** `navigation` (`BoardNavigation`) lets a host keep the open task in its own URL. By default a library host passes nothing, and the board never reads or writes `window.history` or the URL. A test checks this. A host that passes `navigation` can supply any of these:
+
+- `initialTaskSlug` and `initialTrail`: where to start. If no live task has that slug once tasks load, the board opens instead and reports it as a replace, so a stale deep link doesn't open on "Task no longer exists".
+- `onSelectedTaskChange(slug, { push, trail })`: called after the board's own navigation. `push` is true for a new place (a card, a link, the board) and false for a replacement (j/k, or the open task archived or deleted). It is never called for a change the host asked for.
+- `subscribe(select)`: the host calls `select(slug, trail?)` when its location changes, such as on `popstate`.
+- `back(steps)`: when present, the in-app back calls it instead of walking the trail itself, and the host answers through `subscribe`. Both backs read one trail, so they can't disagree.
+
+`standalone.tsx` connects all four to `history` through `historyNavigation.ts`. The open task is `?task=<slug>`, so a reload or a copied local link reopens it. Each entry stores its trail in `history.state`, so browser back and forward restore the in-app back too. The URL has already changed by the time `popstate` fires, so declining the unsaved-text prompt pushes the open task's entry back; otherwise the URL and the screen would disagree. The archive view gets no history entry of its own: opening it from a task is reported as going to the board.
 
 The left pane renders parsed Task Updates below the editable description as a separate chronological timeline. Each entry shows a locally formatted timestamp in mono, exposes the exact ISO 8601 value on hover, and renders its Markdown text in the normal reading face. The Board does not merge Task Updates back into the description editor. In writable mode, a compact composer appends through `BoardAPI.addComment`, and per-entry controls edit text or confirm deletion through zero-based indices. Core supplies and preserves the authoritative timestamp. Read-only hosts render no mutation controls.
 
@@ -212,7 +235,7 @@ Five outcomes:
 
 | Link | Behaviour |
 |---|---|
-| A live task, in any task-link form | Opens that task in place via `selectTask` — no host involvement |
+| A live task, in any task-link form | Opens that task in place via `followTaskLink`, which pushes the open one onto the trail — no host involvement |
 | An archived task | Treated as a repo file at `.shipbench/tasks/archive/<slug>.md`, where the file is now. The Board does not open archived tasks |
 | Repo file | `BoardAPI.resolveRepoLink(path)` names the destination; opens in a new tab |
 | External `http(s)` | New tab, `rel="noopener noreferrer"`, href untouched |
@@ -237,7 +260,7 @@ Five outcomes:
 
 ## Non-goals (for now)
 
-- URL routing inside Board.
+- URL routing inside Board. The Board never touches the URL or history itself. A host that owns the page may, through `navigation`, and the CLI's page does.
 - Filter UI beyond search. Status filter via column visibility, no priority/assignee filters in v1.
 - A rich-text editor for the body — `react-markdown` + plain textarea suffices.
 - Bulk operations (multi-select, mass move).
