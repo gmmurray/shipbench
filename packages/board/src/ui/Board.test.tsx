@@ -707,6 +707,92 @@ describe('Board', () => {
     expect(screen.getByTitle('2026-06-01T12:30:00.000Z')).toBeInTheDocument();
   });
 
+  it.each([
+    ['Ctrl', { ctrlKey: true }],
+    ['Cmd', { metaKey: true }],
+  ])('%s+Enter adds a task update once, even when pressed again in flight', async (_label, modifier) => {
+    const addComment = vi.fn(() => new Promise<Task>(() => {}));
+    const user = userEvent.setup();
+    render(<Board api={api({ addComment })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const composer = screen.getByRole('textbox', { name: 'Task update text' });
+    await user.type(composer, 'Scope changed after review.');
+
+    fireEvent.keyDown(composer, { key: 'Enter', ...modifier });
+    fireEvent.keyDown(composer, { key: 'Enter', ...modifier });
+
+    expect(addComment).toHaveBeenCalledTimes(1);
+    expect(addComment).toHaveBeenCalledWith(
+      'setup-auth',
+      'Scope changed after review.',
+    );
+  });
+
+  it('keeps plain Enter as a newline and ignores Ctrl+Enter on an empty task update', async () => {
+    const addComment = vi.fn(async () => tasks[0] as Task);
+    const user = userEvent.setup();
+    render(<Board api={api({ addComment })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    const composer = screen.getByRole('textbox', { name: 'Task update text' });
+
+    fireEvent.keyDown(composer, { key: 'Enter', ctrlKey: true });
+    await user.type(composer, '   ');
+    fireEvent.keyDown(composer, { key: 'Enter', ctrlKey: true });
+    await user.clear(composer);
+    await user.type(composer, 'First line{Enter}second line');
+
+    expect(composer).toHaveValue('First line\nsecond line');
+    expect(addComment).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Ctrl', { ctrlKey: true }],
+    ['Cmd', { metaKey: true }],
+  ])('%s+Enter saves an edited task update once, even when pressed again in flight', async (_label, modifier) => {
+    const editComment = vi.fn(() => new Promise<Task>(() => {}));
+    const user = userEvent.setup();
+    render(<Board api={api({ editComment })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 1' }),
+    );
+    const editor = screen.getByRole('textbox', { name: 'Task update 1 text' });
+    await user.clear(editor);
+    await user.type(editor, 'Corrected the PKCE decision.');
+
+    fireEvent.keyDown(editor, { key: 'Enter', ...modifier });
+    fireEvent.keyDown(editor, { key: 'Enter', ...modifier });
+
+    expect(editComment).toHaveBeenCalledTimes(1);
+    expect(editComment).toHaveBeenCalledWith(
+      'setup-auth',
+      0,
+      'Corrected the PKCE decision.',
+    );
+  });
+
+  it('keeps plain Enter as a newline and ignores Ctrl+Enter on an emptied task update edit', async () => {
+    const editComment = vi.fn(async () => tasks[0] as Task);
+    const user = userEvent.setup();
+    render(<Board api={api({ editComment })} />);
+
+    await user.click(await screen.findByText('Setup auth'));
+    await user.click(
+      screen.getByRole('button', { name: 'Edit task update 1' }),
+    );
+    const editor = screen.getByRole('textbox', { name: 'Task update 1 text' });
+    await user.clear(editor);
+
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+    await user.type(editor, 'First line{Enter}second line');
+
+    expect(editor).toHaveValue('First line\nsecond line');
+    expect(editComment).not.toHaveBeenCalled();
+  });
+
   it('confirms and optimistically deletes a task update', async () => {
     let resolveDeleteComment: ((task: Task) => void) | undefined;
     const deleteComment = vi.fn(

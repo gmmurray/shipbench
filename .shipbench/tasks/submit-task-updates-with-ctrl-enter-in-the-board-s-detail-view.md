@@ -1,11 +1,11 @@
 ---
 title: Submit Task Updates with Ctrl+Enter in the Board's detail view
-status: todo
+status: done
 priority: low
 tags:
   - board
 created: '2026-10-29T19:17:59.112Z'
-updated: '2026-11-20T22:47:06.469Z'
+updated: '2026-11-23T23:53:06.734Z'
 ---
 
 Ctrl+Enter (Cmd+Enter on macOS) should submit the Task Update forms in the detail view. Right now, the only way to submit is to move the mouse or press Tab to reach the button.
@@ -27,3 +27,8 @@ Out of scope: the description editor. It has no submit, only an Edit/Done toggle
 - Tests follow the existing Ctrl/Cmd cases.
 - Optionally, the hint line under the composer mentions the shortcut.
 - A changeset for `@shipbench/board`.
+
+## Task Updates
+
+### 2026-11-23T23:49:24.568Z
+Pulled the new-task dialog's Ctrl/Cmd+Enter handler into a shared submitOnModEnter helper and used it on the dialog, the add-update form, and the edit-update form, so all three behave the same. The composer hint now mentions the shortcut. Changeset is a minor for @shipbench/board and shipbench: it's a new capability, and CLI users get it through shipbench board.

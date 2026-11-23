@@ -1,14 +1,9 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import {
-  type KeyboardEvent,
-  type ReactNode,
-  type SubmitEvent,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, type SubmitEvent, useRef, useState } from 'react';
 import { RxCross2, RxPlus } from 'react-icons/rx';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { Select } from './Select.js';
+import { submitOnModEnter } from './submitOnModEnter.js';
 
 export function NewTaskDialog({
   initialStatus,
@@ -67,13 +62,6 @@ export function NewTaskDialog({
     reset();
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      event.preventDefault();
-      event.currentTarget.requestSubmit();
-    }
-  };
-
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger asChild>
@@ -119,7 +107,7 @@ export function NewTaskDialog({
 
           <form
             className="grid gap-4"
-            onKeyDown={onKeyDown}
+            onKeyDown={submitOnModEnter}
             onSubmit={onSubmit}
           >
             <label className="grid gap-1.5">

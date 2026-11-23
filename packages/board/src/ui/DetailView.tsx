@@ -41,6 +41,7 @@ import {
   TagInput,
 } from './MetadataInputs.js';
 import { Select, type SelectOption } from './Select.js';
+import { submitOnModEnter } from './submitOnModEnter.js';
 import { useAutosizeTextarea } from './useAutosizeTextarea.js';
 import { useBoardKeydown } from './useBoardKeydown.js';
 import { useDraft } from './useDraft.js';
@@ -697,7 +698,11 @@ function TaskUpdatesSection({
   };
 
   const editForm = (label: string) => (
-    <form className="mt-2" onSubmit={event => void handleEdit(event)}>
+    <form
+      className="mt-2"
+      onKeyDown={submitOnModEnter}
+      onSubmit={event => void handleEdit(event)}
+    >
       {editedEntryGone ? (
         <p
           className="mb-2 font-mono text-[11px] leading-5 text-sb-warning"
@@ -868,6 +873,7 @@ function TaskUpdatesSection({
       {readOnly || unreadableUpdates ? null : (
         <form
           className="mt-5 border-t border-sb-iron pt-5"
+          onKeyDown={submitOnModEnter}
           onSubmit={event => void handleSubmit(event)}
         >
           <label
@@ -888,7 +894,7 @@ function TaskUpdatesSection({
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-xl text-[13px] text-sb-silver">
               Time-stamped by ShipBench. Keep timeless details in the
-              description.
+              description. Ctrl+Enter (⌘+Enter on Mac) adds it.
             </p>
             <button
               className="inline-flex h-9 items-center gap-2 rounded bg-sb-accent px-3 text-[13px] font-semibold text-sb-canvas transition-colors hover:bg-sb-accent-hover active:bg-sb-accent-pressed disabled:cursor-not-allowed disabled:opacity-40"

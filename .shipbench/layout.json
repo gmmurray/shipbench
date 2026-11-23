@@ -1,6 +1,5 @@
 {
   "todo": [
-    "submit-task-updates-with-ctrl-enter-in-the-board-s-detail-view",
     "render-github-flavored-markdown-including-strikethrough-in-the-board-s-detail-view"
   ],
   "backlog": [
