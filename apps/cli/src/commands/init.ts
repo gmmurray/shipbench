@@ -13,6 +13,8 @@ export interface InitSettings {
   version: string;
 }
 
+const UPGRADING_URL = 'https://shipbench.dev/docs/upgrading/';
+
 function formatProjectWarning(warning: ProjectWarning): string {
   const source = 'path' in warning ? warning.path : warning.slug;
   return `${source}: ${warning.message}`;
@@ -76,12 +78,16 @@ export function registerInit(
         }
       } else {
         chrome(`ShipBench is already initialized for "${result.config.name}".`);
-        for (const file of result.scaffold) {
-          if (file.version !== null && file.version !== version) {
-            chrome(
-              `${file.path} was written by ShipBench ${file.version}; this is ${version}.`,
-            );
-          }
+        const behind = result.scaffold.filter(file => file.version !== version);
+        for (const file of behind) {
+          chrome(
+            file.version === null
+              ? `${file.path} records no ShipBench version.`
+              : `${file.path} was written by ShipBench ${file.version}; this is ${version}.`,
+          );
+        }
+        if (behind.length > 0) {
+          chrome(`To update without losing your edits, see ${UPGRADING_URL}`);
         }
       }
 

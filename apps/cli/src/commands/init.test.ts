@@ -85,6 +85,8 @@ describe('shipbench init', () => {
     expect(h.stdout).toEqual([]);
     expect(h.stderr).toEqual([
       'ShipBench is already initialized for "test-project".',
+      '.shipbench/README.md records no ShipBench version.',
+      'To update without losing your edits, see https://shipbench.dev/docs/upgrading/',
     ]);
     expect(h.adapter.files).toEqual(before);
   });
@@ -124,7 +126,7 @@ describe('shipbench init', () => {
     );
   });
 
-  it('names scaffold files an earlier version wrote, without writing', async () => {
+  it('names scaffold files that are behind or unstamped, without writing', async () => {
     const earlier = harness(undefined, { version: '0.4.0' });
     await earlier.run('init');
     const files = Object.fromEntries(earlier.adapter.files);
@@ -136,9 +138,25 @@ describe('shipbench init', () => {
 
     expect(h.stderr).toEqual([
       'ShipBench is already initialized for "test-project".',
+      '.shipbench/README.md records no ShipBench version.',
       '.shipbench/AGENTS.md was written by ShipBench 0.4.0; this is 0.11.0.',
+      'To update without losing your edits, see https://shipbench.dev/docs/upgrading/',
     ]);
     expect(h.adapter.files).toEqual(before);
+  });
+
+  it('says nothing about scaffold files the running version wrote', async () => {
+    const current = harness(undefined, { version: '0.11.0' });
+    await current.run('init');
+    const h = harness(Object.fromEntries(current.adapter.files), {
+      version: '0.11.0',
+    });
+
+    await h.run('init');
+
+    expect(h.stderr).toEqual([
+      'ShipBench is already initialized for "test-project".',
+    ]);
   });
 
   it('no longer accepts --harbor', async () => {

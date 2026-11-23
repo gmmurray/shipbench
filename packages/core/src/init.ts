@@ -195,7 +195,7 @@ export async function inspectProjectInitialization(
 const SCAFFOLD_STAMP_PATTERN = /^\uFEFF?<!-- shipbench-scaffold ([^\s:]+):/;
 
 function scaffoldStamp(version: string): string {
-  return `<!-- shipbench-scaffold ${version}: keep this line. It records the ShipBench version that wrote this file, so an upgrade can tell your edits from template changes. -->\n\n`;
+  return `<!-- shipbench-scaffold ${version}: keep this line. It records the ShipBench version that wrote this file, so an upgrade can tell your edits from template changes. See https://shipbench.dev/docs/upgrading/ -->\n\n`;
 }
 
 /**

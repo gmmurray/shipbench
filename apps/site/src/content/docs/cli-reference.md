@@ -3,7 +3,7 @@ title: ShipBench CLI Reference
 description: Commands, flags, JSON payloads, and agent-oriented query patterns for the ShipBench CLI.
 group: Reference
 order: 1
-updated: 2026-11-11
+updated: 2026-11-23
 ---
 
 The ShipBench CLI reads and writes the nearest `.shipbench/` project at or above your current directory, or the one in the directory selected with the global `-C` option.
@@ -80,7 +80,7 @@ Initializes a new ShipBench project. `--name` defaults to the selected project d
 
 Initialization creates `config.json`, `layout.json`, `README.md`, `AGENTS.md`, and a welcome task only when the project is absent. A valid existing project remains byte-for-byte unchanged. An incomplete, malformed, or invalid project fails before any write. If you pass `--name` for an existing project, it must match the configured name.
 
-The scaffolded `README.md` and `AGENTS.md` start with a comment recording the ShipBench version that wrote them, such as `<!-- shipbench-scaffold 0.11.0: … -->`. Keep that line when you edit either file. When you run `init` on an existing project, it names each of the two whose stamp records a version other than the one you're running.
+The scaffolded `README.md` and `AGENTS.md` start with a comment recording the ShipBench version that wrote them, such as `<!-- shipbench-scaffold 0.11.0: … -->`. Keep that line when you edit either file. When you run `init` on an existing project, it names each of the two that has no stamp, or a stamp from a version other than the one you're running, and links to [Upgrading ShipBench](/docs/upgrading/).
 
 ### `shipbench task create`
 

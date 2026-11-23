@@ -1,6 +1,5 @@
 {
   "todo": [
-    "document-updating-scaffolded-files-after-a-shipbench-upgrade",
     "submit-task-updates-with-ctrl-enter-in-the-board-s-detail-view",
     "render-github-flavored-markdown-including-strikethrough-in-the-board-s-detail-view"
   ],
@@ -10,7 +9,8 @@
     "spike-explore-outcomes-and-deliverables-above-individual-tasks",
     "spike-investigate-task-templates-in-the-shipbench-convention",
     "spike-let-the-owner-s-agents-report-shipbench-issues-from-other-projects",
-    "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks"
+    "spike-explore-documentation-pages-and-other-record-kinds-beyond-tasks",
+    "stamp-this-repo-s-scaffolded-files-once-0-11-0-is-published"
   ],
   "in-progress": [],
   "review": []

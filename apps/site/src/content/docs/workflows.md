@@ -3,7 +3,7 @@ title: Workflows
 description: Choose a ShipBench development workflow — solo trunk or concurrent agents in Git worktrees — and find the conventions to paste into your project's agent instructions.
 group: Workflows
 order: 0
-updated: 2026-09-24
+updated: 2026-11-23
 ---
 
 ShipBench stores task data and provides operations on it. It doesn't prescribe a development process. Your columns define the lifecycle, and your repository's instructions define who moves work between them.
@@ -42,9 +42,9 @@ Recipes go in your repository's root `AGENTS.md`, not in the file ShipBench scaf
 
 | File | Answers | Owned by |
 | --- | --- | --- |
-| `.shipbench/AGENTS.md` | How do I operate this board? | ShipBench. Written by `shipbench init`, and it describes the base features: the file format, the valid statuses, the query commands. |
+| `.shipbench/AGENTS.md` | How do I operate this board? | You, starting from ShipBench's template. `shipbench init` writes it once to describe the base features: the file format, the valid statuses, the query commands. After an upgrade, you [merge in the new template](/docs/upgrading/). |
 | `AGENTS.md` at the repository root | How does *this project* work? | You. ShipBench never reads or writes it. |
 
-A rule that would hold for any ShipBench project belongs in `.shipbench/AGENTS.md`, and `shipbench init` has probably written it already. A decision about your project, such as which column means "hand this back to me" or whether branches are involved, belongs in the root file, because no scaffold can guess it.
+A rule that would hold for any ShipBench project belongs in `.shipbench/AGENTS.md`, and `shipbench init` has probably written it already. A decision about your project, such as which column means "hand this back to me" or whether branches are involved, belongs in the root file, because no scaffold can guess it. Keeping those decisions out of `.shipbench/AGENTS.md` also keeps it close to the template, so upgrades merge cleanly.
 
 Some conventions touch both. This repository's `.shipbench/AGENTS.md` has a hand-written section on worktrees that `shipbench init` doesn't scaffold. It lives there because it's about keeping the board correct when status is branch-local, not about how the project develops software. When a convention spans both files, put it where a reader would look first and link to it from the other.
