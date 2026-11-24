@@ -1,7 +1,5 @@
 {
-  "todo": [
-    "render-github-flavored-markdown-including-strikethrough-in-the-board-s-detail-view"
-  ],
+  "todo": [],
   "backlog": [
     "spike-explore-a-local-workbench-across-shipbench-repositories",
     "spike-make-project-reasoning-and-implementation-reviewable-through-git-history",

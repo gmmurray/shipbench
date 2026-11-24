@@ -1,5 +1,6 @@
-import type { ComponentPropsWithoutRef } from 'react';
+import { type ComponentPropsWithoutRef, useId } from 'react';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useBoardStore } from '../store/BoardStoreProvider.js';
 import { classifyLink } from '../utils/links.js';
 
@@ -13,10 +14,36 @@ import { classifyLink } from '../utils/links.js';
  * bodies are whatever a repository holds, so that filtering matters. Relative paths pass through it untouched, which leaves
  * every link decision to `components.a` below — after sanitization, not
  * instead of it.
+ *
+ * GFM matches what GitHub renders for the same file. Its bare-URL autolinks
+ * are ordinary links by the time they reach `components.a`, so they take the
+ * same path. Task-list checkboxes come out `disabled`: ticking one would be a
+ * write.
+ *
+ * Footnote ids are prefixed per instance. The detail view renders a
+ * description and every Update on one page, and each can have its own `[^1]`.
  */
 export function Markdown({ children }: { children: string }) {
+  const footnotePrefix = `sb-md-${useId().replace(/[^\w-]/g, '')}-`;
   return (
-    <ReactMarkdown components={{ a: MarkdownLink }}>{children}</ReactMarkdown>
+    <ReactMarkdown
+      components={{ a: MarkdownLink, table: MarkdownTable }}
+      remarkPlugins={[remarkGfm]}
+      remarkRehypeOptions={{ clobberPrefix: footnotePrefix }}
+    >
+      {children}
+    </ReactMarkdown>
+  );
+}
+
+type TableProps = ComponentPropsWithoutRef<'table'> & { node?: unknown };
+
+/** The detail pane is narrow; a wide table scrolls inside it instead of widening it. */
+function MarkdownTable({ node: _node, ...props }: TableProps) {
+  return (
+    <div className="sb-md-table">
+      <table {...props} />
+    </div>
   );
 }
 

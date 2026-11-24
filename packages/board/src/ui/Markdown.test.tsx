@@ -251,3 +251,93 @@ describe('Markdown link handling', () => {
     });
   });
 });
+
+describe('GitHub Flavored Markdown', () => {
+  const gfm: Task = {
+    ...(tasks[0] as Task),
+    body: [
+      'The ~~old plan~~ is out. Read https://shipbench.dev/docs or www.shipbench.dev.',
+      '',
+      '| Column | Meaning |',
+      '| ------ | ------- |',
+      '| todo   | Ready   |',
+      '',
+      '- [x] Shipped',
+      '- [ ] Not yet',
+      '',
+      'A claim.[^1]',
+      '',
+      '[^1]: The source.',
+      '',
+      '## Notes',
+    ].join('\n'),
+    comments: [
+      {
+        timestamp: '2026-06-01T12:30:00.000Z',
+        text: 'Scrapped ~~the shortcut~~.[^1]\n\n[^1]: Another source.',
+      },
+    ],
+  };
+  const listTasks = vi.fn(async () => ({
+    tasks: [gfm, tasks[1] as Task],
+    warnings: [],
+    unreadable: [],
+  }));
+
+  it('renders strikethrough in descriptions and updates', async () => {
+    await openSetupAuth(api({ listTasks }));
+
+    expect(screen.getByText('old plan').tagName).toBe('DEL');
+    expect(screen.getByText('the shortcut').tagName).toBe('DEL');
+  });
+
+  it('wraps tables in a horizontal scroll container', async () => {
+    await openSetupAuth(api({ listTasks }));
+
+    const table = screen.getByRole('table');
+    expect(table.parentElement).toHaveClass('sb-md-table');
+    expect(
+      screen.getByRole('columnheader', { name: 'Meaning' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders task-list items as read-only checkboxes', async () => {
+    await openSetupAuth(api({ listTasks }));
+
+    const boxes = screen.getAllByRole('checkbox');
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) expect(box).toBeDisabled();
+    expect(boxes[0]).toBeChecked();
+    expect(boxes[1]).not.toBeChecked();
+  });
+
+  it('sends bare URLs through the external link path', async () => {
+    await openSetupAuth(api({ listTasks }));
+
+    const url = screen.getByRole('link', {
+      name: 'https://shipbench.dev/docs',
+    });
+    expect(url).toHaveAttribute('href', 'https://shipbench.dev/docs');
+    expect(url).toHaveAttribute('target', '_blank');
+    expect(url).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const www = screen.getByRole('link', { name: 'www.shipbench.dev' });
+    expect(www).toHaveAttribute('href', 'http://www.shipbench.dev');
+    expect(www).toHaveAttribute('target', '_blank');
+  });
+
+  it('keeps footnotes in the description and an update apart', async () => {
+    await openSetupAuth(api({ listTasks }));
+
+    const refs = screen.getAllByRole('link', { name: '1' });
+    expect(refs).toHaveLength(2);
+
+    const targets = refs.map(ref => {
+      const href = ref.getAttribute('href') ?? '';
+      expect(href.startsWith('#')).toBe(true);
+      return document.getElementById(href.slice(1));
+    });
+    expect(targets[0]).toHaveTextContent('The source.');
+    expect(targets[1]).toHaveTextContent('Another source.');
+  });
+});
