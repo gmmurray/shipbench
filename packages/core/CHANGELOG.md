@@ -1,5 +1,18 @@
 # @shipbench/core
 
+## 0.11.0
+
+### Minor Changes
+
+- 1f18306: New `validateProject(adapter, { archived })` returns a `ProjectValidationReport`: every structural problem in the project, each with a `severity` (`error` or `warning`), a stable `code`, the file `path`, and a message. It writes nothing. `resolveConfig` is the non-throwing form of `loadConfig` it builds on, returning each config validation error separately.
+  
+  `TaskValidationWarning` and `ConfigLoadWarning` gain an optional `code` (`TaskWarningCode`, `ConfigWarningCode`), which core always sets, so a host can tell warnings apart without matching message text.
+  
+  Task reads now also warn about a missing or blank `title`, a missing or unparseable `created` or `updated`, a `tags` value that is not a list of strings, a `depends_on` list containing non-strings, a task that depends on itself, and one that lists itself in `related`. When a read has consulted the archive, a dangling dependency's message says it matches no live or archived task.
+- 3d8c580: `initProject` takes a required `version`, which it stamps into the first line of the scaffolded `README.md` and `AGENTS.md`. It rejects an empty value or one containing whitespace or a colon. `InitProjectResult` gains `scaffold`, listing whichever of those two files exist with the version each one's stamp records, or `null` when it has none. The new `readScaffoldStamp(content)` reads the stamp from a file's text.
+  
+  **Breaking:** pass `version` to `initProject`, normally the version of the ShipBench release your host ships with.
+
 ## 0.10.0
 
 ### Minor Changes

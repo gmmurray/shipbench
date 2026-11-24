@@ -1,5 +1,25 @@
 # @shipbench/board
 
+## 0.11.0
+
+### Minor Changes
+
+- ab3e411: The board's detail view now renders task descriptions and Task Updates as GitHub Flavored Markdown, so a task reads the same on the board as on GitHub. Strikethrough, tables, task lists, footnotes, and bare URLs all render.
+  
+  Wide tables scroll sideways inside the detail pane. Task-list checkboxes are read-only. A bare URL opens in a new tab, the same as any other external link.
+- cf16cf8: After you follow a link from one task to another in the board's detail view, a "Back to *<task title>*" button takes you back to the task you came from, and you can keep going back along the chain. Links in descriptions, Task Updates, and the Related list all count. j/k doesn't add to the trail, and going back skips a task that has since been archived or deleted.
+  
+  In `shipbench board`, the open task is now part of the URL (`?task=<slug>`). The browser's back and forward buttons move between tasks and the board, a reload keeps the open task, and a link to a task that no longer exists opens the board.
+  
+  `createBoard` and `<Board>` take a new `navigation` option for hosts that want the open task in their own URL: a starting task, a callback when the board navigates, a way to select a task from outside, and an optional `back`. Without it, the board leaves `window.history` and the URL alone, as before.
+- 268f0ae: In the board's detail view, Ctrl+Enter (Cmd+Enter on macOS) now adds a new Task Update or saves an edited one, the same shortcut the new-task dialog already takes. Plain Enter still starts a new line.
+
+### Patch Changes
+
+- Updated dependencies [1f18306]
+- Updated dependencies [3d8c580]
+  - @shipbench/core@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes

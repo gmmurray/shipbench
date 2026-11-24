@@ -1,5 +1,37 @@
 # shipbench
 
+## 0.11.0
+
+### Minor Changes
+
+- 1f18306: New `shipbench validate` checks a project's structure after hand edits, a merge, or a batch of agent changes, and writes nothing. It reports problems in `config.json`, `layout.json`, and each task file, grouped by file, with a repair command where one exists. Beyond the warnings `task list` prints, it finds dependency cycles of any length, a slug used both live and in the archive, non-`.md` files in `tasks/`, and unknown config keys. `--archived` adds the archive; `--json` prints only the report on stdout.
+  
+  It exits `0` when nothing is an error, `1` when anything is, and `2` when it cannot run. Warnings, such as a preserved unknown field, do not fail it.
+  
+  Task read warnings now also cover a missing `title`, a malformed `created` or `updated`, non-list `tags`, and a task that depends on or relates to itself. `task edit` now repairs a `tags`, `depends_on`, or `related` value that isn't a list, instead of failing or ignoring the request.
+  
+  The `.shipbench/AGENTS.md` that `shipbench init` writes now lists the command. Existing projects keep their file.
+- ab3e411: The board's detail view now renders task descriptions and Task Updates as GitHub Flavored Markdown, so a task reads the same on the board as on GitHub. Strikethrough, tables, task lists, footnotes, and bare URLs all render.
+  
+  Wide tables scroll sideways inside the detail pane. Task-list checkboxes are read-only. A bare URL opens in a new tab, the same as any other external link.
+- cf16cf8: After you follow a link from one task to another in the board's detail view, a "Back to *<task title>*" button takes you back to the task you came from, and you can keep going back along the chain. Links in descriptions, Task Updates, and the Related list all count. j/k doesn't add to the trail, and going back skips a task that has since been archived or deleted.
+  
+  In `shipbench board`, the open task is now part of the URL (`?task=<slug>`). The browser's back and forward buttons move between tasks and the board, a reload keeps the open task, and a link to a task that no longer exists opens the board.
+  
+  `createBoard` and `<Board>` take a new `navigation` option for hosts that want the open task in their own URL: a starting task, a callback when the board navigates, a way to select a task from outside, and an optional `back`. Without it, the board leaves `window.history` and the URL alone, as before.
+- 268f0ae: In the board's detail view, Ctrl+Enter (Cmd+Enter on macOS) now adds a new Task Update or saves an edited one, the same shortcut the new-task dialog already takes. Plain Enter still starts a new line.
+- 25fe697: Running `shipbench init` on an existing project now also names a scaffolded `.shipbench/README.md` or `.shipbench/AGENTS.md` that carries no version stamp, which is every file written before this release. Whenever it names a file, it links to [Upgrading ShipBench](https://shipbench.dev/docs/upgrading/), which explains how to bring the file up to date by merging in the new template, keeping your edits. The scaffold's stamp line links to the same page.
+- 3d8c580: `shipbench init` now starts `.shipbench/README.md` and `.shipbench/AGENTS.md` with a comment recording the ShipBench version that wrote them, such as `<!-- shipbench-scaffold 0.11.0: … -->`. Keep that line when you edit either file. It identifies the exact template the file started from, which `npx shipbench@<version> init` can regenerate, so you can tell your edits from template changes after an upgrade.
+  
+  Running `init` on an existing project still writes nothing. It now also names each of the two files whose stamp records a version other than the one you're running. Files written by earlier versions carry no stamp and aren't mentioned.
+
+### Patch Changes
+
+- Updated dependencies [ab3e411]
+- Updated dependencies [cf16cf8]
+- Updated dependencies [268f0ae]
+  - @shipbench/board@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes
